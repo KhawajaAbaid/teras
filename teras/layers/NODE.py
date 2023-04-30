@@ -1,14 +1,13 @@
 from tensorflow import keras
 import tensorflow as tf
 from tensorflow.keras import layers
-import numpy as np
 from warnings import warn
 from teras.utils import sparsemoid
 import tensorflow_addons as tfa
 import tensorflow_probability as tfp
 
 
-class ObliviousDecisionTree(keras.layers.Layer):
+class ObliviousDecisionTree(layers.Layer):
     """
         Oblivious Decision Tree layer as proposed by Sergei Popov et al.
         in paper Neural Oblivious Decision Ensembles
