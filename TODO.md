@@ -1,5 +1,5 @@
 # Teras
-### Short for Tabular Data
+### Short for Tabular Keras
 
 1. Search and collect survery papers on tabular deep learing.
 2. Read "Deep Learning with Keras" and refresh the inner workings of keras.
