@@ -29,12 +29,12 @@ class TabNetClassifier(keras.Model):
     def __init__(self,
                  units,
                  num_classes,
-                 decision_step_output_dim,
-                 num_decision_steps,
-                 relaxation_factor,
-                 batch_momentum,
-                 virtual_batch_size,
-                 epsilon,
+                 decision_step_output_dim=8,
+                 num_decision_steps=6,
+                 relaxation_factor=1.5,
+                 batch_momentum=0.7,
+                 virtual_batch_size=4,
+                 epsilon=1e-5,
                  output_activation=None,
                  **kwargs):
         super().__init__(**kwargs)
@@ -99,12 +99,12 @@ class TabNetRegressor(keras.Model):
     """
     def __init__(self,
                  units,
-                 decision_step_output_dim,
-                 num_decision_steps,
-                 relaxation_factor,
-                 batch_momentum,
-                 virtual_batch_size,
-                 epsilon,
+                 decision_step_output_dim=8,
+                 num_decision_steps=6,
+                 relaxation_factor=1.5,
+                 batch_momentum=0.7,
+                 virtual_batch_size=4,
+                 epsilon=1e-5,
                  num_outputs=1,
                  **kwargs):
         super().__init__(**kwargs)
