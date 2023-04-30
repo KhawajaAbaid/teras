@@ -13,5 +13,11 @@
 # limitations under the License.
 
 
+
+# NODE models
+from teras.models.NODE import (NODEClassifier,
+                               NODERegressor)
+
+# TabNet models
 from teras.models.TabNet import (TabNetClassifier,
                                 TabNetRegressor)
