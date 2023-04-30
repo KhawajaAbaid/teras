@@ -13,8 +13,13 @@
 # limitations under the License.
 
 
-
+# Activation layers
 from teras.layers.activations import GLU
+
+# NODE layers
+from teras.layers.NODE import ObliviousDecisionTree
+
+# TabNet layers
 from teras.layers.TabNet import (FeatureTransformerBlock as TabNetFeatureTransformerBlock,
                                  FeatureTransformer as TabNetFeatureTransformer,
                                  Encoder as TabNetEncoder)
