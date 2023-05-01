@@ -163,7 +163,7 @@ class NODEClassifier(keras.Model):
         super().__init__(**kwargs)
         assert n_classes is not None, ("n_classes must not be None.")
         self.n_layers = n_layers
-        self.n_classes = n_classes
+        self.n_classes = 1 if n_classes <= 2 else n_classes
         if activation_out is None:
             self.activation_out = "sigmoid" if self.n_classes <= 2 else 'softmax'
         else:
