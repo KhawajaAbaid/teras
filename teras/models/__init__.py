@@ -23,4 +23,5 @@ from teras.models.TabNet import (TabNetClassifier,
                                 TabNetRegressor)
 
 # TabTransformer models
-from teras.models.TabTransformer import (TabTransformerClassifier)
+from teras.models.TabTransformer import (TabTransformerClassifier,
+                                         TabTransformerRegressor)
