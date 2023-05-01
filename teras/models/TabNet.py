@@ -27,10 +27,10 @@ class TabNetClassifier(keras.Model):
                         By default, Sigmoid is used for binary while Softmax is used for Multiclass classification.
     """
     def __init__(self,
-                 units,
-                 num_classes,
-                 decision_step_output_dim=8,
-                 num_decision_steps=6,
+                 units=64,
+                 num_classes=2,
+                 decision_step_output_dim=64,
+                 num_decision_steps=5,
                  relaxation_factor=1.5,
                  batch_momentum=0.7,
                  virtual_batch_size=4,
@@ -98,9 +98,9 @@ class TabNetRegressor(keras.Model):
         num_outputs: Number of regression outputs.
     """
     def __init__(self,
-                 units,
-                 decision_step_output_dim=8,
-                 num_decision_steps=6,
+                 units=64,
+                 decision_step_output_dim=64,
+                 num_decision_steps=5,
                  relaxation_factor=1.5,
                  batch_momentum=0.7,
                  virtual_batch_size=4,
