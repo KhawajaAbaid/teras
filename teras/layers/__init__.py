@@ -10,11 +10,12 @@
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
-# limitations under the License.
+# limitations under the License.5
 
 
 # Activation layers
-from teras.layers.activations import GLU
+from teras.layers.activations import (GLU,
+                                      GEGLU)
 
 # NODE layers
 from teras.layers.NODE import ObliviousDecisionTree
@@ -23,3 +24,12 @@ from teras.layers.NODE import ObliviousDecisionTree
 from teras.layers.TabNet import (FeatureTransformerBlock as TabNetFeatureTransformerBlock,
                                  FeatureTransformer as TabNetFeatureTransformer,
                                  Encoder as TabNetEncoder)
+
+# TabTransformer layers
+from teras.layers.TabTransformer import (CategoricalFeatureEmbedding as TabTransformerCaterCategoricalFeatureEmbedding,
+                                         ColumnEmbedding as TabTransformerColumnEmbedding,
+                                         FeedForward as TabTransformerFeedForward,
+                                         Transformer as TabTransformerTransformerLayer,
+                                         Encoder as TabTransformerEncoder,
+                                         RegressionHead as TabTransformerRegressionHead,
+                                         ClassificationHead as TabTransformerClassificationHead)
