@@ -24,3 +24,12 @@ from teras.layers.NODE import ObliviousDecisionTree
 from teras.layers.TabNet import (FeatureTransformerBlock as TabNetFeatureTransformerBlock,
                                  FeatureTransformer as TabNetFeatureTransformer,
                                  Encoder as TabNetEncoder)
+
+# TabTransformer layers
+from teras.layers.TabTransformer import (CategoricalFeatureEmbedding as TabTransformerCaterCategoricalFeatureEmbedding,
+                                         ColumnEmbedding as TabTransformerColumnEmbedding,
+                                         FeedForward as TabTransformerFeedForward,
+                                         Transformer as TabTransformerTransformerLayer,
+                                         Encoder as TabTransformerEncoder,
+                                         RegressionHead as TabTransformerRegressionHead,
+                                         ClassificationHead as TabTransformerClassificationHead)
