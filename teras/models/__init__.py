@@ -30,3 +30,7 @@ from teras.models.TabTransformer import (TabTransformerClassifier,
 from teras.models.DNFNet import (DNFNetRegressor,
                                  DNFNetClassifier)
 
+# SAINT models
+from teras.models.SAINT import (SAINTClassifier,
+                                SAINTRegressor)
+
