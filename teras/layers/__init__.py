@@ -38,3 +38,14 @@ from teras.layers.TabTransformer import (CategoricalFeatureEmbedding as TabTrans
 from teras.layers.DNFNet import (DNNF,
                                  FeatureSelection,
                                  Localization)
+
+
+# SAINT layers
+from teras.layers.SAINT import (CategoricalFeaturesEmbedding as SAINTCategoricalFeaturesEmbedding,
+                                NumericalFeaturesEmbedding as SAINTNumericalFeaturesEmbedding,
+                                FeedForward as SAINTFeedForward,
+                                MultiHeadInterSampleAttention as SAINTMultiHeadInterSampleAttention,
+                                SAINTTransformer as SAINTTransformer,
+                                Encoder as SAINTEncoder,
+                                RegressionHead as SAINTRegressionHead,
+                                ClassificationHead as SAINTClassificationHead)
