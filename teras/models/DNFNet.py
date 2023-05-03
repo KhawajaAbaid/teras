@@ -17,9 +17,9 @@ class DNFNetRegressor(keras.models.Model):
         n_conjunctions_arr: Conjunctions array. If None, default values will be used.
         conjunctions_depth_arr: Conjunctions depth array. If None, default values will be used.
         keep_feature_prob_arr: Feature probability array. If None. default values will be used.
-        n_formulas: Number of formulas to use in DNNF layer
-        elastic_net_beta: Elastic Net Beta value to use in DNNF layer
-
+        n_formulas: Number of DNF formulas. Each DNF formula is analogous to a tree in tree based ensembles.
+        elastic_net_beta: Use in the computation of Elastic Net Regularization. Defaults to 0.4
+        binary_threshold_eps: Used in the computation of learnable mask. Defaults to 1
     """
     def __init__(self,
                  num_dnnf_layers=1,
@@ -29,6 +29,7 @@ class DNFNetRegressor(keras.models.Model):
                  keep_feature_prob_arr=None,
                  n_formulas=2048,
                  elastic_net_beta=0.4,
+                 binary_threshold_eps=1,
                  **kwargs):
         super().__init__(**kwargs)
         self.num_dnnf_layers = num_dnnf_layers
@@ -38,6 +39,7 @@ class DNFNetRegressor(keras.models.Model):
         self.keep_feature_prob_arr = keep_feature_prob_arr
         self.n_formulas = n_formulas
         self.elastic_net_beta = elastic_net_beta
+        self.binary_threshold_eps = binary_threshold_eps
 
         self.dense_out = layers.Dense(units_out)
 
@@ -47,7 +49,8 @@ class DNFNetRegressor(keras.models.Model):
                                  conjunctions_depth_arr=self.conjunctions_depth_arr,
                                  keep_feature_prob_arr=self.keep_feature_prob_arr,
                                  n_formulas=self.n_formulas,
-                                 elastic_net_beta=self.elastic_net_beta)
+                                 elastic_net_beta=self.elastic_net_beta,
+                                 binary_threshold_eps=self.binary_threshold_eps)
                             for _ in range(self.num_dnnf_layers)]
 
     def call(self, inputs):
