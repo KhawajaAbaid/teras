@@ -13,20 +13,21 @@
 # limitations under the License.
 
 
+# General purpose utility functions
+from teras.utils.utils import tf_random_choice
 
-# NODE models
-from teras.models.NODE import (NODEClassifier,
-                               NODERegressor)
 
-# TabNet models
-from teras.models.TabNet import (TabNetClassifier,
-                                TabNetRegressor)
+# DNFNet utility function(s)
+# Since all the DNFNet utility functions are so specific to the architecture,
+# and some even contain generic names, so it's better not to import them here
+# and rather import them from the path teras.utils.NetDNF
 
-# TabTransformer models
-from teras.models.TabTransformer import (TabTransformerClassifier,
-                                         TabTransformerRegressor)
 
-# DNFNet models
-from teras.models.DNFNet import (DNFNetRegressor,
-                                 DNFNetClassifier)
+# NODE utility function(s)
+from teras.utils.NODE import sparsemoid
+
+
+# TabTransformer utility function(s)
+from teras.utils.TabTransformer import (get_categorical_features_vocab,
+                                        dataframe_to_tf_dataset)
 
