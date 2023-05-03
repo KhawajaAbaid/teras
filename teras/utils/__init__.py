@@ -18,6 +18,9 @@ from teras.utils.utils import tf_random_choice
 
 
 # DNFNet utility function(s)
+# Since all the DNFNet utility functions are so specific to the architecture,
+# and some even contain generic names, so it's better not to import them here
+# and rather import them from the path teras.utils.NetDNF
 
 
 # NODE utility function(s)
