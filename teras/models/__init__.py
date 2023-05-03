@@ -27,5 +27,6 @@ from teras.models.TabTransformer import (TabTransformerClassifier,
                                          TabTransformerRegressor)
 
 # DNFNet models
-from teras.models.DNFNet import (DNFNetRegressor)
+from teras.models.DNFNet import (DNFNetRegressor,
+                                 DNFNetClassifier)
 
