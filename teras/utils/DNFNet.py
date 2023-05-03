@@ -17,17 +17,6 @@ def or_operator(x, d):
     return out
 
 
-
-# Localization
-@tf.function
-def broadcast_exp(x,
-                  mu=None,
-                  sigma=None):
-    diff = tf.expand_dims(x, axis=1) - tf.expand_dims(mu, axis=0)
-    loc = tf.exp(-1 * tf.norm(tf.multiply(diff, sigma), axis=-1))
-    return loc
-
-
 # Feature Selection
 @tf.function
 def binary_threshold(x, eps=0.1):
@@ -40,36 +29,6 @@ def binary_activation(x):
     forward = tf.sign(x)
     backward = tf.tanh(x)
     return backward + tf.stop_gradient(forward - backward)
-
-
-@tf.function
-def feature_selection(input_dim,
-                      keep_feature_prob_arr=None,
-                      n_literals_per_formula_arr=None,
-                      n_formulas=None,
-                      elastic_net_beta=None,
-                      learnable_mask=None,
-                      elastic_net_alpha=None,
-                      extension_matrix_v=None):
-    binary_threshold_eps = 1
-    literals_random_mask, formulas_random_mask = generate_random_mask(input_dim, keep_feature_prob_arr,
-                                                                      n_literals_per_formula_arr, n_formulas)
-    n_effective_features = tf.reduce_sum(formulas_random_mask, axis=0)
-    formulas_random_mask = tf.reshape(formulas_random_mask, shape=tf.shape(learnable_mask))
-    ext_matrix = extension_matrix(extension_matrix_v, n_formulas, n_literals_per_formula_arr)
-    learnable_mask_01 = binary_threshold(learnable_mask, eps=binary_threshold_eps)
-
-    l2_square_norm_selected = tf.linalg.diag_part(tf.matmul(tf.transpose(tf.square(learnable_mask)),
-                                                            formulas_random_mask))
-    l1_norm_selected = tf.linalg.diag_part(tf.matmul(tf.transpose(tf.abs(learnable_mask)),
-                                                     formulas_random_mask))
-
-    l2 = tf.abs(tf.divide(l2_square_norm_selected, n_effective_features) - elastic_net_beta * binary_threshold_eps ** 2)
-    l1 = tf.abs(tf.divide(l1_norm_selected, n_effective_features) - elastic_net_beta * binary_threshold_eps)
-    elastic_net_reg = tf.reduce_mean(
-        (l2 * ((1 - tf.nn.sigmoid(elastic_net_alpha)) / 2) + l1 * tf.nn.sigmoid(elastic_net_alpha)))
-    learnable_binary_mask = tf_matmul_sparse_dense(ext_matrix, learnable_mask_01)
-    return learnable_binary_mask, literals_random_mask, elastic_net_reg
 
 
 @tf.function
@@ -142,7 +101,6 @@ def create_conjunctions_indicator_matrix(b,
             result.write(arr_index, tf.identity(b))
             arr_index += 1
             b[:].assign(False)
-    # result = tf.convert_to_tensor(result)
     result = result.stack()
     return tf.transpose(result)
 
@@ -190,26 +148,20 @@ def compute_n_literals_per_formula(n_conjunctions_arr,
 # General Functions
 @tf.function
 def dense_ndim_array_to_sparse_tensor(arr):
-    # arr = arr.numpy()
     if arr.dtype == tf.bool:
         idx = tf.where(tf.not_equal(arr, False))
     else:
         idx = tf.where(tf.not_equal(arr, 0.0))
     idx = tf.cast(idx, dtype=tf.int64)
     if arr.dtype == tf.bool:
-        ones_ = tf.ones(tf.shape(idx)[0])
-        sh_1 = tf.cast(tf.shape(arr), dtype=tf.int64)
         return tf.SparseTensor(idx,
-                               ones_,
-                               sh_1
+                               tf.ones(tf.shape(idx)[0]),
+                               tf.cast(tf.shape(arr), dtype=tf.int64)
                                )
     else:
-        idxx = tf.transpose(idx)
-        samples = tf.gather_nd(arr, idx)
-        sh_2 = tf.cast(tf.shape(arr), dtype=tf.int64)
         return tf.SparseTensor(idx,
-                               samples,
-                               sh_2
+                               tf.gather_nd(arr, idx),
+                               tf.cast(tf.shape(arr), dtype=tf.int64)
                                )
 
 
