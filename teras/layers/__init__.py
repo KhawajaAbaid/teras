@@ -33,3 +33,8 @@ from teras.layers.TabTransformer import (CategoricalFeatureEmbedding as TabTrans
                                          Encoder as TabTransformerEncoder,
                                          RegressionHead as TabTransformerRegressionHead,
                                          ClassificationHead as TabTransformerClassificationHead)
+
+# DNFNet layers
+from teras.layers.DNFNet import (DNNF,
+                                 FeatureSelection,
+                                 Localization)
