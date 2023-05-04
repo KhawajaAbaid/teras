@@ -49,3 +49,9 @@ from teras.layers.SAINT import (CategoricalFeaturesEmbedding as SAINTCategorical
                                 Encoder as SAINTEncoder,
                                 RegressionHead as SAINTRegressionHead,
                                 ClassificationHead as SAINTClassificationHead)
+
+
+# RTDL ResNet layers
+from teras.layers.RTDL.ResNet import (ResNetBlock as RTDLResNetBlock,
+                                      ClassificationHead as RTDLResNetClassificationHead,
+                                      RegressionHead as RTDLResNetRegressionHead)
