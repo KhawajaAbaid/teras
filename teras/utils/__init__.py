@@ -14,7 +14,9 @@
 
 
 # General purpose utility functions
-from teras.utils.utils import tf_random_choice
+from teras.utils.utils import (tf_random_choice,
+                               get_normalization_layer
+                               )
 
 
 # DNFNet utility function(s)
