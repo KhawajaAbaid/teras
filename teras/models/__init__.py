@@ -34,3 +34,7 @@ from teras.models.DNFNet import (DNFNetRegressor,
 from teras.models.SAINT import (SAINTClassifier,
                                 SAINTRegressor)
 
+
+# RTDL ResNet models
+from teras.models.RTDL.ResNet import (ResNetClassifier as RTDLResNetClassifier,
+                                      ResNetRegressor as RTDLResNetRegressor)
