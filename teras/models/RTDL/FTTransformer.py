@@ -6,7 +6,6 @@ from teras.layers import (FTEncoder,
                           FTClassificationHead,
                           FTRegressionHead)
 from typing import List, Union
-import numpy as np
 
 LayerType = Union[str, keras.layers.Layer]
 
@@ -94,21 +93,15 @@ class FTTransformerClassifier(keras.Model):
         numerical_input_features = None
         categorical_input_features = None
         if self.numerical_features is not None:
-            # numerical_input_features = {feat: inputs[feat] for feat in self.numerical_features}
-            numerical_input_features = np.asarray([inputs[feat] for feat in self.numerical_features])
-            numerical_input_features = numerical_input_features.squeeze().transpose()
-            # numerical_input_features = tf.data.Dataset.from_tensor_slices(numerical_input_features)
-            # numerical_feature_indices = [i for i in range(len(self.numerical_features))]
-            # numerical_input_features = inputs[self.numerical_features]
-            # numerical_input_features = tf.gather(inputs, numerical_feature_indices, axis=1)
-            # numerical_input_features = inputs[:, self.numerical_features]
+            numerical_input_features = tf.TensorArray(size=self.num_numerical_features,
+                                                      dtype=tf.float32)
+            for i, feature in enumerate(self.numerical_features):
+                numerical_input_features.write(i, inputs[feature]).mark_used()
+            numerical_input_features = tf.transpose(tf.squeeze(numerical_input_features.stack(), axis=-1))
+            # numerical_input_features = np.asarray([inputs[feat] for feat in self.numerical_features])
+            # numerical_input_features = numerical_input_features.squeeze().transpose()
         if self.categorical_features is not None:
-            # categorical_feature_indices = [i for i in range(len(self.categorical_features))]
-            # categorical_input_features = tf.nest.map_structure(lambda x: x[self.categorical_features], inputs)
-            # categorical_input_features = tf.gather(inputs, categorical_feature_indices, axis=1)
-            # categorical_input_features = np.asarray([inputs[feat] for feat in self.categorical_features]).squeeze().transpose()
             categorical_input_features = {feat: inputs[feat] for feat in self.categorical_features}
-            # categorical_input_features = tf.data.Dataset.from_tensor_slices(categorical_input_features)
         x = self.feature_tokenizer(numerical_features=numerical_input_features,
                                    categorical_features=categorical_input_features)
         x = self.cls_token(x)
@@ -193,21 +186,15 @@ class FTTransformerRegressor(keras.Model):
         numerical_input_features = None
         categorical_input_features = None
         if self.numerical_features is not None:
-            # numerical_input_features = {feat: inputs[feat] for feat in self.numerical_features}
-            numerical_input_features = np.asarray([inputs[feat] for feat in self.numerical_features])
-            numerical_input_features = numerical_input_features.squeeze().transpose()
-            # numerical_input_features = tf.data.Dataset.from_tensor_slices(numerical_input_features)
-            # numerical_feature_indices = [i for i in range(len(self.numerical_features))]
-            # numerical_input_features = inputs[self.numerical_features]
-            # numerical_input_features = tf.gather(inputs, numerical_feature_indices, axis=1)
-            # numerical_input_features = inputs[:, self.numerical_features]
+            numerical_input_features = tf.TensorArray(size=self.num_numerical_features,
+                                                      dtype=tf.float32)
+            for i, feature in enumerate(self.numerical_features):
+                numerical_input_features.write(i, inputs[feature]).mark_used()
+            numerical_input_features = tf.transpose(tf.squeeze(numerical_input_features.stack(), axis=-1))
+            # numerical_input_features = np.asarray([inputs[feat] for feat in self.numerical_features])
+            # numerical_input_features = numerical_input_features.squeeze().transpose()
         if self.categorical_features is not None:
-            # categorical_feature_indices = [i for i in range(len(self.categorical_features))]
-            # categorical_input_features = tf.nest.map_structure(lambda x: x[self.categorical_features], inputs)
-            # categorical_input_features = tf.gather(inputs, categorical_feature_indices, axis=1)
-            # categorical_input_features = np.asarray([inputs[feat] for feat in self.categorical_features]).squeeze().transpose()
             categorical_input_features = {feat: inputs[feat] for feat in self.categorical_features}
-            # categorical_input_features = tf.data.Dataset.from_tensor_slices(categorical_input_features)
         x = self.feature_tokenizer(numerical_features=numerical_input_features,
                                    categorical_features=categorical_input_features)
         x = self.cls_token(x)
