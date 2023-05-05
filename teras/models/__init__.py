@@ -42,3 +42,7 @@ from teras.models.RTDL.ResNet import (ResNetClassifier as RTDLResNetClassifier,
 # RTDL FTTransformer models
 from teras.models.RTDL.FTTransformer import (FTTransformerClassifier,
                                              FTTransformerRegressor)
+
+# VIME models
+from teras.models.VIME import (VimeSelf,
+                               VimeSemi)
