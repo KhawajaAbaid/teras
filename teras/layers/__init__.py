@@ -55,3 +55,13 @@ from teras.layers.SAINT import (CategoricalFeaturesEmbedding as SAINTCategorical
 from teras.layers.RTDL.ResNet import (ResNetBlock as RTDLResNetBlock,
                                       ClassificationHead as RTDLResNetClassificationHead,
                                       RegressionHead as RTDLResNetRegressionHead)
+
+# RTDL FTTransformer layers
+from teras.layers.RTDL.FTTransformer import (FeatureTokenizer as FTFeatureTokenizer,
+                                             NumericalFeatureTokenizer as FTNumericalFeatureTokenizer,
+                                             CategoricalFeatureTokenizer as FTCategoricalFeatureTokenizer,
+                                             Transformer as FTTransformer,
+                                             Encoder as FTEncoder,
+                                             CLSToken as FTCLSToken,
+                                             ClassificationHead as FTClassificationHead,
+                                             RegressionHead as FTRegressionHead)

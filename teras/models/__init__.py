@@ -38,3 +38,7 @@ from teras.models.SAINT import (SAINTClassifier,
 # RTDL ResNet models
 from teras.models.RTDL.ResNet import (ResNetClassifier as RTDLResNetClassifier,
                                       ResNetRegressor as RTDLResNetRegressor)
+
+# RTDL FTTransformer models
+from teras.models.RTDL.FTTransformer import (FTTransformerClassifier,
+                                             FTTransformerRegressor)

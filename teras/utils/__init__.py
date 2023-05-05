@@ -15,8 +15,10 @@
 
 # General purpose utility functions
 from teras.utils.utils import (tf_random_choice,
-                               get_normalization_layer
-                               )
+                               get_normalization_layer,
+                               get_categorical_features_cardinalities,
+                               get_activation,
+                               get_initializer)
 
 
 # DNFNet utility function(s)
