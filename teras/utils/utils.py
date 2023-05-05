@@ -1,3 +1,4 @@
+from tensorflow import keras
 import tensorflow as tf
 from tensorflow.keras import layers
 from typing import List, Union
@@ -61,3 +62,63 @@ def get_normalization_layer(normalization: LayerType) -> layers.Layer:
         raise ValueError(f"Invalid Normalization value type. Expected type str or keras.layers.Layer"
                          f" Received value {normalization} of type {type(normalization)}")
     return normalization_layer
+
+
+
+def get_activation(activation: LayerType,
+                            units=None):
+    """
+    Retrieves and returns a keras activation function if not already.
+
+    Args:
+        activation: default None.
+            If type of activation is a keras function, it is returned as is.
+            If it is of type, str, that is, it is a name,
+            then relevant activation function is returned
+
+    Returns:
+        Keras Activation function
+    """
+    if isinstance(activation, str):
+        activation = activation.lower()
+        try:
+            activation_func = keras.activations.get(activation)
+        except ValueError:
+            raise ValueError(f"{activation} function's name is either wrong or this activation is not supported by Keras."
+                             f"Please contact Teras team, and we'll make sure to add this to Teras.")
+    else:
+        activation_func = activation
+    return activation_func
+
+
+def get_initializer(initializer: LayerType):
+    """
+    Retrieves and returns a keras initializer function if not already.
+
+    Args:
+        initializer: default uniform.
+            If type of initializer is a keras function, it is returned as is.
+            If it is of type, str, that is, it is a name,
+            then relevant initializer function is returned
+
+    Returns:
+        Keras initializer function
+    """
+    if isinstance(initializer, str):
+        initializer = initializer.lower()
+        try:
+            initializer_func = keras.initializers.get(initializer)
+        except ValueError:
+            raise ValueError(f"{initializer} function's name is either wrong or this activation is not supported by Keras."
+                             f"Please contact Teras team, and we'll make sure to add this to Teras.")
+    else:
+        initializer_func = initializer
+    return initializer_func
+
+
+def get_categorical_features_cardinalities(dataframe,
+                                           categorical_features):
+    cardinalities = []
+    for feature in categorical_features:
+        cardinalities.append(dataframe[feature].nunique())
+    return cardinalities
