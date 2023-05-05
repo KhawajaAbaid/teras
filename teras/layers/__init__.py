@@ -72,3 +72,7 @@ from teras.layers.VIME import (MaskEstimator as VimeMaskEstimator,
                                Encoder as VimeEncoder,
                                MaskGenerationAndCorruption as VimeMaskGenerationAndCorruption,
                                Predictor as VimePredictor)
+
+# On Embeddings for Numerical Features (paper) layers
+from teras.layers.OENF import (PeriodicEmbedding,
+                               PiecewiseLinearEncoding)
