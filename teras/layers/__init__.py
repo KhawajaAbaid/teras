@@ -65,3 +65,10 @@ from teras.layers.RTDL.FTTransformer import (FeatureTokenizer as FTFeatureTokeni
                                              CLSToken as FTCLSToken,
                                              ClassificationHead as FTClassificationHead,
                                              RegressionHead as FTRegressionHead)
+
+# VIME layers
+from teras.layers.VIME import (MaskEstimator as VimeMaskEstimator,
+                               FeatureEstimator as VimeFeatureEstimator,
+                               Encoder as VimeEncoder,
+                               MaskGenerationAndCorruption as VimeMaskGenerationAndCorruption,
+                               Predictor as VimePredictor)
