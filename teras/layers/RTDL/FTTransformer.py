@@ -1,12 +1,6 @@
 import tensorflow as tf
-tf.config.run_functions_eagerly(True)
-tf.config.experimental_functions_run_eagerly()
-
-
 from tensorflow import keras
 from tensorflow.keras import layers
-from tensorflow.keras import models
-from tensorflow.keras import initializers
 from teras.layers.activations import GLU
 from teras.utils import get_normalization_layer, get_activation, get_initializer
 from typing import Union, List
