@@ -189,7 +189,7 @@ class FTTransformerRegressor(keras.Model):
             numerical_input_features = tf.TensorArray(size=self.num_numerical_features,
                                                       dtype=tf.float32)
             for i, feature in enumerate(self.numerical_features):
-                numerical_input_features.write(i, inputs[feature]).mark_used()
+                numerical_input_features.write(i, tf.cast(inputs[feature], dtype=tf.float32)).mark_used()
             numerical_input_features = tf.transpose(tf.squeeze(numerical_input_features.stack(), axis=-1))
             # numerical_input_features = np.asarray([inputs[feat] for feat in self.numerical_features])
             # numerical_input_features = numerical_input_features.squeeze().transpose()
