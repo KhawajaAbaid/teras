@@ -426,7 +426,7 @@ class RegressionHead(layers.Layer):
         use_batch_normalization: Whether to apply batch normalization after each hidden layer.
     """
     def __init__(self,
-                 units_hidden:list,
+                 units_hidden:list = None,
                  activation_hidden="relu",
                  units_out=1,
                  use_batch_normalization=True,
@@ -471,7 +471,7 @@ class ClassificationHead(layers.Layer):
         use_batch_normalization: Whether to apply batch normalization after each hidden layer.
     """
     def __init__(self,
-                 units_hidden:list,
+                 units_hidden:list = None,
                  activation_hidden="relu",
                  num_classes=2,
                  activation_out=None,
