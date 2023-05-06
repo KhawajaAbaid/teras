@@ -29,11 +29,11 @@ iris_dataset = sklearn_datasets.load_iris()
 X = iris_dataset.data
 y = iris_dataset.target
 
-node_classifier = RTDLResNetClassifier(num_classes=3,
+resnet_classifier = RTDLResNetClassifier(num_classes=3,
                                        num_blocks=8,
                                        hidden_dim=16,
                                        main_dim=8)
-node_classifier.compile(loss=keras.losses.SparseCategoricalCrossentropy(),
+resnet_classifier.compile(loss=keras.losses.SparseCategoricalCrossentropy(),
                         optimizer=keras.optimizers.Adam(learning_rate=0.01),
                         metrics=["accuracy"])
-node_classifier.fit(X, y, batch_size=32, epochs=10)
+resnet_classifier.fit(X, y, batch_size=32, epochs=10)
