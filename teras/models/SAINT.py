@@ -268,8 +268,6 @@ class SAINTRegressor(keras.Model):
         self.use_inter_sample_attention = use_inter_sample_attention
         self.apply_attention_to_rows_only = apply_attention_to_rows_only
         self.head_hidden_units = head_hidden_units
-        if self.activation_out is None:
-            self.activation_out = 'sigmoid' if self.num_classes == 1 else 'softmax'
 
         self.num_categorical_features = len(categorical_features)
         self.num_numerical_features = len(numerical_features)
@@ -306,7 +304,7 @@ class SAINTRegressor(keras.Model):
                                           num_features=self.num_features)
         self.flatten = layers.Flatten()
         self.norm = layers.LayerNormalization(epsilon=self.norm_epsilon)
-        self.head = SAINTRegressionHead(units_out=self.units,
+        self.head = SAINTRegressionHead(units_out=self.units_out,
                                         units_hidden=[64, 32])
 
     def get_lookup_tables_and_embedding_layers(self):
