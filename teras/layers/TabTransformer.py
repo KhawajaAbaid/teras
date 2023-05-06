@@ -19,7 +19,7 @@ class CategoricalFeatureEmbedding(layers.Layer):
     def __init__(self,
                  categorical_features,
                  categorical_features_vocab,
-                 embedding_dim=None,
+                 embedding_dim=32,
                  **kwargs):
         super().__init__(**kwargs)
         self.categorical_features = categorical_features
@@ -266,7 +266,7 @@ class RegressionHead(layers.Layer):
         self.use_batch_normalization = use_batch_normalization
         self.layers = []
         for units in units_hidden:
-            if self.normalization:
+            if self.use_batch_normalization:
                 norm = keras.layers.BatchNormalization()
                 self.layers.append(norm)
             dense = keras.layers.Dense(units)
