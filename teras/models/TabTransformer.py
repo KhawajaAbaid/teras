@@ -139,29 +139,41 @@ class TabTransformerRegressor(keras.Model):
                                                         categorical_features_vocab=self.categorical_features_vocab
                                                         )
         if self.use_column_embedding:
-            self.column_embedding = ColumnEmbedding()
+            self.column_embedding = ColumnEmbedding(embedding_dim=self.embedding_dim,
+                                                    num_categorical_features=self.num_categorical_features)
+        self.encoder = Encoder(num_transformer_layers=self.num_transformer_layers,
+                               num_heads=self.num_attention_heads,
+                               embedding_dim=self.embedding_dim,
+                               attention_dropout=self.attention_dropout,
+                               feedforward_dropout=self.feedforward_dropout)
         self.flatten = keras.layers.Flatten()
         self.norm = keras.layers.LayerNormalization(epsilon=self.norm_epsilon)
         self.head = RegressionHead(units_hidden=self.head_hidden_units,
                                               units_out=self.units_out)
 
     def call(self, inputs, training=None, mask=None):
-        categorical_features_embeddings = self.categorical_features_embedding(inputs)
+        categorical_features_embeddings = self.categorical_features_embeddings(inputs)
         if self.use_column_embedding:
              categorical_features_embeddings += self.column_embedding(categorical_features_embeddings)
         x = categorical_features_embeddings
 
         # Contextualize the encoded / embedded categorical features
-        for transformer in self.transformers_layers:
-            x = transformer(x)
+        x = self.encoder(x)
 
         # Flatten the contextualized embeddings of the categorical features
         categorical_features = self.flatten(x)
 
-        # Normalize numerical features
-        numerical_features = self.norm(inputs[self.numerical_features])
+        normalized_numerical_features = []
+        if self.numerical_features:
+            # Normalize numerical features
+            for num_feat in self.numerical_features:
+                normalized_numerical_features.append(self.norm(inputs[num_feat]))
+            normalized_numerical_features = layers.concatenate(normalized_numerical_features, axis=1)
 
         # Concatenate all features
-        features = keras.layers.concatenate([categorical_features, numerical_features])
+        features = categorical_features
+        if self.numerical_features:
+            features = layers.concatenate([categorical_features, normalized_numerical_features], axis=1)
+
         out = self.head(features)
         return out
