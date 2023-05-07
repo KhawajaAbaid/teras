@@ -1,10 +1,14 @@
 from tensorflow.keras.datasets import mnist
-import numpy as np
-import pandas as pd
+from tensorflow import keras
 from sklearn.model_selection import train_test_split
 from teras.models import VimeSemi, VimeSelf
+from teras.utils import prepare_vime_dataset
+import tensorflow as tf
+import pandas as pd
+import numpy as np
 import os
-from warnings import warn
+
+
 
 
 def vime_main(labeled_data_ratio=0.5,
@@ -34,10 +38,17 @@ def vime_main(labeled_data_ratio=0.5,
     # Reshape
     X_train = np.reshape(X_train, [X_train.shape[0], X_train.shape[1] * X_train.shape[2]])
     X_test = np.reshape(X_test, [X_test.shape[0], X_test.shape[1] * X_test.shape[2]])
-
     X_labeled, X_unlabeled, y_labeled, _ = train_test_split(X_train, y_train,
                                                             test_size=labeled_data_ratio,
                                                             shuffle=True)
+
+    X_unlabeled = X_unlabeled[:10000]
+    X_labeled_train, X_labeled_val, y_labeled_train, y_labeled_val = train_test_split(X_labeled, y_labeled,
+                                                                                      test_size=0.1,
+                                                                                      shuffle=True)
+
+    X_final_ds = prepare_vime_dataset(X_labeled_train, y_labeled_train, X_unlabeled, 1024)
+
 
     # Train vime self
     print("Training VIME self supervised part...")
@@ -51,14 +62,18 @@ def vime_main(labeled_data_ratio=0.5,
 
     # Train vime semi
     print("\n\nTraining VIME semi supervised part...")
+
     v_semi = VimeSemi(hidden_dim=128,
+                      input_dim=784,
                       encoder_file_path="./vime_saves/encoder/encoder_mode.h5",
-                      n_labels=10)
-    v_semi.train_the_predictor(X_labeled, y_labeled, X_unlabeled,
-                               validation_data=None,
-                               validation_split=None,
-                               batch_size=128,
-                               epochs=10)
+                      num_labels=10,
+                      batch_size=1024)
+    v_semi.compile(loss=keras.losses.CategoricalCrossentropy(from_logits=True),
+                   metrics=[keras.metrics.CategoricalAccuracy()])
+    v_semi.fit(X_final_ds, epochs=5)
+
+    print("\n\nEvaluating...")
+    v_semi.evaluate(X_labeled_val, y_labeled_val)
 
 
 if __name__ == "__main__":

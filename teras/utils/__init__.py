@@ -38,5 +38,6 @@ from teras.utils.TabTransformer import (get_categorical_features_vocab,
 
 # VIME utility function(s)
 from teras.utils.VIME import (mask_generator as vime_mask_generator,
-                              pretext_generator as vime_pretext_generator)
+                              pretext_generator as vime_pretext_generator,
+                              prepare_vime_dataset)
 
