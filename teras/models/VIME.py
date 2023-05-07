@@ -10,6 +10,7 @@ from teras.layers import (VimeEncoder,
 from teras.utils import vime_mask_generator, vime_pretext_generator
 from teras.losses import VimeSelfSupervisedLoss
 from warnings import warn
+import numpy as np
 
 
 class VimeSelf:
@@ -124,64 +125,62 @@ class VimeSelf:
         return encoder
 
 
-class PredictorTrainer(models.Model):
-    """
-    Trainer model to train the Predictor component of VIME Semi Supervised Framework.
-
-    Reference(s):
-        Figure 2 in VIME paper.
-        https://proceedings.neurips.cc/paper/2020/hash/7d97667a3e056acab9aaf653807b4a03-Abstract.html
-
-    Args:
-        hidden_dim: Dimensionality of hidden layers. Also known as "Units" in Keras.
-        input_dim: Dimensionality of input. If None, shape will be inferred at the time of training
-        p_m: corruption probability
-        K: number of augmented samples
-        beta: hyperparameter to control supervised and unsupervised loss
-        encoder: trained encoder
-        n_labels: Number of labels
-    """
+class VimeSemi(keras.Model):
     def __init__(self,
                  hidden_dim,
-                 input_dim=None,
-                 p_m=0.,
-                 K=1,
-                 beta=0.,
+                 input_dim,
+                 p_m=0.3,
+                 K=3,
+                 beta=1.0,
+                 encoder_file_path=None,
+                 num_labels=1,
                  activation="relu",
-                 encoder=None,
-                 n_labels=1,
-                 batch_size=128,
+                 batch_size=None,
                  **kwargs):
-
+        """
+        Semi-supervied learning part in VIME.
+        Args:
+            hidden_dim: Dimensionality of hidden layers. Also known as "Units" in Keras.
+            p_m: corruption probability
+            K: number of augmented samples
+            beta: hyperparameter to control supervised and unsupervised loss
+            encoder_file_path: file path for the trained encoder function
+            num_labels: Number of labels
+        """
         super().__init__(**kwargs)
         self.hidden_dim = hidden_dim
         self.input_dim = input_dim
         self.p_m = p_m
         self.K = K
         self.beta = beta
+        self.encoder_file_path = encoder_file_path
+        self.num_labels = num_labels
+        custom_objects = {"Encoder": VimeEncoder}
+        with keras.utils.custom_object_scope(custom_objects):
+            self.encoder = keras.models.load_model(encoder_file_path)
         self.activation = activation
-        self.n_labels = n_labels
-        self.encoder = encoder
         self.batch_size = batch_size
+        self.custom_built = False
 
         self.mask_corrupt_block = keras.models.Sequential()
-        self.input_layer = keras.layers.Input(shape=(input_dim,),
+        self.input_layer = keras.layers.Input(shape=(self.input_dim,),
                                               batch_size=self.batch_size)
         self.mask_corrupt_block.add(self.input_layer)
         self.mask_and_corrupt = VimeMaskGenerationAndCorruption(self.p_m)
         self.mask_corrupt_block.add(self.mask_and_corrupt)
-        self.predictor = VimePredictor(hidden_dim=hidden_dim,
+        self.predictor = VimePredictor(hidden_dim=self.hidden_dim,
                                        input_dim=self.input_dim,
                                        name="predictor",
-                                       n_labels=self.n_labels,
+                                       num_labels=self.num_labels,
                                        batch_size=self.batch_size)
         self.self_supervised_loss = VimeSelfSupervisedLoss()
         self.add_loss(self.self_supervised_loss)
 
     def train_step(self, data):
-        inputs, targets = data
-        X_batch = inputs["X"]
-        X_unlabeled_batch = inputs["X_unlabeled"]
+        labeled_dataset, unlabeled_dataset = data
+        X_batch = labeled_dataset["X_labeled"]
+        targets = labeled_dataset["y_labeled"]
+        X_unlabeled_batch = unlabeled_dataset["X_unlabeled"]
 
         # Encode labeled data
         X_batch_encoded = self.encoder(X_batch,
@@ -200,8 +199,8 @@ class PredictorTrainer(models.Model):
         X_unlabeled_batch_encoded = tf.stack(X_unlabeled_batch_encoded, axis=0)
 
         with tf.GradientTape() as tape:
-            outputs = self({"X": X_batch_encoded,
-                            "X_unlabeled": X_unlabeled_batch_encoded},
+            outputs = self({"labeled": X_batch_encoded,
+                            "unlabeled": X_unlabeled_batch_encoded},
                             training=True)
             yu_loss = self.self_supervised_loss(y_true=None, y_pred=outputs['yv_hat_logit'])
             y_loss = self.compiled_loss(targets, outputs['y_hat_logit'])
@@ -209,95 +208,33 @@ class PredictorTrainer(models.Model):
         gradients = tape.gradient(loss, self.trainable_weights)
         self.optimizer.apply_gradients(zip(gradients, self.trainable_weights))
         self.compiled_metrics.update_state(targets, outputs['y_hat'])
-
         return {m.name: m.result() for m in self.metrics}
 
-    def call(self, inputs, **kwargs):
-        print("does it get called before or after??")
-        X = inputs["X"]
-        X_unlabled = inputs["X_unlabeled"]
+    def test_step(self, data):
+        # Since at the time of prediction / evaluation we won't be processing any unlabeled data
+        # so we get rid of all the unlabeled data logic / processing
+        inputs, targets = data
+        X_batch = inputs
+        # Encode labeled data
+        X_batch_encoded = self.encoder(X_batch,
+                                       training=False)
+        outputs = self({"labeled": X_batch_encoded},
+                        training=False)
+        self.compiled_loss(targets, outputs['y_hat_logit'])
+        self.compiled_metrics.update_state(targets, outputs['y_hat'])
+        return {m.name: m.result() for m in self.metrics}
+
+    def call(self, inputs, training=None):
+        X = inputs["labeled"]
+        outputs = {}
         y_hat_logit, y_hat = self.predictor(X)
-        yv_hat_logit, yv_hat = self.predictor(X_unlabled)
-        return {'y_hat_logit': y_hat_logit,
-                'y_hat': y_hat,
-                'yv_hat_logit': yv_hat_logit,
-                'yv_hat': yv_hat,
-                'beta': self.beta}
-
-
-class VimeSemi:
-    def __init__(self,
-                 hidden_dim,
-                 p_m=0.3,
-                 K=3,
-                 beta=1.0,
-                 encoder_file_path=None,
-                 n_labels=1,
-                 activation="relu",
-                 optimizer="adam",
-                 ):
-        """
-        Semi-supervied learning part in VIME.
-        Args:
-            hidden_dim: Dimensionality of hidden layers. Also known as "Units" in Keras.
-            p_m: corruption probability
-            K: number of augmented samples
-            beta: hyperparameter to control supervised and unsupervised loss
-            encoder_file_path: file path for the trained encoder function
-            n_labels: Number of labels
-        """
-        self.hidden_dim = hidden_dim
-        self.p_m = p_m
-        self.K = K
-        self.beta = beta
-        self.encoder_file_path = encoder_file_path
-        self.n_labels = n_labels
-        custom_objects = {"Encoder": VimeEncoder}
-        with keras.utils.custom_object_scope(custom_objects):
-            self.encoder = keras.models.load_model(encoder_file_path)
-        self.activation = activation
-        self.optimizer = optimizer
-
-    def train_the_predictor(self,
-                                X,
-                                y,
-                                X_unlabeled,
-                                validation_data=None,
-                                validation_split=0.1,
-                                batch_size=128,
-                                epochs=1,
-                                **kwargs):
-        input_dim = X.shape[1]
-
-        # work around for batch_dimension being None
-        n_samples, _ = X.shape
-        last_batch_size = batch_size
-        num_batches = n_samples // batch_size
-        if n_samples % batch_size != 0:
-            last_batch_size = n_samples - (num_batches * batch_size)
-            X = X[:-last_batch_size]
-            X_unlabeled = X_unlabeled[:-last_batch_size]
-            y = y[:-last_batch_size]
-            warn(f"Number of samples in dataset isn't divisble by batch size. "
-                 f"Last {last_batch_size} samples will be discarded.")
-
-        predictor_trainer = PredictorTrainer(self.hidden_dim,
-                                             input_dim=input_dim,
-                                             p_m=self.p_m,
-                                             K=self.K,
-                                             beta=self.beta,
-                                             activation=self.activation,
-                                             encoder=self.encoder,
-                                             n_labels=self.n_labels,
-                                             batch_size=batch_size,)
-        predictor_trainer.compile(optimizer=self.optimizer,
-                                  loss = keras.losses.CategoricalCrossentropy(from_logits=True),
-                                  metrics=[keras.metrics.CategoricalAccuracy()])
-        predictor_trainer.fit({"X": X, "X_unlabeled": X_unlabeled},
-                              y=y,
-                              batch_size=batch_size,
-                              validation_data=validation_data,
-                              validation_split=validation_split,
-                              epochs=epochs,
-                              **kwargs)
-        return predictor_trainer.predictor
+        outputs['y_hat_logit'] = y_hat_logit
+        outputs['y_hat'] = y_hat
+        # We process unlabeled data only while training
+        if training:
+            X_unlabled = inputs["unlabeled"]
+            yv_hat_logit, yv_hat = self.predictor(X_unlabled)
+            outputs['yv_hat_logit'] = yv_hat_logit
+            outputs['yv_hat'] = yv_hat
+        outputs['beta'] = self.beta
+        return outputs
