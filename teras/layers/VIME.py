@@ -99,14 +99,14 @@ class Predictor(layers.Layer):
     def __init__(self,
                  hidden_dim=None,
                  input_dim=None,
-                 n_labels=None,
+                 num_labels=None,
                  activation="relu",
                  batch_size=None,
                  **kwargs):
         super().__init__(**kwargs)
         self.hidden_dim = hidden_dim
         self.input_dim = input_dim
-        self.n_labels = n_labels
+        self.num_labels = num_labels
         self.activation = activation
         self.batch_size = batch_size
 
@@ -126,7 +126,7 @@ class Predictor(layers.Layer):
                                                 name="inter_layer_2")
         self.predictor_block.add(self.inter_layer_2)
 
-        self.dense_out = layers.Dense(self.n_labels,
+        self.dense_out = layers.Dense(self.num_labels,
                                             activation=None,
                                             name="dense_out")
         self.predictor_block.add(self.dense_out)
@@ -146,21 +146,37 @@ class MaskGenerationAndCorruption(layers.Layer):
     manner and this way the layer and hence the generator functions it calls will have access to the batch size dimension
     because we'll precede this layer with an input layer that specifies the batch dimension and input shape in general
     and pack these both in a sequential model or plug them together using functional API
+
+    Args:
+        p_m: Corruption probability.
     """
     def __init__(self,
                  p_m=None,
                  **kwargs):
         super().__init__(**kwargs)
         self.p_m = p_m
-    def call(self, inputs, **kwargs):
+    def call(self, inputs):
         """inputs: Batch of unlabeled X"""
-        print("Shape of inputs: ", tf.shape(inputs))
-        print("Got called with p_m: ", self.p_m)
+
         # Generate Mask Vector
-        masked_batch = vime_mask_generator(self.p_m,
-                                 inputs)
+        mask = tf.random.stateless_binomial(shape=tf.shape(inputs),
+                                            seed=(0, 0),
+                                            counts=1,
+                                            probs=self.p_m,
+                                            output_dtype=tf.float32)
+
+
 
         # Generate corrupted samples
-        _, corrupted_batch = vime_pretext_generator(masked_batch,
-                                                inputs)
-        return corrupted_batch
+        num_samples = tf.shape(inputs)[0]
+        dim = tf.shape(inputs)[1]
+
+        X_bar = tf.TensorArray(size=dim, dtype=tf.float32)
+        for i in range(dim):
+            idx = tf.random.shuffle(tf.range(num_samples))
+            X_bar = X_bar.write(i, tf.gather(inputs[:, i], idx))
+        X_bar = tf.transpose(X_bar.stack())
+
+        # Corrupt Samples
+        X_tilde = inputs * (1 - mask) + X_bar * mask
+        return X_tilde
