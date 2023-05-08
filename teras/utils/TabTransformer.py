@@ -1,6 +1,7 @@
 # TabTransformer Utility Function(s)
 import pandas as pd
 import tensorflow as tf
+import numpy as np
 
 
 def get_categorical_features_vocab(inputs,
@@ -40,15 +41,9 @@ def dataframe_to_tf_dataset(
     df = dataframe.copy()
     if target:
         labels = df.pop(target)
-        dataset = {}
-        for key, value in df.items():
-            dataset[key] = value[:, tf.newaxis]
-        dataset = tf.data.Dataset.from_tensor_slices((dict(dataset), labels))
+        dataset = tf.data.Dataset.from_tensor_slices((dict(df), labels))
     else:
-        dataset = {}
-        for key, value in df.items():
-            dataset[key] = value[:, tf.newaxis]
-        dataset = tf.data.Dataset.from_tensor_slices(dict(dataset))
+        dataset = tf.data.Dataset.from_tensor_slices(dict(df))
     if shuffle:
         dataset = dataset.shuffle(buffer_size=len(dataframe))
     dataset = dataset.batch(batch_size)
