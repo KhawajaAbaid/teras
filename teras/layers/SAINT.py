@@ -37,7 +37,7 @@ class CategoricalFeaturesEmbedding(layers.Layer):
             lookup = self.lookup_tables[feature]
             embedding = self.embedding_layers[feature]
             # Convert string input values to integer indices
-            encoded_feature = lookup(inputs[feature])
+            encoded_feature = lookup(tf.expand_dims(inputs[feature], 1))
             # Convert index values to embedding representations
             encoded_feature = embedding(encoded_feature)
             categorical_features_embeddings.append(encoded_feature)
@@ -87,7 +87,7 @@ class NumericalFeaturesEmbedding(layers.Layer):
         numerical_feature_embeddings = []
         for feature, embedding_layer in zip(self.numerical_features,
                                             self.embedding_layers):
-            feature_embedding = embedding_layer(inputs[feature])
+            feature_embedding = embedding_layer(tf.expand_dims(inputs[feature], 1))
             numerical_feature_embeddings.append(feature_embedding)
         return numerical_feature_embeddings
 
