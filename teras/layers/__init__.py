@@ -26,7 +26,7 @@ from teras.layers.TabNet import (FeatureTransformerBlock as TabNetFeatureTransfo
                                  Encoder as TabNetEncoder)
 
 # TabTransformer layers
-from teras.layers.TabTransformer import (CategoricalFeatureEmbedding as TabTransformerCaterCategoricalFeatureEmbedding,
+from teras.layers.TabTransformer import (CategoricalFeatureEmbedding as TabTransformerCategoricalFeatureEmbedding,
                                          ColumnEmbedding as TabTransformerColumnEmbedding,
                                          FeedForward as TabTransformerFeedForward,
                                          Transformer as TabTransformerTransformerLayer,
