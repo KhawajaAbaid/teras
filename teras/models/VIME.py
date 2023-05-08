@@ -13,7 +13,7 @@ from warnings import warn
 import numpy as np
 
 
-class VimeSelf:
+class VimeSelf(keras.Model):
     """Self-supervised learning part in the paper
     "VIME: Extending the Success of Self- and
     Semi-supervised Learning to Tabular Domain"
@@ -41,78 +41,44 @@ class VimeSelf:
                  encoder_activation="relu",
                  feature_estimator_activation="sigmoid",
                  mask_estimator_activation="sigmoid",
-                 feature_estimator_loss="mean_squared_error",
-                 mask_estimator_loss="binary_crossentropy",
-                 optimizer="rmsprop"
+                 **kwargs
                  ):
+        super().__init__(**kwargs)
         self.p_m = p_m
         self.alpha = alpha
         self.encoder_activation = encoder_activation
         self.feature_estimator_activation = feature_estimator_activation
         self.mask_estimator_activation = mask_estimator_activation
-        self.feature_estimator_loss = feature_estimator_loss
-        self.mask_estimator_loss = mask_estimator_loss
-        self.optimizer = optimizer
-
-        self.built = False
 
     def build(self, input_shape):
-        """Builds layers and model"""
-        _, dim = input_shape
-        inputs = keras.layers.Input(shape=(dim,))
+        """Builds layers and functional model"""
+        _, input_dim= input_shape
+        inputs = keras.layers.Input(shape=(input_dim,))
         # Encoder
-        h = VimeEncoder(dim,
-                        activation=self.encoder_activation,
-                        name='encoder')(inputs)
+        encoded_inputs = VimeEncoder(input_dim,
+                                        input_shape=(input_dim,),
+                                        activation=self.encoder_activation,
+                                        name="encoder")(inputs)
         # Mask estimator
-        mask_out = VimeMaskEstimator(dim,
+        mask_out = VimeMaskEstimator(input_dim,
                                     activation=self.mask_estimator_activation,
-                                    name='mask_estimator')(h)
+                                    name="mask_estimator")(encoded_inputs)
         # Feature estimator
-        feature_out = VimeFeatureEstimator(dim,
+        feature_out = VimeFeatureEstimator(input_dim,
                                            activation=self.feature_estimator_activation,
-                                           name='feature_estimator')(h)
-        self.model = models.Model(inputs=inputs,
-                             outputs=[mask_out, feature_out])
+                                           name="feature_estimator")(encoded_inputs)
+        # Calling model.get_layer("encode") returns error that the encoder layer is not connected
+        # to any node. To combat that issue, instead of calling layers one by one on inputs
+        # directly, we instead make a functional model and call it on inputs.
+        # Making a functional model allows us to create a Input layer and connect it with
+        # the encoder layer.
+        self.functional_model = keras.Model(inputs=inputs,
+                                            outputs={"mask_estimator": mask_out, "feature_estimator": feature_out},
+                                            name="functional_model")
 
-        self.model.compile(optimizer=self.optimizer,
-                           loss={'mask_estimator': self.mask_estimator_loss,
-                                 'feature_estimator': self.feature_estimator_loss},
-                           loss_weights={'mask_estimator': 1,
-                                         'feature_estimator': self.alpha})
+    def call(self, inputs):
+        return self.functional_model(inputs)
 
-    def generate_corrupted_samples(self, x_unlabeled):
-        """
-        Generates corrupted samples
-        Args:
-            x_unlabeled: unlabeled dataset
-        """
-        m_unlabeled = vime_mask_generator(self.p_m,
-                                    x_unlabeled)
-        m_labeled, x_tilde = vime_pretext_generator(m_unlabeled, x_unlabeled)
-        return m_labeled, x_tilde
-
-    def fit(self,
-            x_unlabeled,
-            m_labeled=None,
-            x_tilde=None,
-            epochs=1,
-            batch_size=None):
-        """
-        Trains the self supervising part, specifically encoder of VIME
-        Args:
-            x_unlabeled: unlabeled feature"""
-        if not self.built:
-            self.build(x_unlabeled.shape)
-            self.built = True
-
-        if m_labeled is None and x_tilde is None:
-            m_labeled, x_tilde = self.generate_corrupted_samples(x_unlabeled)
-
-        # Fit model on unlabeled data
-        self.model.fit(x_tilde, {'mask_estimator': m_labeled, 'feature_estimator': x_unlabeled},
-                       epochs=epochs,
-                       batch_size=batch_size)
     def get_encoder(self):
         """
         Retrieves the encoder part of the trained model
@@ -120,8 +86,8 @@ class VimeSelf:
             Encoder part of the model
         """
         # Extract encoder part
-        encoder_layer = self.model.get_layer(name="encoder")
-        encoder = models.Model(inputs=self.model.input, outputs=encoder_layer.output)
+        encoder_layer = self.functional_model.get_layer(name="encoder")
+        encoder = models.Model(inputs=self.functional_model.input, outputs=encoder_layer.output)
         return encoder
 
 
@@ -178,9 +144,9 @@ class VimeSemi(keras.Model):
 
     def train_step(self, data):
         labeled_dataset, unlabeled_dataset = data
-        X_batch = labeled_dataset["X_labeled"]
+        X_batch = labeled_dataset["x_labeled"]
         targets = labeled_dataset["y_labeled"]
-        X_unlabeled_batch = unlabeled_dataset["X_unlabeled"]
+        X_unlabeled_batch = unlabeled_dataset["x_unlabeled"]
 
         # Encode labeled data
         X_batch_encoded = self.encoder(X_batch,
