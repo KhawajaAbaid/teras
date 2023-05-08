@@ -87,7 +87,7 @@ class TabTransformerClassifier(keras.Model):
         if self.numerical_features:
             # Normalize numerical features
             for num_feat in self.numerical_features:
-                normalized_numerical_features.append(self.norm(inputs[num_feat]))
+                normalized_numerical_features.append(self.norm(tf.expand_dims(inputs[num_feat], 1)))
             normalized_numerical_features = layers.concatenate(normalized_numerical_features, axis=1)
 
         # Concatenate all features
@@ -167,7 +167,7 @@ class TabTransformerRegressor(keras.Model):
         if self.numerical_features:
             # Normalize numerical features
             for num_feat in self.numerical_features:
-                normalized_numerical_features.append(self.norm(inputs[num_feat]))
+                normalized_numerical_features.append(self.norm(tf.expand_dims(inputs[num_feat], 1)))
             normalized_numerical_features = layers.concatenate(normalized_numerical_features, axis=1)
 
         # Concatenate all features

@@ -56,7 +56,7 @@ class CategoricalFeatureEmbedding(layers.Layer):
             lookup = self.lookup_tables[feature]
             embedding = self.embedding_layers[feature]
             # Convert string input values to integer indices
-            feature = inputs[feature]
+            feature = tf.expand_dims(inputs[feature], 1)
             encoded_feature = lookup(feature)
             # Convert index values to embedding representations
             encoded_feature = embedding(encoded_feature)
