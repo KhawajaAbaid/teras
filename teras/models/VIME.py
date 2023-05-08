@@ -24,20 +24,12 @@ class VimeSelf(keras.Model):
 
     Args:
         p_m: corruption probability
-        alpha: hyper-parameter to control the weights of feature and mask losses
         encoder_activation: activation to use for encoder
         feature_estimator_activation: activation to use for feature estimator
         mask_estimator_activation: activation to use for mask estimator
-        optimizer: optimizer to use for training the encoder
-        feature_estimator_loss: loss to use for feature estimator
-        mask_estimator_loss: loss to use for mask estimator
-
-    Returns:
-      encoder: Representation learning block
     """
     def __init__(self,
                  p_m,
-                 alpha,
                  encoder_activation="relu",
                  feature_estimator_activation="sigmoid",
                  mask_estimator_activation="sigmoid",
@@ -45,7 +37,6 @@ class VimeSelf(keras.Model):
                  ):
         super().__init__(**kwargs)
         self.p_m = p_m
-        self.alpha = alpha
         self.encoder_activation = encoder_activation
         self.feature_estimator_activation = feature_estimator_activation
         self.mask_estimator_activation = mask_estimator_activation
