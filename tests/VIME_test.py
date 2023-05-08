@@ -2,7 +2,7 @@ from tensorflow.keras.datasets import mnist
 from tensorflow import keras
 from sklearn.model_selection import train_test_split
 from teras.models import VimeSemi, VimeSelf
-from teras.utils import prepare_vime_dataset
+from teras.utils import preprocess_input_vime_self, preprocess_input_vime_semi
 import tensorflow as tf
 import pandas as pd
 import numpy as np
@@ -47,20 +47,28 @@ def vime_main(labeled_data_ratio=0.5,
                                                                                       test_size=0.1,
                                                                                       shuffle=True)
 
-    X_final_ds = prepare_vime_dataset(X_labeled_train, y_labeled_train, X_unlabeled, 1024)
+
+    X_ds_self = preprocess_input_vime_self(X_unlabeled, p_m=0.3, batch_size=1024)
+    X_ds_semi = preprocess_input_vime_semi(X_labeled_train, y_labeled_train, X_unlabeled, 1024)
 
 
-    # Train vime self
+    # <<<<<<<<<<<<<<<<<<<< Train VIME SELF >>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     print("Training VIME self supervised part...")
     v_self = VimeSelf(p_m, alpha)
-    v_self.fit(X_unlabeled, batch_size=128, epochs=10)
+    v_self.compile(loss={"mask_estimator": keras.losses.MeanSquaredError(),
+                         "feature_estimator": keras.losses.BinaryCrossentropy()},
+                   loss_weights={"mask_estimator": 1,
+                                 "feature_estimator": alpha})
+    v_self.fit(X_ds_self, epochs=10)
     trained_encoder = v_self.get_encoder()
     encoder_file_path = "./vime_saves/encoder/"
     if not os.path.exists(encoder_file_path):
         os.makedirs(encoder_file_path)
     trained_encoder.save(encoder_file_path + "encoder_mode.h5")
 
-    # Train vime semi
+
+
+    # <<<<<<<<<<<<<<<<<<< Train VIME SEMI >>>>>>>>>>>>>>>>>>>>>>>>>>>
     print("\n\nTraining VIME semi supervised part...")
 
     v_semi = VimeSemi(hidden_dim=128,
@@ -70,7 +78,7 @@ def vime_main(labeled_data_ratio=0.5,
                       batch_size=1024)
     v_semi.compile(loss=keras.losses.CategoricalCrossentropy(from_logits=True),
                    metrics=[keras.metrics.CategoricalAccuracy()])
-    v_semi.fit(X_final_ds, epochs=5)
+    v_semi.fit(X_ds_semi, epochs=10)
 
     print("\n\nEvaluating...")
     v_semi.evaluate(X_labeled_val, y_labeled_val)
