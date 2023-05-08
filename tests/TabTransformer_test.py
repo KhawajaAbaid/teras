@@ -7,7 +7,6 @@ import pandas as pd
 import numpy as np
 from teras.utils import get_categorical_features_vocab, dataframe_to_tf_dataset
 
-
 #  <<<<<<<<<<<<<<<<<<<<< REGRESSION Test >>>>>>>>>>>>>>>>>>>>>
 print(f"{'-'*15}  REGRESSION TEST {'-'*15}")
 
@@ -28,15 +27,17 @@ cat_feat_vocab = get_categorical_features_vocab(gem_df, cat_cols)
 # For FTTransformer, TabTransfomer and SAINT, we need to convert our dataframe to tensorflow
 # dataset that support retrieving features by indexing column names like X_train["age"] in the model's call method
 # And, for that, I have a utility function in teras.utils which is used below.
-X_ds = dataframe_to_tf_dataset(gem_df, 'price', batch_size=512)
+X_ds = dataframe_to_tf_dataset(gem_df, 'price', batch_size=1024)
 
 tab_transformer_regressor = TabTransformerRegressor(units_out=1,
                                                   numerical_features=num_cols,
                                                   categorical_features=cat_cols,
                                                   categorical_features_vocab=cat_feat_vocab
                                                     )
-tab_transformer_regressor.compile(loss="MSE", optimizer="Adam", metrics=["MAE"])
-tab_transformer_regressor.fit(X_ds, batch_size=32, epochs=10)
+tab_transformer_regressor.compile(loss="MSE",
+                                  optimizer=keras.optimizers.AdamW(learning_rate=0.05),
+                                  metrics=["MAE"])
+tab_transformer_regressor.fit(X_ds, epochs=10)
 
 
 
@@ -64,11 +65,13 @@ cat_feat_vocab = get_categorical_features_vocab(X, cat_cols)
 # For FTTransformer, TabTransfomer and SAINT, we need to convert our dataframe to tensorflow
 # dataset that support retrieving features by indexing column names like X_train["age"] in the model's call method
 # And, for that, I have a utility function in teras.utils which is used below.
-X_ds = dataframe_to_tf_dataset(X, 'income', batch_size=512)
+X_ds = dataframe_to_tf_dataset(X, 'income', batch_size=1024)
 
 
 tabtransformer_classifier = TabTransformerClassifier(categorical_features_vocab=cat_feat_vocab,
                                                      categorical_features=cat_cols,
                                                      numerical_features=num_cols)
-tabtransformer_classifier.compile(loss=keras.losses.BinaryCrossentropy(), optimizer="Adam", metrics=["accuracy"])
+tabtransformer_classifier.compile(loss=keras.losses.BinaryCrossentropy(),
+                                  optimizer=keras.optimizers.AdamW(learning_rate=0.05),
+                                  metrics=["accuracy"])
 tabtransformer_classifier.fit(X_ds, epochs=10)
