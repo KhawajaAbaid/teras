@@ -26,7 +26,7 @@ cat_feat_vocab = get_categorical_features_vocab(gem_df, cat_cols)
 # For FTTransformer, TabTransfomer and SAINT, we need to convert our dataframe to tensorflow
 # dataset that support retrieving features by indexing column names like X_train["age"] in the model's call method
 # And, for that, I have a utility function in teras.utils which is used below.
-X_ds = dataframe_to_tf_dataset(gem_df, 'price', batch_size=512)
+X_ds = dataframe_to_tf_dataset(gem_df, 'price', batch_size=1024)
 
 
 saint_regressor = SAINTRegressor(units_out=1,
@@ -35,8 +35,10 @@ saint_regressor = SAINTRegressor(units_out=1,
                                           categorical_features_vocab=cat_feat_vocab
                                          )
 
-saint_regressor.compile(loss="MSE", optimizer="Adam", metrics=["MAE"])
-saint_regressor.fit(X_ds, batch_size=32, epochs=10)
+saint_regressor.compile(loss="MSE",
+                        optimizer=keras.optimizers.AdamW(learning_rate=0.05),
+                        metrics=["MAE"])
+saint_regressor.fit(X_ds, epochs=10)
 
 
 
@@ -60,7 +62,7 @@ X[num_cols] = X[num_cols].values.astype(np.float32)
 
 # For FTTransformer, TabTranformer and SAINT, we need to pass a vacobulary of dict type
 # for the categorical features. You can get this vocab by calling the utility function as below
-X_ds = dataframe_to_tf_dataset(X, 'income', batch_size=512)
+X_ds = dataframe_to_tf_dataset(X, 'income', batch_size=1024)
 
 # For FTTransformer, TabTransfomer and SAINT, we need to convert our dataframe to tensorflow
 # dataset that support retrieving features by indexing column names like X_train["age"] in the model's call method
@@ -73,5 +75,7 @@ saint_classifier = SAINTClassifier(num_classes=2,
                                     categorical_features_vocab=cat_feat_vocab,
                                     categorical_features=cat_cols,
                                     numerical_features=num_cols)
-saint_classifier.compile(loss=keras.losses.BinaryCrossentropy(), optimizer="Adam", metrics=["accuracy"])
+saint_classifier.compile(loss=keras.losses.BinaryCrossentropy(),
+                         optimizer=keras.optimizers.AdamW(learning_rate=0.05),
+                         metrics=["accuracy"])
 saint_classifier.fit(X_ds, epochs=10)
