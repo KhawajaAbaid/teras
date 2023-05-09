@@ -56,6 +56,5 @@ class PeriodicEmbedding(layers.Layer):
         return tf.concat([tf.cos(x), tf.sin(x)], -1)
 
     def call(self, inputs):
-        assert inputs.ndim == 2
         pi = tf.constant(math.pi)
         return self.cos_sin(2 * pi * self.coefficients[None] * inputs[..., None])
