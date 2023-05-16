@@ -51,13 +51,15 @@ class Generator(layers.Layer):
     Args:
         embedding_dim: Size of the random sample passed to the Generator.
             Defaults to 128.
-        generator_dim: a list or tuple of integers. For each value, a Residual block
+        generator_dim: A list or tuple of integers. For each value, a Residual block
             of that dimensionality is added to the generator.
             Defaults to [256, 256].
+        data_dim: Dimensionality of the training dataset.
     """
     def __init__(self,
                  embedding_dim: int = 128,
                  generator_dim: LIST_OR_TUPLE = [256, 256],
+                 data_dim: int = None,
                  **kwargs):
         super().__init__(**kwargs)
         self.embedding_dim = embedding_dim
@@ -65,13 +67,12 @@ class Generator(layers.Layer):
             ("generator_dim must be a list or tuple of integers which determines the number of Residual blocks "
             "and the dimensionality of the hidden layer in those blocks.")
         self.generator_dim = generator_dim
+        self.data_dim = data_dim
         self.generator = models.Sequential()
 
         for dim in generator_dim:
             self.generator.add(ResidualBlock(dim))
-
-    def build(self, input_shape):
-        dense_out = layers.Dense(input_shape[1])
+        dense_out = layers.Dense(data_dim)
         self.generator.add(dense_out)
 
     def call(self, inputs):
