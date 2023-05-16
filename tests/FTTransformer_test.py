@@ -10,7 +10,6 @@ from teras.utils import (dataframe_to_tf_dataset,
                          get_categorical_features_vocab)
 
 # There are separate sections for classification and regression tests.
-# Kindly uncomment the code to run the test for either of the sections.
 
 
 #  <<<<<<<<<<<<<<<<<<<<< REGRESSION Test >>>>>>>>>>>>>>>>>>>>>
