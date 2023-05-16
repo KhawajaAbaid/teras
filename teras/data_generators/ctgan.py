@@ -21,7 +21,7 @@ class ResidualBlock(layers.Layer):
     Args:
         units: Hidden dimensionality of the dense layer
     """
-    def __int__(self,
+    def __init__(self,
                 units: int,
                 **kwargs):
         super().__init__(**kwargs)
