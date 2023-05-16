@@ -24,7 +24,7 @@ class ResidualBlock(layers.Layer):
     def __int__(self,
                 units: int,
                 **kwargs):
-        super().__int__(**kwargs)
+        super().__init__(**kwargs)
         self.units = units
         self.dense = layers.Dense(self.units)
         self.batch_norm = layers.BatchNormalization()
