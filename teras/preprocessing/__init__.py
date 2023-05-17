@@ -14,3 +14,5 @@
 
 
 from teras.preprocessing.OENF import PiecewiseLinearEncoding
+
+from teras.preprocessing.CTGAN import ModeSpecificNormalization
