@@ -55,6 +55,7 @@ class ModeSpecificNormalization:
                                                       covariance_type=self.covariance_type,
                                                       weight_concentration_prior_type=self.weight_concentration_prior_type,
                                                       weight_concentration_prior=self.weight_concentration_prior)
+        self.fitted = False
 
     def fit(self, x):
         """
@@ -94,6 +95,8 @@ class ModeSpecificNormalization:
             clusters_stds = np.sqrt(self.bay_guass_mix.covariances_).squeeze()[valid_clusters_indicator]
             clusters_stds = clusters_stds[selected_clusters]
             self.features_clusters_stds[feature_name] = clusters_stds
+
+            self.fitted = True
 
     def transform(self, x):
         """
