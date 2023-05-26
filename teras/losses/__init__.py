@@ -16,3 +16,7 @@
 
 # VIME losses
 from teras.losses.VIME import VimeSelfSupervisedLoss
+
+# CTGAN losses
+from teras.losses.CTGAN import (discriminator_loss as ctgan_discriminator_loss,
+                                generator_loss as ctgan_generator_loss)
