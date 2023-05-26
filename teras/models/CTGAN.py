@@ -4,7 +4,7 @@ from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras import models
 from teras.layers.CTGAN import GeneratorResidualBlock, DiscriminatorBlock
-from teras.layers.activations import GumbleSoftmax
+from teras.layers.activations import GumbelSoftmax
 from teras.losses.CTGAN import generator_loss, discriminator_loss
 from typing import List, Union, Tuple
 from functools import partial
@@ -48,7 +48,7 @@ class Generator(keras.Model):
             self.generator.add(GeneratorResidualBlock(dim))
         dense_out = layers.Dense(data_dim)
         self.generator.add(dense_out)
-        self.gumbel_softmax = GumbleSoftmax()
+        self.gumbel_softmax = GumbelSoftmax()
 
     def call(self, inputs):
         # inputs have the shape |z| + |cond|
