@@ -6,6 +6,7 @@ from tensorflow.keras import models
 from teras.layers.CTGAN import GeneratorResidualBlock, DiscriminatorBlock
 from teras.layers.activations import GumbelSoftmax
 from teras.losses.CTGAN import generator_loss, discriminator_loss
+from teras.preprocessing.CTGAN import DataTransformer, DataSampler
 from typing import List, Union, Tuple
 from functools import partial
 
