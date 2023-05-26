@@ -75,3 +75,7 @@ from teras.layers.VIME import (MaskEstimator as VimeMaskEstimator,
 
 # On Embeddings for Numerical Features (paper) layers
 from teras.layers.OENF import (PeriodicEmbedding)
+
+# CTGAN layers
+from teras.layers.CTGAN import (GeneratorResidualBlock as CTGANGeneratorResidualBlock,
+                                DiscriminatorBlock as CTGANDiscriminatorBlock)
