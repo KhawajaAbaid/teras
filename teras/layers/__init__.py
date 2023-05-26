@@ -15,7 +15,8 @@
 
 # Activation layers
 from teras.layers.activations import (GLU,
-                                      GEGLU)
+                                      GEGLU,
+                                      GumbelSoftmax)
 
 # NODE layers
 from teras.layers.NODE import ObliviousDecisionTree
