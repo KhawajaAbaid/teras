@@ -139,7 +139,7 @@ class ModeSpecificNormalization:
         Args:
             x: A pandas DataFrame
         Returns:
-            TBD
+            A numpy ndarray of transformed continuous data
         """
         # Contain the normalized continuous features
         x_cont_normalized = []
@@ -210,6 +210,10 @@ class DataTransformer:
     """
     Data Transformation class based on the data transformation
     in the official CTGAN paper and implementation.
+
+    Reference(s):
+        https://arxiv.org/abs/1907.00503
+        https://github.com/sdv-dev/CTGAN/
 
     Args:
         continuous_features: List of continuous features names
@@ -418,8 +422,8 @@ class DataSampler:
     in the official CTGAN implementation.
 
     Reference(s):
-        1. link to paper
-        2. link to official github -- maybe.
+        https://arxiv.org/abs/1907.00503
+        https://github.com/sdv-dev/CTGAN/
 
     Args:
         x_original: Original Dataset - a pandas DataFrame
