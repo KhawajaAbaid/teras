@@ -75,7 +75,6 @@ class Generator(keras.Model):
         outputs = []
         interim_outputs = self.generator(inputs)
         continuous_features_relative_indices = self.features_meta_data["continuous"]["relative_indices_all"]
-        categorical_features_relative_indices = self.features_meta_data["categorical"]["relative_indices_all"]
 
         features_relative_indices_all = self.features_meta_data["relative_indices_all"]
         num_valid_clusters_all = self.features_meta_data["continuous"]["num_valid_clusters_all"]
@@ -180,6 +179,7 @@ class Discriminator(keras.Model):
 
     def call(self, inputs):
         return self.discriminator(inputs)
+
 
 class CTGAN(keras.Model):
     """
@@ -293,9 +293,6 @@ class CTGAN(keras.Model):
     def call(self, inputs):
         pass
 
-
-
-
     def train_step(self, data):
         real_samples, shuffled_idx = data
         if not self.built_generator:
@@ -309,11 +306,7 @@ class CTGAN(keras.Model):
             cond_vector, mask = self.data_sampler.sample_cond_vector_for_training(self.batch_size)
             input_gen = tf.concat([z, cond_vector], axis=1)
             generated_samples = self.generator(input_gen, training=False)
-
-            # shuffled_indices = tf.random.shuffle(tf.range(batch_size))
-            # real_samples = self.data_sampler.sample_data(shuffled_indices)
             cond_vector_2 = tf.gather(cond_vector, indices=tf.cast(shuffled_idx, tf.int32))
-
             generated_samples_cat = tf.concat([generated_samples, cond_vector], axis=1)
             real_samples_cat = tf.concat([real_samples, cond_vector_2], axis=1)
 
