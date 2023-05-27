@@ -1,6 +1,7 @@
 import tensorflow as tf
 
 
+@tf.function
 def generator_loss(y_generated, cond_vector, mask=None, features_meta_data=None):
     loss = []
     continuous_features_relative_indices = features_meta_data["continuous"]["relative_indices_all"]
@@ -23,6 +24,7 @@ def generator_loss(y_generated, cond_vector, mask=None, features_meta_data=None)
     return loss
 
 
+@tf.function
 def discriminator_loss(y_real, y_generated):
     """
     CTGAN's discriminator loss as proposed by xyz et al.
@@ -34,6 +36,7 @@ def discriminator_loss(y_real, y_generated):
     return -(tf.reduce_mean(y_real) - tf.reduce_mean(y_generated))
 
 
+@tf.function
 def generator_dummy_loss(y_dummy, y_pred):
     """
     For the generator model to track the loss function, and show it in outputs
