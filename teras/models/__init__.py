@@ -46,3 +46,10 @@ from teras.models.RTDL.FTTransformer import (FTTransformerClassifier,
 # VIME models
 from teras.models.VIME import (VimeSelf,
                                VimeSemi)
+
+
+# CTGAN models
+from teras.models.CTGAN import (CTGAN,
+                                Generator as CTGANGenerator,
+                                Discriminator as CTGANDiscriminator,
+                                )
