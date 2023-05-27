@@ -1,6 +1,3 @@
-import tensorflow as tf
-tf.config.run_functions_eagerly(True)
-
 from tensorflow import keras
 import pandas as pd
 from teras.generative import CTGAN
