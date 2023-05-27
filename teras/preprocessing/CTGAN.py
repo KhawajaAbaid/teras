@@ -3,7 +3,6 @@ import tensorflow as tf
 from sklearn.mixture import BayesianGaussianMixture
 import numpy as np
 import pandas as pd
-tf.config.run_functions_eagerly(True)
 
 
 class ModeSpecificNormalization:
@@ -123,11 +122,9 @@ class ModeSpecificNormalization:
             # To normalize, we need the means and standard deviations
             # Means
             clusters_means = self.bay_guass_mix.means_.squeeze()[valid_clusters_indicator]
-            # clusters_means = clusters_means[selected_clusters_indices]
             self.features_meta_data[feature_name]['clusters_means'] = clusters_means
             # Standard Deviations
             clusters_stds = np.sqrt(self.bay_guass_mix.covariances_).squeeze()[valid_clusters_indicator]
-            # clusters_stds = clusters_stds[selected_clusters_indices]
             self.features_meta_data[feature_name]['clusters_stds'] = clusters_stds
 
         self.features_meta_data["relative_indices_all"] = np.array(relative_indices_all)
@@ -474,14 +471,10 @@ class DataSampler:
         masks = tf.zeros([batch_size, self.num_categorical_features])
         cond_vectors = tf.zeros([batch_size, self.categorical_features_meta_data["total_num_categories"]])
         # 2. Randomly select a discrete column Di out of all the Nd discrete columns, with equal probability.
-        # WE SELECT THEM IN SAMPLE DATA METHOD
-        # random_features_names = tf.gather(self.categorical_features, random_features_indices).numpy()
-        # random_feature_relative_index = self.categorical_features_meta_data[random_feature_name]["relative_index"]
+        # >>> We select them in sample_data method
+
         random_features_relative_indices = tf.gather(self.categorical_features_meta_data["relative_indices_all"],
                                                      indices=self.random_features_indices)
-        # random_feature_num_categories = self.categorical_features_meta_data[random_feature_name]["num_categories"]
-        random_features_num_categories = tf.gather(self.categorical_features_meta_data["num_categories_all"],
-                                                   indices=self.random_features_indices)
 
         # 3. Construct a PMF across the range of values of the column selected in 2, Di* , such that the
         # probability mass of each value is the logarithm of its frequency in that column.
