@@ -1,5 +1,4 @@
 import tensorflow as tf
-tf.config.run_functions_eagerly(True)
 from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras import models
@@ -12,6 +11,26 @@ from functools import partial
 
 
 LIST_OR_TUPLE = Union[List[int], Tuple[int]]
+
+
+def generator_dummy_loss(y_dummy, y_pred):
+    """
+    For the generator model to track the loss function, and show it in outputs
+    we create a dummy loss function which receives the loss function
+    and returns it as is. It is passed to the model during compilation step.
+
+    Reference(s):
+        Idea taken from:
+        https://towardsdatascience.com/solving-the-tensorflow-keras-model-loss-problem-fd8281aeeb11
+
+    Args:
+        y_dummy: An array of length batch_size, filled with dummy values.
+        y_pred: The loss value computed using a custom loss function.
+
+    Returns:
+        Returns y_pred (i.e. loss) as is.
+    """
+    return tf.squeeze(y_pred)
 
 
 class Generator(keras.Model):
@@ -162,7 +181,6 @@ class Discriminator(keras.Model):
     def call(self, inputs):
         return self.discriminator(inputs)
 
-
 class CTGAN(keras.Model):
     """
     This CTGAN implementation provides you with two ways of using CTGAN:
@@ -268,7 +286,8 @@ class CTGAN(keras.Model):
                                        data_dim=input_dim,
                                        features_meta_data=self.features_meta_data)
             self.generator.compile(optimizer=keras.optimizers.Adam(learning_rate=self.generator_lr,
-                                                                   beta_1 =0.5, beta_2=0.9))
+                                                                   beta_1 =0.5, beta_2=0.9),
+                                   loss=generator_dummy_loss)
             self.built_generator = True
 
     def call(self, inputs):
@@ -302,11 +321,7 @@ class CTGAN(keras.Model):
                 y_generated = self.discriminator(generated_samples_cat)
                 y_real = self.discriminator(real_samples_cat)
                 grad_pen = self.discriminator.gradient_penalty(real_samples_cat, generated_samples_cat)
-                # loss_disc = -(tf.reduce_mean(y_real) - tf.reduce_mean(y_generated))
-                # loss_disc = discriminator_loss(y_real, y_generated)
                 loss_disc = self.discriminator.compiled_loss(y_real, y_generated)
-            # self.add_loss(lambda: discriminator_loss)
-            print(f"Gradient Penalty: {grad_pen} | Discriminator Loss: {loss_disc} | ", end="")
             gradients_pen = tape.gradient(grad_pen, self.discriminator.trainable_weights)
             gradients_loss = tape.gradient(loss_disc, self.discriminator.trainable_weights)
             self.discriminator.optimizer.apply_gradients(zip(gradients_pen, self.discriminator.trainable_weights))
@@ -314,23 +329,27 @@ class CTGAN(keras.Model):
 
         z = tf.random.normal(shape=[self.batch_size, self.latent_dim])
         cond_vector, mask = self.data_sampler.sample_cond_vector_for_training(self.batch_size)
-        loss_fn = partial(generator_loss, mask=mask, features_meta_data=self.features_meta_data)
+        # Practically speaking, we don't really need the partial function,
+        # but it makes things look more neat
+        generator_partial_loss_fn = partial(generator_loss, mask=mask, features_meta_data=self.features_meta_data)
         input_gen = tf.concat([z, cond_vector], axis=1)
         with tf.GradientTape() as tape:
             generated_samples = self.generator(input_gen)
             generated_samples = tf.concat([generated_samples, cond_vector], axis=1)
             tape.watch(cond_vector)
             y_generated = self.discriminator(generated_samples, training=False)
-            loss = loss_fn(y_generated, cond_vector)
-            # loss = self.compiled_loss(y_generated,
-            #                           cond_vector,
-            #                           mask=mask)
-            # loss = -tf.reduce_mean(y_generated) * loss
-        # self.add_loss(lambda: loss_fn)
-        print("Generator Loss: ", loss)
-        gradients = tape.gradient(loss, self.generator.trainable_weights)
+            loss_gen = generator_partial_loss_fn(y_generated, cond_vector)
+            dummy_targets = tf.zeros(shape=(self.batch_size,))
+            loss_gen_dummy = self.generator.compiled_loss(dummy_targets, loss_gen)
+
+        gradients = tape.gradient(loss_gen_dummy, self.generator.trainable_weights)
         self.generator.optimizer.apply_gradients(zip(gradients, self.generator.trainable_weights))
-        return {m.name: m.result() for m in self.metrics}
+        results = {m.name: m.result() for m in self.metrics}
+        generator_results = {'generator_'+m.name: m.result() for m in self.generator.metrics}
+        results.update(generator_results)
+        discriminator_results = {'discriminator_'+m.name: m.result() for m in self.discriminator.metrics}
+        results.update(discriminator_results)
+        return results
 
     def generate_new_data(self, num_samples, reverse_transform=True):
         """
