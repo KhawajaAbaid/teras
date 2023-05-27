@@ -122,6 +122,7 @@ class Discriminator(keras.Model):
                                                       leaky_relu_alpha=self.leaky_relu_alpha,
                                                       dropout_rate=self.dropout_rate))
 
+    @tf.function
     def gradient_penalty(self,
                          real_samples,
                          generated_samples,
@@ -138,10 +139,9 @@ class Discriminator(keras.Model):
             generated_samples:
             lambda_:
         """
-        batch_size, dim = tf.shape(real_samples)
-        assert batch_size % self.packing_degree == 0, ("`batch_size` must be divisible by `packing_degree`."
-                                                        f"Received batch_size={batch_size}, "
-                                                        f"packing_degree={self.packing_degree}")
+        batch_size = tf.shape(real_samples)[0]
+        dim = tf.shape(real_samples)[1]
+
         alpha = tf.random.uniform(shape=(batch_size // self.packing_degree, 1, 1))
         alpha = tf.reshape(tf.tile(alpha, [1, self.packing_degree, dim]),
                            (-1, dim))
@@ -269,12 +269,14 @@ class CTGAN(keras.Model):
         return y_generated
 
     def train_step(self, data):
-        real_samples, shuffled_idx = data
+        real_samples, shuffled_idx, random_features_indices, random_values_indices = data
         self.batch_size = tf.shape(real_samples)[0]
 
         for _ in range(self.num_discriminator_steps):
             z = tf.random.normal(shape=[self.batch_size, self.latent_dim])
-            cond_vector, mask = self.data_sampler.sample_cond_vector_for_training(self.batch_size)
+            cond_vector, mask = self.data_sampler.sample_cond_vector_for_training(self.batch_size,
+                                                                                  random_features_indices=random_features_indices,
+                                                                                  random_values_indices=random_values_indices)
             input_gen = tf.concat([z, cond_vector], axis=1)
             generated_samples = self.generator(input_gen, training=False)
             cond_vector_2 = tf.gather(cond_vector, indices=tf.cast(shuffled_idx, tf.int32))
@@ -292,7 +294,9 @@ class CTGAN(keras.Model):
             self.discriminator.optimizer.apply_gradients(zip(gradients_loss, self.discriminator.trainable_weights))
 
         z = tf.random.normal(shape=[self.batch_size, self.latent_dim])
-        cond_vector, mask = self.data_sampler.sample_cond_vector_for_training(self.batch_size)
+        cond_vector, mask = self.data_sampler.sample_cond_vector_for_training(self.batch_size,
+                                                                              random_features_indices=random_features_indices,
+                                                                              random_values_indices=random_values_indices)
         # Practically speaking, we don't really need the partial function,
         # but it makes things look more neat
         generator_partial_loss_fn = partial(generator_loss, mask=mask, features_meta_data=self.features_meta_data)
