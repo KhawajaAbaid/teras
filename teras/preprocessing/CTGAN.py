@@ -1,6 +1,7 @@
 from sklearn.preprocessing import OneHotEncoder
 import tensorflow as tf
 from sklearn.mixture import BayesianGaussianMixture
+from teras.utils import tf_random_choice
 import numpy as np
 import pandas as pd
 
@@ -558,11 +559,11 @@ class DataSampler:
             # to speed things up.
             random_features_categories_probs = tf.gather(tf.ragged.constant(self.categorical_features_meta_data["categories_probs_all"]),
                                                             indices=random_features_indices)
-            random_values_indices = [np.random.choice(np.arange(len(feature_probs)),
-                                                      size=1,
+            random_values_indices = [tf_random_choice(np.arange(len(feature_probs)),
+                                                      n_samples=1,
                                                       p=feature_probs)
                                      for feature_probs in random_features_categories_probs]
-            random_values_indices = np.array(random_values_indices).squeeze(axis=1)
+            random_values_indices = tf.squeeze(random_values_indices)
             # the official implementation uses actual indices during the sample_cond_vector method
             # but uses the shuffled version in sampling data, so we're gonna do just that.
             shuffled_idx = tf.random.shuffle(tf.range(self.batch_size))
@@ -573,8 +574,9 @@ class DataSampler:
                 values_idx = tf.gather(values_idx, indices=shuffled_idx)
             sample_idx = []
             for feat_id, val_id in zip(features_idx, values_idx):
-                sample_idx.append(np.random.choice(self.row_idx_by_categories[feat_id][val_id]))
-
+                s_id = tf_random_choice(self.row_idx_by_categories[tf.squeeze(feat_id)][tf.squeeze(val_id)],
+                                                   n_samples=1)
+                sample_idx.append(tf.squeeze(s_id))
             # we also return shuffled_idx because it will be required to shuffle the conditional vector
             # in the training loop as we want to keep the shuffling consistent as the batch of
             # transformed data and cond vector must have one to one feature correspondence.
