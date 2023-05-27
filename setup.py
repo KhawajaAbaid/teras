@@ -12,7 +12,7 @@ setup(
         'tensorflow-addons',
         'tensorflow-probability',
         'pandas',
-        'scikit-learn'
+        'scikit-learn',
         'numpy',
     ],
 )
