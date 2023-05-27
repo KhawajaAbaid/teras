@@ -6,6 +6,8 @@ from typing import List, Union
 
 LayerType = Union[str, layers.Layer]
 
+
+@tf.function
 def tf_random_choice(inputs,
                      n_samples: int,
                      p: List[float] = None):
