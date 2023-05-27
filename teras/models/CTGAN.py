@@ -52,7 +52,6 @@ class Generator(keras.Model):
     """
     def __init__(self,
                  generator_dim: LIST_OR_TUPLE = [256, 256],
-                 data_dim: int = None,
                  features_meta_data: dict = None,
                  **kwargs):
         super().__init__(**kwargs)
@@ -60,15 +59,16 @@ class Generator(keras.Model):
             ("generator_dim must be a list or tuple of integers which determines the number of Residual blocks "
             "and the dimensionality of the hidden layer in those blocks.")
         self.generator_dim = generator_dim
-        self.data_dim = data_dim
         self.features_meta_data = features_meta_data
         self.generator = models.Sequential()
-
         for dim in generator_dim:
             self.generator.add(GeneratorResidualBlock(dim))
-        dense_out = layers.Dense(data_dim)
-        self.generator.add(dense_out)
         self.gumbel_softmax = GumbelSoftmax()
+
+    def build(self, input_shape):
+        # input_shape is (batch_size, |z| + |cond|)
+        dense_out = layers.Dense(input_shape[1])
+        self.generator.add(dense_out)
 
     def call(self, inputs):
         # inputs have the shape |z| + |cond|
@@ -276,29 +276,20 @@ class CTGAN(keras.Model):
                                                                        beta_1=0.5, beta_2=0.9),
                                        loss=discriminator_loss)
         self.features_meta_data = self.data_transformer.features_meta_data
-        self.built_generator = False
-
-    def build(self, input_shape):
-        if self.generator is None:
-            input_dim = input_shape[1]
-            # instantiate generator
-            self.generator = Generator(generator_dim=self.generator_dim,
-                                       data_dim=input_dim,
-                                       features_meta_data=self.features_meta_data)
-            self.generator.compile(optimizer=keras.optimizers.Adam(learning_rate=self.generator_lr,
-                                                                   beta_1 =0.5, beta_2=0.9),
-                                   loss=generator_dummy_loss)
-            self.built_generator = True
-
-    def call(self, inputs):
-        pass
+        # self.built_generator = False
+        self.generator = Generator(generator_dim=self.generator_dim,
+                                   features_meta_data=self.features_meta_data)
+        self.generator.compile(optimizer=keras.optimizers.Adam(learning_rate=self.generator_lr,
+                                                               beta_1=0.5, beta_2=0.9),
+                               loss=generator_dummy_loss)
+    def call(self, inputs, cond_vector=None):
+        generated_samples = self.generator(inputs)
+        generated_samples = tf.concat([generated_samples, cond_vector], axis=1)
+        y_generated = self.discriminator(generated_samples, training=False)
+        return y_generated
 
     def train_step(self, data):
         real_samples, shuffled_idx = data
-        if not self.built_generator:
-            self.build(tf.shape(real_samples))
-            self.built_generator = True
-
         self.batch_size = tf.shape(real_samples)[0]
 
         for _ in range(self.num_discriminator_steps):
@@ -327,10 +318,8 @@ class CTGAN(keras.Model):
         generator_partial_loss_fn = partial(generator_loss, mask=mask, features_meta_data=self.features_meta_data)
         input_gen = tf.concat([z, cond_vector], axis=1)
         with tf.GradientTape() as tape:
-            generated_samples = self.generator(input_gen)
-            generated_samples = tf.concat([generated_samples, cond_vector], axis=1)
             tape.watch(cond_vector)
-            y_generated = self.discriminator(generated_samples, training=False)
+            y_generated = self(input_gen, cond_vector=cond_vector)
             loss_gen = generator_partial_loss_fn(y_generated, cond_vector)
             dummy_targets = tf.zeros(shape=(self.batch_size,))
             loss_gen_dummy = self.generator.compiled_loss(dummy_targets, loss_gen)
