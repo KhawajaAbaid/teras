@@ -4,33 +4,13 @@ from tensorflow.keras import layers
 from tensorflow.keras import models
 from teras.layers.CTGAN import GeneratorResidualBlock, DiscriminatorBlock
 from teras.layers.activations import GumbelSoftmax
-from teras.losses.CTGAN import generator_loss, discriminator_loss
+from teras.losses.CTGAN import generator_loss, discriminator_loss, generator_dummy_loss
 from teras.preprocessing.CTGAN import DataTransformer, DataSampler
 from typing import List, Union, Tuple
 from functools import partial
 
 
 LIST_OR_TUPLE = Union[List[int], Tuple[int]]
-
-
-def generator_dummy_loss(y_dummy, y_pred):
-    """
-    For the generator model to track the loss function, and show it in outputs
-    we create a dummy loss function which receives the loss function
-    and returns it as is. It is passed to the model during compilation step.
-
-    Reference(s):
-        Idea taken from:
-        https://towardsdatascience.com/solving-the-tensorflow-keras-model-loss-problem-fd8281aeeb11
-
-    Args:
-        y_dummy: An array of length batch_size, filled with dummy values.
-        y_pred: The loss value computed using a custom loss function.
-
-    Returns:
-        Returns y_pred (i.e. loss) as is.
-    """
-    return tf.squeeze(y_pred)
 
 
 class Generator(keras.Model):

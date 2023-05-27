@@ -32,3 +32,23 @@ def discriminator_loss(y_real, y_generated):
         y_generated: Discriminator's output for generated samples
     """
     return -(tf.reduce_mean(y_real) - tf.reduce_mean(y_generated))
+
+
+def generator_dummy_loss(y_dummy, y_pred):
+    """
+    For the generator model to track the loss function, and show it in outputs
+    we create a dummy loss function which receives the loss function
+    and returns it as is. It is passed to the model during compilation step.
+
+    Reference(s):
+        Idea taken from:
+        https://towardsdatascience.com/solving-the-tensorflow-keras-model-loss-problem-fd8281aeeb11
+
+    Args:
+        y_dummy: An array of length batch_size, filled with dummy values.
+        y_pred: The loss value computed using a custom loss function.
+
+    Returns:
+        Returns y_pred (i.e. loss) as is.
+    """
+    return tf.squeeze(y_pred)
