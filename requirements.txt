@@ -1,6 +1,6 @@
 tensorflow
-tensorflow_addons
-tensorflow_probability
+tensorflow-addons
+tensorflow-probability
 numpy
 pandas
 scikit-learn
