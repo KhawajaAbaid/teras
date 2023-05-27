@@ -14,69 +14,69 @@
 
 
 # Activation layers
-from teras.layers.activations import (GLU,
-                                      GEGLU,
-                                      GumbelSoftmax)
+from .activations import (GLU,
+                          GEGLU,
+                          GumbelSoftmax)
 
 # NODE layers
-from teras.layers.NODE import ObliviousDecisionTree
+from .NODE import ObliviousDecisionTree
 
 # TabNet layers
-from teras.layers.TabNet import (FeatureTransformerBlock as TabNetFeatureTransformerBlock,
-                                 FeatureTransformer as TabNetFeatureTransformer,
-                                 Encoder as TabNetEncoder)
+from .TabNet import (FeatureTransformerBlock as TabNetFeatureTransformerBlock,
+                     FeatureTransformer as TabNetFeatureTransformer,
+                     Encoder as TabNetEncoder)
 
 # TabTransformer layers
-from teras.layers.TabTransformer import (CategoricalFeatureEmbedding as TabTransformerCategoricalFeatureEmbedding,
-                                         ColumnEmbedding as TabTransformerColumnEmbedding,
-                                         FeedForward as TabTransformerFeedForward,
-                                         Transformer as TabTransformerTransformerLayer,
-                                         Encoder as TabTransformerEncoder,
-                                         RegressionHead as TabTransformerRegressionHead,
-                                         ClassificationHead as TabTransformerClassificationHead)
+from .TabTransformer import (CategoricalFeatureEmbedding as TabTransformerCategoricalFeatureEmbedding,
+                             ColumnEmbedding as TabTransformerColumnEmbedding,
+                             FeedForward as TabTransformerFeedForward,
+                             Transformer as TabTransformerTransformerLayer,
+                             Encoder as TabTransformerEncoder,
+                             RegressionHead as TabTransformerRegressionHead,
+                             ClassificationHead as TabTransformerClassificationHead)
 
 # DNFNet layers
-from teras.layers.DNFNet import (DNNF,
-                                 FeatureSelection,
-                                 Localization)
+from .DNFNet import (DNNF,
+                     FeatureSelection,
+                     Localization)
 
 
 # SAINT layers
-from teras.layers.SAINT import (CategoricalFeaturesEmbedding as SAINTCategoricalFeaturesEmbedding,
-                                NumericalFeaturesEmbedding as SAINTNumericalFeaturesEmbedding,
-                                FeedForward as SAINTFeedForward,
-                                MultiHeadInterSampleAttention as SAINTMultiHeadInterSampleAttention,
-                                SAINTTransformer as SAINTTransformer,
-                                Encoder as SAINTEncoder,
-                                RegressionHead as SAINTRegressionHead,
-                                ClassificationHead as SAINTClassificationHead)
+from .SAINT import (CategoricalFeaturesEmbedding as SAINTCategoricalFeaturesEmbedding,
+                    NumericalFeaturesEmbedding as SAINTNumericalFeaturesEmbedding,
+                    FeedForward as SAINTFeedForward,
+                    MultiHeadInterSampleAttention as SAINTMultiHeadInterSampleAttention,
+                    SAINTTransformer as SAINTTransformer,
+                    Encoder as SAINTEncoder,
+                    RegressionHead as SAINTRegressionHead,
+                    ClassificationHead as SAINTClassificationHead)
 
 
 # RTDL ResNet layers
-from teras.layers.RTDL.ResNet import (ResNetBlock as RTDLResNetBlock,
-                                      ClassificationHead as RTDLResNetClassificationHead,
-                                      RegressionHead as RTDLResNetRegressionHead)
+from .RTDL.ResNet import (ResNetBlock as RTDLResNetBlock,
+                          ClassificationHead as RTDLResNetClassificationHead,
+                          RegressionHead as RTDLResNetRegressionHead)
 
 # RTDL FTTransformer layers
-from teras.layers.RTDL.FTTransformer import (FeatureTokenizer as FTFeatureTokenizer,
-                                             NumericalFeatureTokenizer as FTNumericalFeatureTokenizer,
-                                             CategoricalFeatureTokenizer as FTCategoricalFeatureTokenizer,
-                                             Transformer as FTTransformer,
-                                             Encoder as FTEncoder,
-                                             CLSToken as FTCLSToken,
-                                             ClassificationHead as FTClassificationHead,
-                                             RegressionHead as FTRegressionHead)
+from .RTDL.FTTransformer import (FeatureTokenizer as FTFeatureTokenizer,
+                                 NumericalFeatureTokenizer as FTNumericalFeatureTokenizer,
+                                 CategoricalFeatureTokenizer as FTCategoricalFeatureTokenizer,
+                                 Transformer as FTTransformer,
+                                 Encoder as FTEncoder,
+                                 CLSToken as FTCLSToken,
+                                 ClassificationHead as FTClassificationHead,
+                                 RegressionHead as FTRegressionHead)
 
 # VIME layers
-from teras.layers.VIME import (MaskEstimator as VimeMaskEstimator,
-                               FeatureEstimator as VimeFeatureEstimator,
-                               Encoder as VimeEncoder,
-                               MaskGenerationAndCorruption as VimeMaskGenerationAndCorruption,
-                               Predictor as VimePredictor)
+from .VIME import (MaskEstimator as VimeMaskEstimator,
+                   FeatureEstimator as VimeFeatureEstimator,
+                   Encoder as VimeEncoder,
+                   MaskGenerationAndCorruption as VimeMaskGenerationAndCorruption,
+                   Predictor as VimePredictor)
 
 # On Embeddings for Numerical Features (paper) layers
-from teras.layers.OENF import (PeriodicEmbedding)
+from .OENF import (PeriodicEmbedding)
 
 # CTGAN layers
-from teras.layers.CTGAN import (GeneratorResidualBlock as CTGANGeneratorResidualBlock,
-                                DiscriminatorBlock as CTGANDiscriminatorBlock)
+from .CTGAN import (GeneratorResidualBlock as CTGANGeneratorResidualBlock,
+                    DiscriminatorBlock as CTGANDiscriminatorBlock)

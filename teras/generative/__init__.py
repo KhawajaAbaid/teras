@@ -14,5 +14,5 @@
 
 
 # CTGAN models
-from teras.models.CTGAN import CTGAN
+from ..models.CTGAN import CTGAN
 

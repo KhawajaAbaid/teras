@@ -13,6 +13,6 @@
 # limitations under the License.
 
 
-from teras.preprocessing.OENF import PiecewiseLinearEncoding
+from .OENF import PiecewiseLinearEncoding
 
-from teras.preprocessing.CTGAN import ModeSpecificNormalization
+from .CTGAN import ModeSpecificNormalization

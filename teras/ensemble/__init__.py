@@ -13,4 +13,5 @@
 # limitations under the License.5
 
 
-from teras.ensemble import Stacking, Bagging
+from .Bagging import Bagging
+from .Stacking import Stacking

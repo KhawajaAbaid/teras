@@ -15,41 +15,41 @@
 
 
 # NODE models
-from teras.models.NODE import (NODEClassifier,
-                               NODERegressor)
+from .NODE import (NODEClassifier,
+                   NODERegressor)
 
 # TabNet models
-from teras.models.TabNet import (TabNetClassifier,
-                                TabNetRegressor)
+from .TabNet import (TabNetClassifier,
+                     TabNetRegressor)
 
 # TabTransformer models
-from teras.models.TabTransformer import (TabTransformerClassifier,
-                                         TabTransformerRegressor)
+from .TabTransformer import (TabTransformerClassifier,
+                             TabTransformerRegressor)
 
 # DNFNet models
-from teras.models.DNFNet import (DNFNetRegressor,
-                                 DNFNetClassifier)
+from .DNFNet import (DNFNetRegressor,
+                     DNFNetClassifier)
 
 # SAINT models
-from teras.models.SAINT import (SAINTClassifier,
-                                SAINTRegressor)
+from .SAINT import (SAINTClassifier,
+                    SAINTRegressor)
 
 
 # RTDL ResNet models
-from teras.models.RTDL.ResNet import (ResNetClassifier as RTDLResNetClassifier,
-                                      ResNetRegressor as RTDLResNetRegressor)
+from .RTDL.ResNet import (ResNetClassifier as RTDLResNetClassifier,
+                          ResNetRegressor as RTDLResNetRegressor)
 
 # RTDL FTTransformer models
-from teras.models.RTDL.FTTransformer import (FTTransformerClassifier,
-                                             FTTransformerRegressor)
+from .RTDL.FTTransformer import (FTTransformerClassifier,
+                                 FTTransformerRegressor)
 
 # VIME models
-from teras.models.VIME import (VimeSelf,
-                               VimeSemi)
+from .VIME import (VimeSelf,
+                   VimeSemi)
 
 
 # CTGAN models
-from teras.models.CTGAN import (CTGAN,
-                                Generator as CTGANGenerator,
-                                Discriminator as CTGANDiscriminator,
-                                )
+from .CTGAN import (CTGAN,
+                    Generator as CTGANGenerator,
+                    Discriminator as CTGANDiscriminator,
+                    )
