@@ -1,10 +1,13 @@
 import tensorflow as tf
+from tensorflow import keras
 
 
 @tf.function
 def generator_loss(generated_samples, y_generated,
                    cond_vector=None, mask=None, features_meta_data=None):
     loss = []
+    cross_entropy_loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True,
+                                                                    reduction=keras.losses.Reduction.NONE)
     continuous_features_relative_indices = features_meta_data["continuous"]["relative_indices_all"]
     features_relative_indices_all = features_meta_data["relative_indices_all"]
     num_categories_all = features_meta_data["categorical"]["num_categories_all"]
@@ -14,11 +17,11 @@ def generator_loss(generated_samples, y_generated,
     for i, index in enumerate(features_relative_indices_all[offset:]):
         logits = generated_samples[:, index: index + num_categories_all[i]]
         temp_cond_vector = cond_vector[:, i: i + num_categories_all[i]]
-        labels = tf.expand_dims(tf.argmax(temp_cond_vector, axis=1), 1)
-        crossentropy_loss = tf.nn.softmax_cross_entropy_with_logits(logits=logits,
-                                                                    labels=labels
-                                                                    )
-        loss.append(crossentropy_loss)
+        labels = tf.argmax(temp_cond_vector, axis=1)
+        ce_loss = cross_entropy_loss(y_pred=logits,
+                                     y_true=labels
+                                     )
+        loss.append(ce_loss)
     loss = tf.stack(loss, axis=1)
     loss = tf.reduce_sum(loss * tf.cast(mask, dtype=tf.float32)) / tf.cast(tf.shape(y_generated)[0], dtype=tf.float32)
     loss = -tf.reduce_mean(y_generated) * loss
