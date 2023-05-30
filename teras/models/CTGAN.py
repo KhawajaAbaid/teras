@@ -159,7 +159,9 @@ class Discriminator(keras.Model):
         return gradient_penalty
 
     def call(self, inputs):
-        return self.discriminator(inputs)
+        inputs_dim = tf.shape(inputs)[1]
+        reshaped_inputs = tf.reshape(inputs, shape=(-1, self.packing_degree * inputs_dim))
+        return self.discriminator(reshaped_inputs)
 
 
 class CTGAN(keras.Model):
@@ -269,7 +271,7 @@ class CTGAN(keras.Model):
         generated_samples = self.generator(inputs)
         generated_samples = tf.concat([generated_samples, cond_vector], axis=1)
         y_generated = self.discriminator(generated_samples, training=False)
-        return y_generated
+        return generated_samples, y_generated
 
     def train_step(self, data):
         real_samples, shuffled_idx, random_features_indices, random_values_indices = data
@@ -302,12 +304,15 @@ class CTGAN(keras.Model):
                                                                               random_values_indices=random_values_indices)
         # Practically speaking, we don't really need the partial function,
         # but it makes things look more neat
-        generator_partial_loss_fn = partial(generator_loss, mask=mask, features_meta_data=self.features_meta_data)
+        # generator_partial_loss_fn = partial(generator_loss, mask=mask, features_meta_data=self.features_meta_data)
         input_gen = tf.concat([z, cond_vector], axis=1)
         with tf.GradientTape() as tape:
             tape.watch(cond_vector)
-            y_generated = self(input_gen, cond_vector=cond_vector)
-            loss_gen = generator_partial_loss_fn(y_generated, cond_vector)
+            tape.watch(mask)
+            generated_samples, y_generated = self(input_gen, cond_vector=cond_vector)
+            loss_gen = generator_loss(generated_samples, y_generated,
+                                      cond_vector=cond_vector, mask=mask,
+                                      features_meta_data=self.features_meta_data)
             dummy_targets = tf.zeros(shape=(self.batch_size,))
             loss_gen_dummy = self.generator.compiled_loss(dummy_targets, loss_gen)
 

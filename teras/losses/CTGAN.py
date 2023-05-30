@@ -2,7 +2,8 @@ import tensorflow as tf
 
 
 @tf.function
-def generator_loss(y_generated, cond_vector, mask=None, features_meta_data=None):
+def generator_loss(generated_samples, y_generated,
+                   cond_vector=None, mask=None, features_meta_data=None):
     loss = []
     continuous_features_relative_indices = features_meta_data["continuous"]["relative_indices_all"]
     features_relative_indices_all = features_meta_data["relative_indices_all"]
@@ -11,7 +12,7 @@ def generator_loss(y_generated, cond_vector, mask=None, features_meta_data=None)
     # concerned with the categorical features here
     offset = len(continuous_features_relative_indices)
     for i, index in enumerate(features_relative_indices_all[offset:]):
-        logits = y_generated[:, index: index + num_categories_all[i]]
+        logits = generated_samples[:, index: index + num_categories_all[i]]
         temp_cond_vector = cond_vector[:, i: i + num_categories_all[i]]
         labels = tf.expand_dims(tf.argmax(temp_cond_vector, axis=1), 1)
         crossentropy_loss = tf.nn.softmax_cross_entropy_with_logits(logits=logits,
