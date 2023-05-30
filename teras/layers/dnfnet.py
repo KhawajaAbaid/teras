@@ -3,7 +3,7 @@ from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras import initializers
 import numpy as np
-from teras.utils.DNFNet import (compute_total_number_of_literals,
+from teras.utils.dnfnet import (compute_total_number_of_literals,
                                 compute_total_number_of_conjunctions,
                                 compute_n_literals_per_formula,
                                 create_conjunctions_indicator_matrix,

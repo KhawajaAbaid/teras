@@ -28,16 +28,16 @@ from .utils import (tf_random_choice,
 
 
 # NODE utility function(s)
-from .NODE import sparsemoid
+from .node import sparsemoid
 
 
 # TabTransformer utility function(s)
-from .TabTransformer import (get_categorical_features_vocab,
+from .tabtransformer import (get_categorical_features_vocab,
                              dataframe_to_tf_dataset)
 
 
 # VIME utility function(s)
-from .VIME import (mask_generator as vime_mask_generator,
+from .vime import (mask_generator as vime_mask_generator,
                    pretext_generator as vime_pretext_generator,
                    preprocess_input_vime_self,
                    preprocess_input_vime_semi)
