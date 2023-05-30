@@ -49,7 +49,7 @@ from .vime import (VimeSelf,
 
 
 # CTGAN models
-from .CTGAN import (CTGAN,
+from .ctgan import (CTGAN,
                     Generator as CTGANGenerator,
                     Discriminator as CTGANDiscriminator,
                     )

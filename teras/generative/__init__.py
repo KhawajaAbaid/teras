@@ -14,5 +14,5 @@
 
 
 # CTGAN models
-from ..models.CTGAN import CTGAN
+from ..models.ctgan import CTGAN
 
