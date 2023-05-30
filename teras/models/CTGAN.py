@@ -121,6 +121,7 @@ class Discriminator(keras.Model):
             self.discriminator.add(DiscriminatorBlock(dim,
                                                       leaky_relu_alpha=self.leaky_relu_alpha,
                                                       dropout_rate=self.dropout_rate))
+        self.discriminator.add(layers.Dense(1))
 
     @tf.function
     def gradient_penalty(self,
