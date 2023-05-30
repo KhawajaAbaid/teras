@@ -13,6 +13,6 @@
 # limitations under the License.
 
 
-from .OENF import PiecewiseLinearEncoding
+from .oenf import PiecewiseLinearEncoding
 
-from .CTGAN import ModeSpecificNormalization
+from .ctgan import ModeSpecificNormalization

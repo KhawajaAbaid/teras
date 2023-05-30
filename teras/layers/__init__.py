@@ -19,15 +19,15 @@ from .activations import (GLU,
                           GumbelSoftmax)
 
 # NODE layers
-from .NODE import ObliviousDecisionTree
+from .node import ObliviousDecisionTree
 
 # TabNet layers
-from .TabNet import (FeatureTransformerBlock as TabNetFeatureTransformerBlock,
+from .tabnet import (FeatureTransformerBlock as TabNetFeatureTransformerBlock,
                      FeatureTransformer as TabNetFeatureTransformer,
                      Encoder as TabNetEncoder)
 
 # TabTransformer layers
-from .TabTransformer import (CategoricalFeatureEmbedding as TabTransformerCategoricalFeatureEmbedding,
+from .tabtransformer import (CategoricalFeatureEmbedding as TabTransformerCategoricalFeatureEmbedding,
                              ColumnEmbedding as TabTransformerColumnEmbedding,
                              FeedForward as TabTransformerFeedForward,
                              Transformer as TabTransformerTransformerLayer,
@@ -36,13 +36,13 @@ from .TabTransformer import (CategoricalFeatureEmbedding as TabTransformerCatego
                              ClassificationHead as TabTransformerClassificationHead)
 
 # DNFNet layers
-from .DNFNet import (DNNF,
+from .dnfnet import (DNNF,
                      FeatureSelection,
                      Localization)
 
 
 # SAINT layers
-from .SAINT import (CategoricalFeaturesEmbedding as SAINTCategoricalFeaturesEmbedding,
+from .saint import (CategoricalFeaturesEmbedding as SAINTCategoricalFeaturesEmbedding,
                     NumericalFeaturesEmbedding as SAINTNumericalFeaturesEmbedding,
                     FeedForward as SAINTFeedForward,
                     MultiHeadInterSampleAttention as SAINTMultiHeadInterSampleAttention,
@@ -53,30 +53,30 @@ from .SAINT import (CategoricalFeaturesEmbedding as SAINTCategoricalFeaturesEmbe
 
 
 # RTDL ResNet layers
-from .RTDL.ResNet import (ResNetBlock as RTDLResNetBlock,
+from .RTDL.resnet import (ResNetBlock as RTDLResNetBlock,
                           ClassificationHead as RTDLResNetClassificationHead,
                           RegressionHead as RTDLResNetRegressionHead)
 
 # RTDL FTTransformer layers
-from .RTDL.FTTransformer import (FeatureTokenizer as FTFeatureTokenizer,
-                                 NumericalFeatureTokenizer as FTNumericalFeatureTokenizer,
-                                 CategoricalFeatureTokenizer as FTCategoricalFeatureTokenizer,
-                                 Transformer as FTTransformer,
-                                 Encoder as FTEncoder,
-                                 CLSToken as FTCLSToken,
-                                 ClassificationHead as FTClassificationHead,
-                                 RegressionHead as FTRegressionHead)
+from .RTDL.ft_transformer import (FeatureTokenizer as FTFeatureTokenizer,
+                                  NumericalFeatureTokenizer as FTNumericalFeatureTokenizer,
+                                  CategoricalFeatureTokenizer as FTCategoricalFeatureTokenizer,
+                                  Transformer as FTTransformer,
+                                  Encoder as FTEncoder,
+                                  CLSToken as FTCLSToken,
+                                  ClassificationHead as FTClassificationHead,
+                                  RegressionHead as FTRegressionHead)
 
 # VIME layers
-from .VIME import (MaskEstimator as VimeMaskEstimator,
+from .vime import (MaskEstimator as VimeMaskEstimator,
                    FeatureEstimator as VimeFeatureEstimator,
                    Encoder as VimeEncoder,
                    MaskGenerationAndCorruption as VimeMaskGenerationAndCorruption,
                    Predictor as VimePredictor)
 
 # On Embeddings for Numerical Features (paper) layers
-from .OENF import (PeriodicEmbedding)
+from .oenf import (PeriodicEmbedding)
 
 # CTGAN layers
-from .CTGAN import (GeneratorResidualBlock as CTGANGeneratorResidualBlock,
+from .ctgan import (GeneratorResidualBlock as CTGANGeneratorResidualBlock,
                     DiscriminatorBlock as CTGANDiscriminatorBlock)

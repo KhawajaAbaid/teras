@@ -15,36 +15,36 @@
 
 
 # NODE models
-from .NODE import (NODEClassifier,
+from .node import (NODEClassifier,
                    NODERegressor)
 
 # TabNet models
-from .TabNet import (TabNetClassifier,
+from .tabnet import (TabNetClassifier,
                      TabNetRegressor)
 
 # TabTransformer models
-from .TabTransformer import (TabTransformerClassifier,
+from .tabtransformer import (TabTransformerClassifier,
                              TabTransformerRegressor)
 
 # DNFNet models
-from .DNFNet import (DNFNetRegressor,
+from .dnfnet import (DNFNetRegressor,
                      DNFNetClassifier)
 
 # SAINT models
-from .SAINT import (SAINTClassifier,
+from .saint import (SAINTClassifier,
                     SAINTRegressor)
 
 
 # RTDL ResNet models
-from .RTDL.ResNet import (ResNetClassifier as RTDLResNetClassifier,
+from .RTDL.resnet import (ResNetClassifier as RTDLResNetClassifier,
                           ResNetRegressor as RTDLResNetRegressor)
 
 # RTDL FTTransformer models
-from .RTDL.FTTransformer import (FTTransformerClassifier,
-                                 FTTransformerRegressor)
+from .RTDL.ft_transformer import (FTTransformerClassifier,
+                                  FTTransformerRegressor)
 
 # VIME models
-from .VIME import (VimeSelf,
+from .vime import (VimeSelf,
                    VimeSemi)
 
 

@@ -7,10 +7,10 @@ from tensorflow.keras import layers
 # This is done to,
 #   1. Identify which architecture the layer was proposed in.
 #   2. Avoid name conflicts.
-from teras.layers.TabTransformer import CategoricalFeatureEmbedding, ColumnEmbedding
+from teras.layers.tabtransformer import CategoricalFeatureEmbedding, ColumnEmbedding
 from teras.layers import TabTransformerEncoder as Encoder
 from teras.layers import TabTransformerClassificationHead as ClassificationHead
-from teras.layers.TabTransformer import RegressionHead
+from teras.layers.tabtransformer import RegressionHead
 from typing import List
 
 

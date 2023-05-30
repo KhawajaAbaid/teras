@@ -2,10 +2,10 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras import models
-from teras.layers.CTGAN import GeneratorResidualBlock, DiscriminatorBlock
+from teras.layers.ctgan import GeneratorResidualBlock, DiscriminatorBlock
 from teras.layers.activations import GumbelSoftmax
-from teras.losses.CTGAN import generator_loss, discriminator_loss, generator_dummy_loss
-from teras.preprocessing.CTGAN import DataTransformer, DataSampler
+from teras.losses.ctgan import generator_loss, discriminator_loss, generator_dummy_loss
+from teras.preprocessing.ctgan import DataTransformer, DataSampler
 from typing import List, Union, Tuple
 from functools import partial
 

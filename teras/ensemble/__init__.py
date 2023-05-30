@@ -13,5 +13,5 @@
 # limitations under the License.5
 
 
-from .Bagging import Bagging
-from .Stacking import Stacking
+from .bagging import Bagging
+from .stacking import Stacking
