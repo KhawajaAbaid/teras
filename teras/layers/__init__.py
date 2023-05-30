@@ -80,3 +80,7 @@ from .oenf import (PeriodicEmbedding)
 # CTGAN layers
 from .ctgan import (GeneratorResidualBlock as CTGANGeneratorResidualBlock,
                     DiscriminatorBlock as CTGANDiscriminatorBlock)
+
+# TVAE layers
+from .tvae import (Encoder as TvaeEncoder,
+                   Decoder as TvaeDecoder)
