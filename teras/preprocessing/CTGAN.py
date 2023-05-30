@@ -116,7 +116,10 @@ class ModeSpecificNormalization:
             self.features_meta_data[feature_name]['num_valid_clusters'] = num_valid_clusters
 
             relative_indices_all.append(relative_index)
-            relative_index += num_valid_clusters
+            # The 1 is for the alpha feature, since each continuous feature
+            # gets transformed into alpha + betas where,
+            # |alpha| = 1 and |betas| = num_valid_clusters
+            relative_index += (1 + num_valid_clusters)
             num_valid_clusters_all.append(num_valid_clusters)
 
             # Use the selected clusters to normalize the values.
@@ -322,12 +325,17 @@ class DataTransformer:
         return self.one_hot_enc.transform(x)
 
     def transform(self, x):
+        total_transformed_features = 0
         x_continuous, x_categorical = None, None
         if self.num_continuous_features > 0:
             x_continuous = self.transform_continuous_data(x[self.continuous_features])
             self.features_meta_data["continuous"] = self.mode_specific_normalizer.features_meta_data
+            total_transformed_features += (self.features_meta_data["continuous"]["relative_indices_all"][-1] +
+                                            self.features_meta_data["continuous"]["num_valid_clusters_all"][-1])
         if self.num_categorical_features > 0:
             x_categorical = self.transform_categorical_data(x[self.categorical_features])
+            total_transformed_features += (self.features_meta_data["categorical"]["relative_indices_all"][-1] +
+                                            self.features_meta_data["categorical"]["num_categories_all"][-1] + 1)
 
         # since we concatenate the categorical features AFTER the continuous alphas and betas
         # so we'll create an overall relative indices array where we offset the relative indices
@@ -339,10 +347,12 @@ class DataTransformer:
             relative_indices_all.extend(cont_relative_indices)
             offset = cont_relative_indices[-1] + self.features_meta_data["continuous"]["num_valid_clusters_all"][-1]
         if x_categorical is not None:
-            relative_indices_all.extend(self.features_meta_data["categorical"]["relative_indices_all"]
-                                        + offset)
+            # +1 since the categorical relative indices start at 0
+            relative_indices_all.extend(self.features_meta_data["categorical"]["relative_indices_all"] + 1 + offset)
         self.features_meta_data["relative_indices_all"] = relative_indices_all
-        return np.concatenate([x_continuous, x_categorical.toarray()], axis=1)
+        self.features_meta_data["total_transformed_features"] = total_transformed_features
+        x_transformed = np.concatenate([x_continuous, x_categorical.toarray()], axis=1)
+        return x_transformed
 
     @property
     def categorical_features_meta_data(self):
