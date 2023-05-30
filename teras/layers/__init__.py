@@ -53,12 +53,12 @@ from .saint import (CategoricalFeaturesEmbedding as SAINTCategoricalFeaturesEmbe
 
 
 # RTDL ResNet layers
-from .RTDL.resnet import (ResNetBlock as RTDLResNetBlock,
+from .rtdl.resnet import (ResNetBlock as RTDLResNetBlock,
                           ClassificationHead as RTDLResNetClassificationHead,
                           RegressionHead as RTDLResNetRegressionHead)
 
 # RTDL FTTransformer layers
-from .RTDL.ft_transformer import (FeatureTokenizer as FTFeatureTokenizer,
+from .rtdl.ft_transformer import (FeatureTokenizer as FTFeatureTokenizer,
                                   NumericalFeatureTokenizer as FTNumericalFeatureTokenizer,
                                   CategoricalFeatureTokenizer as FTCategoricalFeatureTokenizer,
                                   Transformer as FTTransformer,
