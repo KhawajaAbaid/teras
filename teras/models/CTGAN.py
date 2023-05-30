@@ -23,15 +23,16 @@ class Generator(keras.Model):
         https://arxiv.org/abs/1907.00503
 
     Args:
-        latent_dim: Size of the random sample passed to the Generator.
-            Defaults to 128.
         generator_dim: A list or tuple of integers. For each value, a Residual block
             of that dimensionality is added to the generator.
             Defaults to [256, 256].
         data_dim: Dimensionality of the transformed dataset.
+        features_meta_data: A dictionary of features meta data.
+            Obtained from data_transformer.features_meta_data
     """
     def __init__(self,
                  generator_dim: LIST_OR_TUPLE = [256, 256],
+                 data_dim: int = None,
                  features_meta_data: dict = None,
                  **kwargs):
         super().__init__(**kwargs)
@@ -39,19 +40,18 @@ class Generator(keras.Model):
             ("generator_dim must be a list or tuple of integers which determines the number of Residual blocks "
             "and the dimensionality of the hidden layer in those blocks.")
         self.generator_dim = generator_dim
+        self.data_dim = data_dim
         self.features_meta_data = features_meta_data
         self.generator = models.Sequential()
         for dim in generator_dim:
             self.generator.add(GeneratorResidualBlock(dim))
         self.gumbel_softmax = GumbelSoftmax()
-
-    def build(self, input_shape):
-        # input_shape is (batch_size, |z| + |cond|)
-        dense_out = layers.Dense(input_shape[1])
+        dense_out = layers.Dense(self.data_dim)
         self.generator.add(dense_out)
 
     def call(self, inputs):
         # inputs have the shape |z| + |cond|
+        # while the outputs will have the shape of equal to (batch_size, transformed_data_dims)
         outputs = []
         interim_outputs = self.generator(inputs)
         continuous_features_relative_indices = self.features_meta_data["continuous"]["relative_indices_all"]
@@ -256,8 +256,10 @@ class CTGAN(keras.Model):
                                                                        beta_1=0.5, beta_2=0.9),
                                        loss=discriminator_loss)
         self.features_meta_data = self.data_transformer.features_meta_data
+        self.data_dim = self.features_meta_data["total_transformed_features"]
         # self.built_generator = False
         self.generator = Generator(generator_dim=self.generator_dim,
+                                   data_dim=self.data_dim,
                                    features_meta_data=self.features_meta_data)
         self.generator.compile(optimizer=keras.optimizers.Adam(learning_rate=self.generator_lr,
                                                                beta_1=0.5, beta_2=0.9),
