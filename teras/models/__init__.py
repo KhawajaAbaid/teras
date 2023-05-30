@@ -36,11 +36,11 @@ from .saint import (SAINTClassifier,
 
 
 # RTDL ResNet models
-from .RTDL.resnet import (ResNetClassifier as RTDLResNetClassifier,
+from .rtdl.resnet import (ResNetClassifier as RTDLResNetClassifier,
                           ResNetRegressor as RTDLResNetRegressor)
 
 # RTDL FTTransformer models
-from .RTDL.ft_transformer import (FTTransformerClassifier,
+from .rtdl.ft_transformer import (FTTransformerClassifier,
                                   FTTransformerRegressor)
 
 # VIME models
@@ -53,3 +53,7 @@ from .ctgan import (CTGAN,
                     Generator as CTGANGenerator,
                     Discriminator as CTGANDiscriminator,
                     )
+
+
+# TVAE models
+from .tvae import TVAE

@@ -16,3 +16,6 @@
 # CTGAN models
 from ..models.ctgan import CTGAN
 
+# TVAE models
+from ..models.tvae import TVAE
+
