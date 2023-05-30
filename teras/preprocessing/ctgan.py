@@ -461,20 +461,28 @@ class DataSampler:
                                                           for values in feat.values()]
                                                          for feat in row_idx_raw])
 
-    def get_dataset(self, batch_size):
+    def get_dataset(self, batch_size, for_tvae=False):
         """
         Returns a tensoflow dataset that utilizes the sample_data method
         to create batches of data. This way user can just pass the dataset object to the fit
         method of the model and each batch generated will satisfies all out requirements of sampling
         """
         self.batch_size = batch_size
-        dataset = tf.data.Dataset.from_generator(
-            self.sample_data,
-            output_signature=(tf.TensorSpec(shape=(batch_size, tf.shape(self.x_transformed)[1]), name="data_batch"),
-                              tf.TensorSpec(shape=(batch_size,), dtype=tf.int32, name="shuffled_idx"),
-                              tf.TensorSpec(shape=(batch_size,), dtype=tf.int32, name="random_features_indices"),
-                              tf.TensorSpec(shape=(batch_size,), dtype=tf.int32, name="random_values_indices"))
-        )
+        if for_tvae:
+            dataset = tf.data.Dataset.from_generator(
+                self.sample_data,
+                output_signature=(tf.TensorSpec(shape=(batch_size, tf.shape(self.x_transformed)[1]), name="data_batch")
+                                  ),
+                args=(tf.constant(True),),
+            )
+        else:
+            dataset = tf.data.Dataset.from_generator(
+                self.sample_data,
+                output_signature=(tf.TensorSpec(shape=(batch_size, tf.shape(self.x_transformed)[1]), name="data_batch"),
+                                  tf.TensorSpec(shape=(batch_size,), dtype=tf.int32, name="shuffled_idx"),
+                                  tf.TensorSpec(shape=(batch_size,), dtype=tf.int32, name="random_features_indices"),
+                                  tf.TensorSpec(shape=(batch_size,), dtype=tf.int32, name="random_values_indices"))
+            )
         return dataset
 
     def sample_cond_vector_for_training(self, batch_size,
@@ -549,7 +557,7 @@ class DataSampler:
         cond_vectors = tf.tensor_scatter_nd_update(cond_vectors, indices_cond, ones)
         return cond_vectors
 
-    def sample_data(self):
+    def sample_data(self, for_tvae=False):
         """
         Used to create a tensorflow dataset.
         Returns:
@@ -587,7 +595,13 @@ class DataSampler:
                 s_id = tf_random_choice(self.row_idx_by_categories[tf.squeeze(feat_id)][tf.squeeze(val_id)],
                                                    n_samples=1)
                 sample_idx.append(tf.squeeze(s_id))
-            # we also return shuffled_idx because it will be required to shuffle the conditional vector
-            # in the training loop as we want to keep the shuffling consistent as the batch of
-            # transformed data and cond vector must have one to one feature correspondence.
-            yield self.x_transformed[sample_idx], shuffled_idx, random_features_indices, random_values_indices
+
+            # IN THE CASE OF CTGAN, we return all the extra things
+            if not for_tvae:
+                # we also return shuffled_idx because it will be required to shuffle the conditional vector
+                # in the training loop as we want to keep the shuffling consistent as the batch of
+                # transformed data and cond vector must have one to one feature correspondence.
+                yield self.x_transformed[sample_idx], shuffled_idx, random_features_indices, random_values_indices
+            # otherwise, i.e. in the case of TVAE, we just return the batch of data
+            else:
+                yield self.x_transformed[sample_idx]
