@@ -20,3 +20,6 @@ from .vime import VimeSelfSupervisedLoss
 # CTGAN losses
 from .ctgan import (discriminator_loss as ctgan_discriminator_loss,
                     generator_loss as ctgan_generator_loss)
+
+# TVAE losses
+from .tvae import TvaeElboLoss
