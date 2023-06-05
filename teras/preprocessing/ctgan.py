@@ -395,12 +395,12 @@ class DataTransformer:
         for index, feature_name in enumerate(all_features):
             # the first n features are continuous
             if index < len(self.continuous_features):
-                alphas = x_generated[index]
-                betas = x_generated[index + 1 : index + 1 + num_valid_clusters_all[cont_index]]
+                alphas = x_generated[:, index]
+                betas = x_generated[:, index + 1 : index + 1 + num_valid_clusters_all[cont_index]]
                 # Recall that betas represent the one hot encoded form of the cluster number
                 cluster_indices = np.argmax(betas, axis=1)
                 # List of cluster means for a feature. contains one value per cluster
-                means = self.continuous_features_meta_data[feature_name]["cluster_means"]
+                means = self.continuous_features_meta_data[feature_name]["clusters_means"]
 
                 # Since each individual element within the cluster is associated with
                 # one of the cluster's mean. We use the `cluster_indices` to get
@@ -408,7 +408,7 @@ class DataTransformer:
                 # element in the feature
                 means = means[cluster_indices]
                 # Do the same for stds
-                stds = self.continuous_features_meta_data[feature_name]["cluster_stds"]
+                stds = self.continuous_features_meta_data[feature_name]["clusters_stds"]
                 stds = stds[cluster_indices]
                 feature = alphas * (self.std_multiplier * stds) + means
                 data[feature_name] = feature
@@ -416,7 +416,7 @@ class DataTransformer:
             else:
                 # if the index is greater than or equal to len(continuous_features),
                 # then the column at hand is categorical
-                raw_feature_parts = x_generated[index: index + num_categories_all[cat_index]]
+                raw_feature_parts = x_generated[:, index: index + num_categories_all[cat_index]]
                 categories = self.one_hot_enc.categories_[cat_index]
                 categories_indices = tf.argmax(raw_feature_parts, axis=1)
                 feature = categories[categories_indices]
@@ -542,16 +542,17 @@ class DataSampler:
         random_num_categories_all = tf.gather(num_categories_all,
                                               indices=random_features_indices)
         # Then we select one category index from a feature using a range of 0 — num_categories
-        random_values_indices = [tf.random.uniform(shape=(1,),
-                                    minval=0, maxval=num_categories, dtype=tf.int32)
+        random_values_indices = [tf.squeeze(tf.random.uniform(shape=(1,),
+                                    minval=0, maxval=num_categories, dtype=tf.int32))
                                  for num_categories in random_num_categories_all]
+        random_values_indices = tf.stack(random_values_indices)
         # Offset this index by relative index of the feature that it belongs to.
         # because the final cond vector is the concatenation of all features and
         # is just one vector that has the length equal to total_num_categories
         random_features_relative_indices = tf.gather(self.categorical_features_meta_data["relative_indices_all"],
                                                      indices=random_features_indices)
-        random_values_indices_offsetted = tf.constant(random_values_indices) + random_features_relative_indices
-        random_values_indices_offsetted = tf.cast(random_values_indices_offsetted, dtype=tf.int32)
+        random_values_indices_offsetted =  random_values_indices + tf.cast(random_features_relative_indices, dtype=tf.int32)
+        # random_values_indices_offsetted = tf.cast(random_values_indices_offsetted, dtype=tf.int32)
         indices_cond = list(zip(tf.range(batch_size), random_values_indices_offsetted))
         ones = tf.ones(batch_size)
         cond_vectors = tf.tensor_scatter_nd_update(cond_vectors, indices_cond, ones)
