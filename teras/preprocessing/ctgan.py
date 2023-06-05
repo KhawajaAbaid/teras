@@ -422,6 +422,7 @@ class DataTransformer:
                 feature = categories[categories_indices]
                 data[feature_name] = feature
                 cat_index += 1
+        return pd.DataFrame(data)
 
 
 class DataSampler:
