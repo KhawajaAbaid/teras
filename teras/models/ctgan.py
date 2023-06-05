@@ -8,6 +8,7 @@ from teras.losses.ctgan import generator_loss, discriminator_loss, generator_dum
 from teras.preprocessing.ctgan import DataTransformer, DataSampler
 from typing import List, Union, Tuple
 from functools import partial
+from tqdm import tqdm
 
 
 LIST_OR_TUPLE = Union[List[int], Tuple[int]]
@@ -325,17 +326,23 @@ class CTGAN(keras.Model):
         results.update(discriminator_results)
         return results
 
-    def generate_new_data(self, num_samples, reverse_transform=True):
+    def generate_new_data(self,
+                          num_samples,
+                          reverse_transform=True,
+                          batch_size=None):
         """
         Args:
             num_samples: Number of new samples to generate
             reverse_transform: Whether to reverse transform the generated data to the original data format.
                 Defaults to True. If False, the raw generated data will be returned.
+            batch_size: If None `batch_size` of training will be used.
+
         """
-        num_steps = num_samples // self.batch_size
-        num_steps += 1 if num_samples % self.batch_size != 0 else 0
+        batch_size = self.data_sampler.batch_size if batch_size is None else batch_size
+        num_steps = num_samples // batch_size
+        num_steps += 1 if num_samples % batch_size != 0 else 0
         generated_samples = []
-        for _ in range(num_steps):
+        for _ in tqdm(range(num_steps), desc="Generating Data"):
             z = tf.random.normal(shape=[self.batch_size, self.latent_dim])
             cond_vector = self.data_sampler.sample_cond_vector_for_generation(self.batch_size)
             input_gen = tf.concat([z, cond_vector], axis=1)
