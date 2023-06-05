@@ -343,8 +343,8 @@ class CTGAN(keras.Model):
         num_steps += 1 if num_samples % batch_size != 0 else 0
         generated_samples = []
         for _ in tqdm(range(num_steps), desc="Generating Data"):
-            z = tf.random.normal(shape=[self.batch_size, self.latent_dim])
-            cond_vector = self.data_sampler.sample_cond_vector_for_generation(self.batch_size)
+            z = tf.random.normal(shape=[batch_size, self.latent_dim])
+            cond_vector = self.data_sampler.sample_cond_vector_for_generation(batch_size)
             input_gen = tf.concat([z, cond_vector], axis=1)
             generated_samples.append(self.generator(input_gen, training=False))
         generated_samples = tf.concat(generated_samples, axis=0)
