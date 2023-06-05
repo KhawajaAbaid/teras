@@ -5,6 +5,7 @@ from teras.preprocessing.ctgan import DataTransformer
 from teras.losses.tvae import TvaeElboLoss
 from teras.layers.tvae import Encoder, Decoder
 from typing import Union, List, Tuple
+from tqdm import tqdm
 
 
 LIST_OR_TUPLE = Union[List[int], Tuple[int]]
@@ -56,3 +57,32 @@ class TVAE(keras.Model):
                                                    clip_value_max=1.0)
             K.update(self.decoder.sigmas, updated_simgas)
         return x_generated
+
+    def generate_new_data(self,
+                          num_samples,
+                          reverse_transform=True,
+                          batch_size=512):
+        """
+        Generates new data using the trained Generator.
+
+        Args:
+            num_samples: Number of new samples to generate
+            reverse_transform: Whether to reverse transform the generated data to the original data format.
+                Defaults to True. If False, the raw generated data will be returned.
+            batch_size: Specify the batch size to generate new samples.
+                Defaults to 512.
+        """
+        num_steps = num_samples // batch_size
+        num_steps += 1 if num_samples % batch_size != 0 else 0
+        generated_samples = []
+        for _ in tqdm(range(num_steps), desc="Generating Data"):
+            z = tf.random.normal(shape=[batch_size, self.latent_dim])
+            gen_samples_temp, _ = self.decoder(z)
+            generated_samples.append(gen_samples_temp)
+        generated_samples = tf.concat(generated_samples, axis=0)
+        generated_samples = generated_samples[:num_samples]
+
+        if reverse_transform:
+            generated_samples = self.data_transformer.reverse_transform(x_generated=generated_samples)
+
+        return generated_samples
