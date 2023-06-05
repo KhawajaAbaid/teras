@@ -12,12 +12,32 @@ LIST_OR_TUPLE = Union[List[int], Tuple[int]]
 
 
 class TVAE(keras.Model):
+    """
+    TVAE model based on the architecure proposed by the
+    Lei Xu et al. in the paper,
+    "Modeling Tabular data using Conditional GAN".
+
+    Reference(s):
+        https://arxiv.org/abs/1907.00503
+
+    Args:
+        latent_dim: Dimensionality of the learned latent space
+            Defaults to 128
+        compress_dims: A list or tuple of integers. For each value in the sequence,
+            a (dense) compression layer is added.
+            Defaults to (128, 128)
+        compress_dims: A list or tuple of integers. For each value in the sequence,
+            a (dense) decompression layer is added.
+            Defaults to (128, 128)
+        data_transformer: An instance of DataTransformer class.
+        loss_factor: Hyperparameter used in the computation of TVAE ELBO loss.
+            Defaults to 2.
+    """
     def __init__(self,
                  latent_dim: int = 128,
                  compress_dims: LIST_OR_TUPLE = (128, 128),
                  decompress_dims: LIST_OR_TUPLE = (128, 128),
                  data_transformer: DataTransformer = None,
-                 l2_scale=1e-5,
                  loss_factor=2,
                  **kwargs):
         super().__init__(**kwargs)
@@ -25,7 +45,6 @@ class TVAE(keras.Model):
         self.compress_dims = compress_dims
         self.decompress_dims = decompress_dims
         self.data_transformer = data_transformer
-        self.l2_scale = l2_scale
         self.loss_factor = loss_factor
 
         self.features_meta_data = self.data_transformer.features_meta_data
