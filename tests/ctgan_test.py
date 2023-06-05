@@ -15,7 +15,7 @@ cat_cols = ["cut", "color", "clarity"]
 num_cols = ["carat", "depth"]
 
 
-gem_df = gem_df[:10240]
+gem_df = gem_df[:1024]
 
 data_transformer = DataTransformer(continuous_features=num_cols,
                                    categorical_features=cat_cols)
@@ -30,5 +30,6 @@ ctgan = CTGAN(data_sampler=data_sampler,
 
 dataset = data_sampler.get_dataset(batch_size=512)
 ctgan.compile(optimizer=keras.optimizers.Adam(learning_rate=0.01))
-history = ctgan.fit(dataset, epochs=15)
+history = ctgan.fit(dataset, epochs=1)
+ctgan.generate_new_data(num_samples=1000, reverse_transform=True)
 print("woah")
