@@ -29,9 +29,10 @@ data_sampler = DataSampler()
 dataset = data_sampler.get_dataset(x_transformed)
 
 gain_imputer = GAIN(hint_rate=0.9, alpha=100)
-gain_imputer.compile(gen_loss=generator_loss, disc_loss=discriminator_loss,
-                     gen_optimizer=keras.optimizers.Adam(learning_rate=0.05),
-                     disc_optimizer=keras.optimizers.Adam(learning_rate=0.05))
+# gain_imputer.compile(gen_loss=generator_loss, disc_loss=discriminator_loss,
+#                      gen_optimizer=keras.optimizers.Adam(learning_rate=0.05),
+#                      disc_optimizer=keras.optimizers.Adam(learning_rate=0.05))
+gain_imputer.compile()
 history = gain_imputer.fit(dataset, epochs=2)
 
 test_chunk = x_transformed[500:1000]
