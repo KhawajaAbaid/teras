@@ -3,6 +3,8 @@ import tensorflow_probability as tfp
 from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras import models
+from tensorflow.keras import optimizers
+from teras.losses.gain import generator_loss, discriminator_loss
 from typing import List, Tuple, Union
 
 
@@ -198,10 +200,10 @@ class GAIN(keras.Model):
         self.discriminator_loss_tracker = keras.metrics.Mean(name="discriminator_loss")
 
     def compile(self,
-                gen_optimizer=None,
-                disc_optimizer=None,
-                gen_loss=None,
-                disc_loss=None):
+                gen_optimizer=optimizers.Adam(),
+                disc_optimizer=optimizers.Adam(),
+                gen_loss=generator_loss,
+                disc_loss=discriminator_loss):
         super().compile()
         self.gen_optimizer = gen_optimizer
         self.disc_optimizer = disc_optimizer
