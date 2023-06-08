@@ -368,7 +368,7 @@ class GAIN(keras.Model):
             discriminator_pred = self.discriminator(tf.concat([x_hat, hint_vectors], axis=1))
             loss_gen = self.generator_loss(generated_samples=generated_samples,
                                            real_samples=x_gen,
-                                           discriminator_pred=y_preds,
+                                           discriminator_pred=discriminator_pred,
                                            mask=mask,
                                            alpha=self.alpha)
         gradients = tape.gradient(loss_gen, self.generator.trainable_weights)
