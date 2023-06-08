@@ -15,6 +15,9 @@ def inject_missing_values(x: pd.DataFrame,
         return_dataframe: If False, numpy ndarray will be returned,
             otherwise pandas dataframe will be returned.
 
+    Returns:
+        Data with missing values.
+
     Example:
         ```python
         data = np.arange(1000).reshape(50, 20)
