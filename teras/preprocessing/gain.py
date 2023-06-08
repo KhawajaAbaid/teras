@@ -195,12 +195,9 @@ class DataSampler:
         https://arxiv.org/abs/1806.02920
 
     Args:
-        batch_size: Batch size to use for dataset.
-            Defaults to 512.
-        shuffle: Whether to shuffle the data.
-            Defaults to True.
-        random_seed: Random seed to use when shuffling.
-            Defaults to None.
+        batch_size: default 512, Batch size to use for dataset.
+        shuffle: default True, Whether to shuffle the data.
+        random_seed: default None, Random seed to use when shuffling.
 
     Example:
         ```python
