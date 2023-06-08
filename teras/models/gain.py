@@ -13,7 +13,7 @@ LIST_OR_TUPLE = Union[List[int], Tuple[int]]
 
 class Generator(keras.Model):
     """
-    Generator based on the GAIN architecture proposed by
+    Generator model for the GAIN architecture proposed by
     Jinsung Yoon et al. in the paper
     GAIN: Missing Data Imputation using Generative Adversarial Nets.
 
@@ -21,29 +21,44 @@ class Generator(keras.Model):
         https://arxiv.org/abs/1806.02920
 
     Args:
-        hidden_dims: A list of hidden dimensions.
-            For each element, a new dense layer will be added.
-            In official implementation, `hidden_dim` is equal to the input_dim,
+        units_hidden: `list` | `tuple`, A list or tuple of units.
+            For each element, a new hidden layer will be added,
+            with units equal to that element value.
+            In official implementation, for each layer,
+            `units` is equal to the data dimensions,
             and the number of hidden layers is 2.
-            So by default we pass [input_dim, input_dim].
+            So by default we pass [data_dim, data_dim].
         activation_hidden: Activation function to use for hidden layers.
             Defaults to 'relu'.
+        activation_out: Activation function to use for the output layer.
+            Defaults to 'sigmoid'.
         kernel_initializer: Initializer for weights of layers within generator.
             Defaults to 'glorot_normal' a.k.a. 'xavier normal'.
-        activation_hidden: Activation function to use for the output layer.
-            Defaults to 'sigmoid'.
+
+    Example:
+        ```python
+
+        # Instantiating Generator with default settings
+        generator = Generator()
+
+        # sampling noise to generate samples from
+        z = tf.random.normal([512, 18])
+
+        # generating samples
+        generated_samples = generator(z)
+        ```
     """
     def __init__(self,
-                 hidden_dims=None,
+                 units_hidden: LIST_OR_TUPLE = None,
                  activation_hidden="relu",
                  kernel_initializer="glorot_normal",
                  activation_out="sigmoid",
                  **kwargs):
         super().__init__(**kwargs)
-        self.hidden_dims = hidden_dims
+        self.units_hidden = units_hidden
         self.activation_hidden = activation_hidden
-        self.kernel_initializer = kernel_initializer
         self.activation_out = activation_out
+        self.kernel_initializer = kernel_initializer
 
         self.hidden_block = models.Sequential(name="generator_hidden_block")
 
@@ -52,28 +67,31 @@ class Generator(keras.Model):
         # and `mask` has the same dimensions as `data`, so we halve the
         # `input_shape[1]` here to get the `original data` dimensions
         data_dim = input_shape[1] // 2
-        if self.hidden_dims is None:
-            self.hidden_dims = [data_dim] * 2
-        for dim in self.hidden_dims:
-            self.hidden_block.add(layers.Dense(dim,
-                                                     activation=self.activation_hidden,
-                                                     kernel_initializer=self.kernel_initializer))
-        self.dense_out = layers.Dense(data_dim,
-                                            activation=self.activation_out,
-                                            kernel_initializer=self.kernel_initializer)
+        if self.units_hidden is None:
+            self.units_hidden = [data_dim] * 2
+        for units in self.units_hidden:
+            self.hidden_block.add(
+                layers.Dense(units,
+                             activation=self.activation_hidden,
+                             kernel_initializer=self.kernel_initializer)
+            )
+        self.dense_out = layers.Dense(units=data_dim,
+                                      activation=self.activation_out,
+                                      kernel_initializer=self.kernel_initializer)
 
     def call(self, inputs):
         # inputs is the concatenation of mask and original data
-        h = self.hidden_block(inputs)
-        probs = self.dense_out(h)
-        return probs
+        outputs = self.hidden_block(inputs)
+        outputs = self.dense_out(outputs)
+        return outputs
 
     def get_config(self):
         config = super(Generator, self).get_config()
-        config.update({'hidden_dims': self.hidden_dims,
+        config.update({'units_hidden': self.hidden_dims,
                        'activation_hidden': self.activation_hidden,
                        'activation_out': self.activation_out,
-                       'kernel_initializer': self.kernel_initializer})
+                       'kernel_initializer': self.kernel_initializer,
+                       })
         return config
 
 
@@ -122,11 +140,11 @@ class Discriminator(keras.Model):
             self.hidden_dims = [data_dim] * 2
         for dim in self.hidden_dims:
             self.hidden_block.add(layers.Dense(dim,
-                                                     activation=self.activation_hidden,
-                                                     kernel_initializer=self.kernel_initializer))
+                                               activation=self.activation_hidden,
+                                               kernel_initializer=self.kernel_initializer))
         self.dense_out = layers.Dense(data_dim,
-                                            activation=self.activation_out,
-                                            kernel_initializer=self.kernel_initializer)
+                                      activation=self.activation_out,
+                                      kernel_initializer=self.kernel_initializer)
 
     def call(self, inputs):
         # inputs is the concatenation of `hint` and `original data`
@@ -202,8 +220,8 @@ class GAIN(keras.Model):
                                                    high=0.01,
                                                    name="z_sampler")
         self.hint_vectors_sampler = tfp.distributions.Binomial(total_count=1,
-                                                              probs=self.hint_rate,
-                                                              name="hint_vectors_generator")
+                                                               probs=self.hint_rate,
+                                                               name="hint_vectors_generator")
 
         # Loss trackers
         self.generator_loss_tracker = keras.metrics.Mean(name="generator_loss")
@@ -279,10 +297,10 @@ class GAIN(keras.Model):
             x_hat = (generated_samples * (1 - mask)) + (x_gen * mask)
             y_preds = self.discriminator(tf.concat([x_hat, hint_vectors], axis=1))
             loss_gen = self.gen_loss(generated_samples=generated_samples,
-                                           real_samples=x_gen,
-                                           y_preds=y_preds,
-                                           mask=mask,
-                                           alpha=self.alpha)
+                                     real_samples=x_gen,
+                                     y_preds=y_preds,
+                                     mask=mask,
+                                     alpha=self.alpha)
         gradients = tape.gradient(loss_gen, self.generator.trainable_weights)
         self.gen_optimizer.apply_gradients(zip(gradients, self.generator.trainable_weights))
 
