@@ -5,7 +5,7 @@ import pandas as pd
 from teras.models.gain import GAIN
 from teras.losses.gain import generator_loss, discriminator_loss
 from teras.preprocessing.gain import DataTransformer, DataSampler
-from teras.utils.gain import introduce_missing_data_in_this_thing
+from teras.utils.gain import inject_missing_values
 
 
 print(f"{'-'*15}  GAIN TEST {'-'*15}")
@@ -18,7 +18,7 @@ num_cols = ["carat", "depth", "table", "x", "y", "z"]
 
 x = gem_df
 
-x_with_missing = introduce_missing_data_in_this_thing(x)
+x_with_missing = inject_missing_values(x)
 
 
 data_transformer = DataTransformer(numerical_features=num_cols,
