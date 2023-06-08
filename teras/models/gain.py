@@ -28,31 +28,28 @@ class Generator(keras.Model):
             `units` is equal to the data dimensions,
             and the number of hidden layers is 2.
             So by default we pass [data_dim, data_dim].
-        activation_hidden: Activation function to use for hidden layers.
-            Defaults to 'relu'.
-        activation_out: Activation function to use for the output layer.
-            Defaults to 'sigmoid'.
-        kernel_initializer: Initializer for weights of layers within generator.
-            Defaults to 'glorot_normal' a.k.a. 'xavier normal'.
+        activation_hidden: default "relu", Activation function to use for hidden layers.
+        activation_out: default "sigmoid", Activation function to use for the output layer.
+        kernel_initializer: default "glorot_normal", Initializer for weights of layers within generator.
 
     Example:
         ```python
 
-        # Instantiating Generator with default settings
+        # Instantiate Generator with default settings
         generator = Generator()
 
-        # sampling noise to generate samples from
+        # Sample noise to generate samples from
         z = tf.random.normal([512, 18])
 
-        # generating samples
+        # Generate samples
         generated_samples = generator(z)
         ```
     """
     def __init__(self,
                  units_hidden: LIST_OR_TUPLE = None,
                  activation_hidden="relu",
-                 kernel_initializer="glorot_normal",
                  activation_out="sigmoid",
+                 kernel_initializer="glorot_normal",
                  **kwargs):
         super().__init__(**kwargs)
         self.units_hidden = units_hidden
@@ -97,7 +94,7 @@ class Generator(keras.Model):
 
 class Discriminator(keras.Model):
     """
-    Discriminator based on the GAIN architecture proposed by
+    Discriminator model for the GAIN architecture proposed by
     Jinsung Yoon et al. in the paper
     GAIN: Missing Data Imputation using Generative Adversarial Nets.
 
@@ -105,29 +102,50 @@ class Discriminator(keras.Model):
         https://arxiv.org/abs/1806.02920
 
     Args:
-        hidden_dims: A list of hidden dimensions.
-            For each element, a new dense layer will be added.
-            In official implementation, `hidden_dim` is equal to the input_dim,
+        units_hidden: `list` | `tuple`, A list of units.
+            For each element, a new hidden layer will be added,
+            with units equal to that element value.
+            In official implementation, for each layer,
+            `units` is equal to the data dimensions,
             and the number of hidden layers is 2.
-            So by default we pass [input_dim, input_dim].
-        activation_hidden: Activation function to use for hidden layers.
-            Defaults to 'relu'.
-        kernel_initializer: Initializer for weights of layers within generator.
-            Defaults to 'glorot_normal' a.k.a. 'xavier normal'.
-        activation_hidden: Activation function to use for the output layer.
-            Defaults to 'sigmoid'.
+            So by default we pass [data_dim, data_dim].
+        activation_hidden: default "relu", Activation function
+            to use for hidden layers.
+        activation_out: default "sigmoid", Activation function
+            to use for the output layer.
+        kernel_initializer: default "glorot_normal",
+            Initializer for weights of layers within discriminator.
+
+    Example:
+        ```python
+
+        # Instantiate Generator with default settings
+        generator = Generator()
+
+        # Instantiate Discriminator with default settings
+        discriminator = Discriminator()
+
+        # Sample noise to generate samples from
+        z = tf.random.normal([512, 18])
+
+        # Generate samples
+        generated_samples = generator(z)
+
+        # Predict using discriminator
+        y_pred = discriminator(generated_samples)
+        ```
     """
     def __init__(self,
-                 hidden_dims=None,
+                 units_hidden: LIST_OR_TUPLE = None,
                  activation_hidden="relu",
-                 kernel_initializer="glorot_normal",
                  activation_out="sigmoid",
+                 kernel_initializer="glorot_normal",
                  **kwargs):
         super().__init__(**kwargs)
-        self.hidden_dims = hidden_dims
+        self.units_hidden = units_hidden
         self.activation_hidden = activation_hidden
-        self.kernel_initializer = kernel_initializer
         self.activation_out = activation_out
+        self.kernel_initializer = kernel_initializer
 
         self.hidden_block = models.Sequential(name="discriminator_hidden_block")
 
@@ -136,13 +154,13 @@ class Discriminator(keras.Model):
         # and `hint` has the same dimensions as data, so we halve the
         # input_shape[1] here to get the original data dimensions
         data_dim = input_shape[1] // 2
-        if self.hidden_dims is None:
-            self.hidden_dims = [data_dim] * 2
-        for dim in self.hidden_dims:
-            self.hidden_block.add(layers.Dense(dim,
+        if self.units_hidden is None:
+            self.units_hidden = [data_dim] * 2
+        for units in self.units_hidden:
+            self.hidden_block.add(layers.Dense(units,
                                                activation=self.activation_hidden,
                                                kernel_initializer=self.kernel_initializer))
-        self.dense_out = layers.Dense(data_dim,
+        self.dense_out = layers.Dense(units=data_dim,
                                       activation=self.activation_out,
                                       kernel_initializer=self.kernel_initializer)
 
@@ -154,7 +172,7 @@ class Discriminator(keras.Model):
 
     def get_config(self):
         config = super(Discriminator, self).get_config()
-        config.update({'hidden_dims': self.hidden_dims,
+        config.update({'units_hidden': self.units_hidden,
                        'activation_hidden': self.activation_hidden,
                        'activation_out': self.activation_out,
                        'kernel_initializer': self.kernel_initializer})
