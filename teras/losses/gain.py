@@ -18,6 +18,9 @@ def discriminator_loss(discriminator_pred, mask):
     Args:
         discriminator_pred: Discriminator's predictions
         mask: Mask generated from inputs.
+
+    Returns:
+        Cross entropy loss for discriminator's predictions.
     """
     loss = -tf.reduce_mean(mask * tf.math.log(discriminator_pred + 1e-8)
                            + (1 - mask) * tf.math.log(1. - discriminator_pred + 1e-8))
@@ -52,6 +55,9 @@ def generator_loss(real_samples=None,
         mask: Mask generated from the inputs
         alpha: The hyperparameter alpha used to control the
             weightage during addition of two losses.
+
+    Returns:
+        Generator loss made up cross entropy and MSE loss.
     """
     cross_entropy_loss = -tf.reduce_mean((1 - mask) * tf.math.log(discriminator_pred + 1e-8))
     mse_loss = losses.MSE(y_true=(mask * real_samples),
