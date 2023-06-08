@@ -1,9 +1,7 @@
-import keras.optimizers.optimizer
 import tensorflow as tf
 # tf.config.run_functions_eagerly(True)
 import pandas as pd
 from teras.models.gain import GAIN
-from teras.losses.gain import generator_loss, discriminator_loss
 from teras.preprocessing.gain import DataTransformer, DataSampler
 from teras.utils.gain import inject_missing_values
 
@@ -28,14 +26,13 @@ x_transformed = data_transformer.transform(x_with_missing, return_dataframe=True
 data_sampler = DataSampler()
 dataset = data_sampler.get_dataset(x_transformed)
 
-gain_imputer = GAIN(hint_rate=0.9, alpha=100)
-# gain_imputer.compile(gen_loss=generator_loss, disc_loss=discriminator_loss,
-#                      gen_optimizer=keras.optimizers.Adam(learning_rate=0.05),
-#                      disc_optimizer=keras.optimizers.Adam(learning_rate=0.05))
+gain_imputer = GAIN()
 gain_imputer.compile()
 history = gain_imputer.fit(dataset, epochs=2)
 
 test_chunk = x_transformed[500:1000]
 x_filled = gain_imputer.predict(x=test_chunk)
 
-print(x_filled[:10])
+x_filled = data_transformer.reverse_transform(x_filled)
+
+print(x_filled.head())
