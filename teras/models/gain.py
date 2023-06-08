@@ -162,31 +162,41 @@ class GAIN(keras.Model):
             Precisely, `generator_loss` = `cross_entropy_loss` + `alpha` * `mse_loss`
             The higher the `alpha`, the more the mse_loss will affect the
             overall generator loss.
-        generator_hidden_dims: A list of hidden dimensions for generator.
-            For each element, a new dense layer will be added.
-            In official implementation, `hidden_dim` for generator
-            is equal to the input_dim, and the number of hidden layers is 2.
-            So by default we pass [input_dim, input_dim] to generator.
-        discriminator_hidden_dims: A list of hidden dimensions for discriminator.
-            For each element, a new dense layer will be added.
-            In official implementation, `hidden_dim` for discriminator
-            is equal to the input_dim, and the number of hidden layers is 2.
-            So by default we pass [input_dim, input_dim] to discriminator.
+
+        The following parameters are optional to allow
+        for advanced use case when you want to pass
+        a customized Generator or Discriminator model.
+
+        generator: A customized Generator model that can fit right in
+            with the architecture.
+            If specified, it will replace the default generator instance
+            created by the model.
+            This allows you to take full control over the Generator architecture.
+            Note that, you import the standalone `Generator` model
+            `from teras.models.gain import Generator` customize it through
+            available params, subclass it or construct your own Generator
+            from scratch given that it can fit within the architecture,
+            for instance, satisfy the input/output requirements.
+        discriminator: A customized Discriminator model that can fit right in
+            with the architecture.
+            Everything specified about generator above applies here as well.
     """
     def __init__(self,
                  hint_rate: float = 0.9,
                  alpha: float = 100,
-                 generator_hidden_dims: LIST_OR_TUPLE = None,
-                 discriminator_hidden_dims: LIST_OR_TUPLE = None,
+                 generator: keras.Model = None,
+                 discriminator: keras.Model = None,
                  **kwargs):
         super().__init__(**kwargs)
         self.hint_rate = hint_rate
         self.alpha = alpha
-        self.generator_hidden_dims = generator_hidden_dims
-        self.discriminator_hidden_dims = discriminator_hidden_dims
+        self.generator = generator
+        self.discriminator = discriminator
 
-        self.generator = Generator(hidden_dims=self.generator_hidden_dims)
-        self.discriminator = Discriminator(hidden_dims=self.discriminator_hidden_dims)
+        if self.generator is None:
+            self.generator = Generator()
+        if self.discriminator is None:
+            self.discriminator = Discriminator()
 
         self.z_sampler = tfp.distributions.Uniform(low=0.,
                                                    high=0.01,
@@ -212,6 +222,9 @@ class GAIN(keras.Model):
 
     def get_generator(self):
         return self.generator
+
+    def get_discriminator(self):
+        return self.discriminator
 
     def call(self, inputs, mask=None, training=None):
         if mask is not None:
