@@ -201,6 +201,13 @@ class DataSampler:
             Defaults to True.
         random_seed: Random seed to use when shuffling.
             Defaults to None.
+
+    Example:
+        ```python
+        input_data = np.random.arange(100).reshape(20, 5)
+        data_sampler = DataSampler()
+        dataset = data_sampler.get_dataset(input_data)
+        ```
     """
     def __init__(self,
                  batch_size=512,
@@ -212,22 +219,25 @@ class DataSampler:
 
     def get_dataset(self, x_transformed):
         """
-        Returns a tensorflow dataset, that generates batches of
-        size `batch_size` which is the argument passing during
-        DataSampler instantiation. The dataset instance then can
-        be readily passed to the fit method without any further
-        processing. Smooooth, right? :D
+        Args:
+            Transformed data.
+        Returns:
+             A tensorflow dataset, that generates batches of
+            size `batch_size` which is the argument passing during
+            DataSampler instantiation. The dataset instance then can
+            be readily passed to the GAIN fit method without requiring
+            any further processing.
         """
         num_samples, dim = x_transformed.shape
-        gen_idx = np.arange(num_samples)
-        disc_idx = np.arange(num_samples)
+        generator_idx = np.arange(num_samples)
+        discriminator_idx = np.arange(num_samples)
         if self.shuffle:
             if self.random_seed:
                 np.random.seed(self.random_seed)
             # since we need to draw a batch of data separately for generator and discriminator
             # so we generate shuffled idx for separately for generator and discriminator
-            gen_idx = np.random.permutation(gen_idx)
-            disc_idx = np.random.permutation(disc_idx)
+            gen_idx = np.random.permutation(generator_idx)
+            disc_idx = np.random.permutation(discriminator_idx)
 
         dataset = (tf.data.Dataset
                    .from_generator(self.generator,
@@ -235,16 +245,23 @@ class DataSampler:
                                        tf.TensorSpec(shape=(None, dim), dtype=tf.float32, name="x_generator"),
                                        tf.TensorSpec(shape=(None, dim), dtype=tf.float32, name="x_discriminator"),
                                         ),
-                                   args=[x_transformed, gen_idx, disc_idx]
+                                   args=[x_transformed, generator_idx, discriminator_idx]
                                    )
                    )
         return dataset
 
-    def generator(self, x, gen_idx, disc_idx):
+    def generator(self, x, generator_idx, discriminator_idx):
         """
         Generator function that is used to create tensorflow dataset.
         It applies any manipulations that are required and then generates
         batches in the format required by the architecture.
+
+        Args:
+            x: Dataset to be converted into tensorflow dataset.
+            generator_idx: A numpy array of indices for
+                generating data batches for generator.
+            discriminator_idx: A numpy array of indices for
+                generating data batches for discriminator.
         """
         num_samples, dim = x.shape
         steps_per_epoch = num_samples // self.batch_size
@@ -259,11 +276,11 @@ class DataSampler:
             # So to avoid this, we add the following check
             # and modify the to_index value accordingly.
             if i == (steps_per_epoch - 1) and not is_n_divisible_by_batch_size:
-                x_generator = x[gen_idx[from_index: None]]
-                x_discriminator = x[disc_idx[from_index: None]]
+                x_generator = x[generator_idx[from_index: None]]
+                x_discriminator = x[discriminator_idx[from_index: None]]
             else:
-                x_generator = x[gen_idx[from_index: to_index]]
-                x_discriminator = x[disc_idx[from_index: to_index]]
+                x_generator = x[generator_idx[from_index: to_index]]
+                x_discriminator = x[discriminator_idx[from_index: to_index]]
                 from_index += self.batch_size
                 to_index += self.batch_size
 
