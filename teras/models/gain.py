@@ -181,16 +181,28 @@ class Discriminator(keras.Model):
 
 class GAIN(keras.Model):
     """
-    GAIN model based on the architecture proposed by
-    Jinsung Yoon et al. in the paper
+    GAIN is a missing data imputation model based on GANs.
+    This is an implementation of the GAIN architecture
+    proposed by Jinsung Yoon et al. in the paper
     GAIN: Missing Data Imputation using Generative Adversarial Nets.
+
+    In GAIN, the generator observes some components of
+    a real data vector, imputes the missing components
+    conditioned on what is actually observed, and
+    outputs a completed vector.
+    The discriminator then takes a completed vector
+    and attempts to determine which components
+    were actually observed and which were imputed.
+    It also utilizes a novel hint mechanism, which
+    ensures that generator does in fact learn to generate
+    samples according to the true data distribution.
 
     Reference(s):
         https://arxiv.org/abs/1806.02920
 
     Args:
         hint_rate: Hint rate will be used to sample binary vectors for
-            `hint vectors` generation. Should be between 0. and 1.
+            `hint vectors` generation. Must be between 0. and 1.
             Hint vectors ensure that generated samples follow the
             underlying data distribution.
         alpha: Hyper parameter for the generator loss computation that
@@ -216,6 +228,46 @@ class GAIN(keras.Model):
         discriminator: A customized Discriminator model that can fit right in
             with the architecture.
             Everything specified about generator above applies here as well.
+
+    Example:
+        ```python
+        input_data = tf.random.uniform([200, 10])
+
+        from teras.utils.gain import inject_missing_values
+        input_data = inject_missing_values(input_data)
+
+        # GAIN requires data in a specific format for which we have
+        # relevant DataSampler and DataTrasnformer classes
+        from teras.preprocessing.gain import DataSampler, DataTransformer
+
+        # Assume we have following numerical and categorical features
+        numerical_features = ["num_1", "num_2"]
+        categorical_features = ["cat_1", "cat_2", "cat_3"]
+
+        data_transformer = DataTransformer(numerical_features=numerical_features,
+                                           categorical_features=categorical_features)
+
+        transformed_data = data_transformer.transform(input_data, return_dataframe=True)
+
+        data_sampler = DataSampler()
+        dataset = data_sampler.get_dataset(transformed_data)
+
+        # Instantiate GAIN
+        gain_imputer = GAIN()
+
+        # Compile it
+        gain_imputer.compile()
+
+        # Train it
+        gain_imputer.fit(dataset)
+
+        # Predict
+        test_data = transformed_data[:50]
+        imputed_data = gain_imputer.predict(test_data)
+
+        # Reverse transform into original format
+        imputed_data = data_sampler.reverse_transform(imputed_data)
+        ```
     """
     def __init__(self,
                  hint_rate: float = 0.9,
@@ -246,15 +298,15 @@ class GAIN(keras.Model):
         self.discriminator_loss_tracker = keras.metrics.Mean(name="discriminator_loss")
 
     def compile(self,
-                gen_optimizer=optimizers.Adam(),
-                disc_optimizer=optimizers.Adam(),
-                gen_loss=generator_loss,
-                disc_loss=discriminator_loss):
+                generator_optimizer=optimizers.Adam(),
+                discriminator_optimizer=optimizers.Adam(),
+                generator_loss=generator_loss,
+                discriminator_loss=discriminator_loss):
         super().compile()
-        self.gen_optimizer = gen_optimizer
-        self.disc_optimizer = disc_optimizer
-        self.gen_loss = gen_loss
-        self.disc_loss = disc_loss
+        self.generator_optimizer = generator_optimizer
+        self.discriminator_optimizer = discriminator_optimizer
+        self.generator_loss = generator_loss
+        self.discriminator_loss = discriminator_loss
 
     def get_generator(self):
         return self.generator
@@ -265,8 +317,8 @@ class GAIN(keras.Model):
     def call(self, inputs, mask=None, training=None):
         if mask is not None:
             inputs = tf.concat([inputs, mask], axis=1)
-        gen_outs = self.generator(inputs)
-        return gen_outs
+        generated_samples = self.generator(inputs)
+        return generated_samples
 
     def train_step(self, data):
         # data is a tuple of x_generator and x_discriminator batches
@@ -295,10 +347,10 @@ class GAIN(keras.Model):
         # Combine generated samples with original data
         x_hat_disc = (generated_samples * (1 - mask)) + (x_disc * mask)
         with tf.GradientTape() as tape:
-            y_preds = self.discriminator(tf.concat([x_hat_disc, hint_vectors], axis=1))
-            loss_disc = self.disc_loss(y_preds, mask)
+            discriminator_pred = self.discriminator(tf.concat([x_hat_disc, hint_vectors], axis=1))
+            loss_disc = self.discriminator_loss(discriminator_pred, mask)
         gradients = tape.gradient(loss_disc, self.discriminator.trainable_weights)
-        self.disc_optimizer.apply_gradients(zip(gradients, self.discriminator.trainable_weights))
+        self.discriminator_optimizer.apply_gradients(zip(gradients, self.discriminator.trainable_weights))
 
         # =====> Train the generator <=====
         mask = tf.constant(1.) - tf.cast(tf.math.is_nan(x_gen), dtype=tf.float32)
@@ -313,22 +365,22 @@ class GAIN(keras.Model):
             generated_samples = self(x_gen, mask=mask)
             # Combine generated samples with original/observed data
             x_hat = (generated_samples * (1 - mask)) + (x_gen * mask)
-            y_preds = self.discriminator(tf.concat([x_hat, hint_vectors], axis=1))
-            loss_gen = self.gen_loss(generated_samples=generated_samples,
-                                     real_samples=x_gen,
-                                     y_preds=y_preds,
-                                     mask=mask,
-                                     alpha=self.alpha)
+            discriminator_pred = self.discriminator(tf.concat([x_hat, hint_vectors], axis=1))
+            loss_gen = self.generator_loss(generated_samples=generated_samples,
+                                           real_samples=x_gen,
+                                           discriminator_pred=y_preds,
+                                           mask=mask,
+                                           alpha=self.alpha)
         gradients = tape.gradient(loss_gen, self.generator.trainable_weights)
-        self.gen_optimizer.apply_gradients(zip(gradients, self.generator.trainable_weights))
+        self.generator_optimizer.apply_gradients(zip(gradients, self.generator.trainable_weights))
 
         # Update custom tracking metrics
         self.generator_loss_tracker.update_state(loss_gen)
         self.discriminator_loss_tracker.update_state(loss_disc)
 
         results = {m.name: m.result() for m in self.metrics}
-        results.update({"gen_" + m.name: m.result() for m in self.generator.metrics})
-        results.update({"disc_" + m.name: m.result() for m in self.discriminator.metrics})
+        results.update({"generator_" + m.name: m.result() for m in self.generator.metrics})
+        results.update({"discriminator_" + m.name: m.result() for m in self.discriminator.metrics})
         return results
 
     def predict_step(self, data):
@@ -357,12 +409,6 @@ class GAIN(keras.Model):
         config = super(GAIN, self).get_config()
         config.update({'hint_rate': self.hint_rate,
                        'alpha': self.alpha,
-                       'generator_hidden_dims': self.generator_hidden_dims,
-                       'discriminator_hidden_dims': self.discriminator_hidden_dims})
-        config.update({'generator': self.generator.get_config(),
-                       'discriminator': self.discriminator.get_config()})
+                       'generator': self.generator,
+                       'discriminator': self.discriminator})
         return config
-
-    @classmethod
-    def from_config(cls, config):
-        return cls(**config)
