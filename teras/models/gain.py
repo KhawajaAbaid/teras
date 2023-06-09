@@ -5,13 +5,15 @@ from tensorflow.keras import layers
 from tensorflow.keras import models
 from tensorflow.keras import optimizers
 from teras.losses.gain import generator_loss, discriminator_loss
+from teras.models.base.gan import BaseGenerator
+from teras.layers.gain import GeneratorHiddenLayer, GeneratorOutputLayer
 from typing import List, Tuple, Union
 
 
 LIST_OR_TUPLE = Union[List[int], Tuple[int]]
 
 
-class Generator(keras.Model):
+class Generator(BaseGenerator):
     """
     Generator model for the GAIN architecture proposed by
     Jinsung Yoon et al. in the paper
@@ -28,9 +30,18 @@ class Generator(keras.Model):
             `units` is equal to the data dimensions,
             and the number of hidden layers is 2.
             So by default we pass [data_dim, data_dim].
-        activation_hidden: default "relu", Activation function to use for hidden layers.
-        activation_out: default "sigmoid", Activation function to use for the output layer.
-        kernel_initializer: default "glorot_normal", Initializer for weights of layers within generator.
+        hidden_layer: Either `layers.Dense` class
+            or a `subclass of layers.Dense`
+            You must pass the class and NOT an instance of the class.
+            Used to construct the hidden block in the Generator.
+            If units_hidden are passed but hidden_layer is None,
+            then a `Dense` layer with `relu` activation is used.
+        output_layer: Either `layers.Dense` class
+            or a `subclass of layers.Dense`
+            You must pass the class and NOT an instance of the class.
+            Used to construct the hidden block in the Generator.
+            If `data_dim` is passed but `output_layer` is `None`,
+            then a `Dense` layer with no activation is used.
 
     Example:
         ```python
@@ -47,17 +58,13 @@ class Generator(keras.Model):
     """
     def __init__(self,
                  units_hidden: LIST_OR_TUPLE = None,
-                 activation_hidden="relu",
-                 activation_out="sigmoid",
-                 kernel_initializer="glorot_normal",
+                 hidden_layer=GeneratorHiddenLayer,
+                 output_layer=GeneratorOutputLayer,
                  **kwargs):
-        super().__init__(**kwargs)
-        self.units_hidden = units_hidden
-        self.activation_hidden = activation_hidden
-        self.activation_out = activation_out
-        self.kernel_initializer = kernel_initializer
-
-        self.hidden_block = models.Sequential(name="generator_hidden_block")
+        super().__init__(units_hidden=units_hidden,
+                         hidden_layer=hidden_layer,
+                         output_layer=output_layer,
+                         **kwargs)
 
     def build(self, input_shape):
         # inputs is the concatenation of `mask` and `original data`
@@ -66,30 +73,28 @@ class Generator(keras.Model):
         data_dim = input_shape[1] // 2
         if self.units_hidden is None:
             self.units_hidden = [data_dim] * 2
+
+        self.hidden_block = models.Sequential(name="generator_hidden_block")
         for units in self.units_hidden:
-            self.hidden_block.add(
-                layers.Dense(units,
-                             activation=self.activation_hidden,
-                             kernel_initializer=self.kernel_initializer)
-            )
-        self.dense_out = layers.Dense(units=data_dim,
-                                      activation=self.activation_out,
-                                      kernel_initializer=self.kernel_initializer)
+            if self.hidden_layer is None:
+                self.hidden_block.add(
+                    layers.Dense(units,
+                                 activation="relu")
+                )
+            else:
+                self.hidden_block.add(
+                    self.hidden_layer(units)
+                )
+        if self.output_layer is None:
+            self.dense_out = layers.Dense(data_dim)
+        else:
+            self.dense_out = self.output_layer(data_dim)
 
     def call(self, inputs):
         # inputs is the concatenation of mask and original data
         outputs = self.hidden_block(inputs)
         outputs = self.dense_out(outputs)
         return outputs
-
-    def get_config(self):
-        config = super(Generator, self).get_config()
-        config.update({'units_hidden': self.hidden_dims,
-                       'activation_hidden': self.activation_hidden,
-                       'activation_out': self.activation_out,
-                       'kernel_initializer': self.kernel_initializer,
-                       })
-        return config
 
 
 class Discriminator(keras.Model):
