@@ -26,3 +26,33 @@ class GeneratorOutputLayer(keras.layers.Dense):
                          activation=activation,
                          kernel_initializer=kernel_initializer,
                          **kwargs)
+
+
+class DiscriminatorHiddenLayer(layers.Layer):
+    def __init__(self,
+                 units,
+                 activation="relu",
+                 kernel_initializer="glorot_normal",
+                 **kwargs):
+        super().__init__(**kwargs)
+        self.dense = layers.Dense(units=units,
+                                  activation=activation,
+                                  kernel_initializer=kernel_initializer)
+
+    def call(self, inputs):
+        return self.dense(inputs)
+
+
+class DiscriminatorOutputLayer(layers.Layer):
+    def __init__(self,
+                 units,
+                 activation="sigmoid",
+                 kernel_initializer="glorot_normal",
+                 **kwargs):
+        super().__init__(**kwargs)
+        self.dense = layers.Dense(units=units,
+                                  activation=activation,
+                                  kernel_initializer=kernel_initializer)
+
+    def call(self, inputs):
+        return self.dense(inputs)
