@@ -29,7 +29,7 @@ ctgan = CTGAN(data_sampler=data_sampler,
               data_transformer=data_transformer)
 
 dataset = data_sampler.get_dataset(batch_size=512)
-ctgan.compile(optimizer=keras.optimizers.Adam(learning_rate=0.01))
+ctgan.compile()
 history = ctgan.fit(dataset, epochs=1)
-ctgan.generate_new_data(num_samples=1000, reverse_transform=True)
+ctgan.generate_samples(num_samples=1000, reverse_transform=True)
 print("woah")
