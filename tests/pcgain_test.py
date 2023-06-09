@@ -4,7 +4,7 @@ import tensorflow as tf
 import pandas as pd
 from teras.models.pcgain import PCGAIN
 from teras.preprocessing.pcgain import DataTransformer, DataSampler
-from teras.utils.gain import introduce_missing_data_in_this_thing
+from teras.utils.gain import inject_missing_values
 
 from warnings import filterwarnings
 filterwarnings('ignore')
@@ -19,7 +19,7 @@ num_cols = ["carat", "depth", "table", "x", "y", "z"]
 
 x = gem_df
 
-x_with_missing = introduce_missing_data_in_this_thing(x)
+x_with_missing = inject_missing_values(x)
 
 
 data_transformer = DataTransformer(numerical_features=num_cols,
@@ -41,5 +41,5 @@ history = pcgain_imputer.fit(dataset, epochs=2)
 
 test_chunk = x_transformed[500:1000]
 x_filled = pcgain_imputer.predict(x=test_chunk)
-
-print()
+x_filled = data_transformer.reverse_transform(x_filled)
+print(x_filled.head())
