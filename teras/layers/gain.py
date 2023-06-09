@@ -4,28 +4,34 @@ from tensorflow.keras import layers
 from tensorflow.keras import models
 
 
-class GeneratorHiddenLayer(keras.layers.Dense):
+class GeneratorHiddenLayer(layers.Layer):
     def __init__(self,
                  units,
                  activation="relu",
                  kernel_initializer="glorot_normal",
                  **kwargs):
-        super().__init__(units=units,
-                         activation=activation,
-                         kernel_initializer=kernel_initializer,
-                         **kwargs)
+        super().__init__(**kwargs)
+        self.dense = layers.Dense(units=units,
+                                  activation=activation,
+                                  kernel_initializer=kernel_initializer)
+
+    def call(self, inputs):
+        return self.dense(inputs)
 
 
-class GeneratorOutputLayer(keras.layers.Dense):
+class GeneratorOutputLayer(layers.Layer):
     def __init__(self,
                  units,
                  activation="sigmoid",
                  kernel_initializer="glorot_normal",
                  **kwargs):
-        super().__init__(units=units,
-                         activation=activation,
-                         kernel_initializer=kernel_initializer,
-                         **kwargs)
+        super().__init__(**kwargs)
+        self.dense = layers.Dense(units=units,
+                                  activation=activation,
+                                  kernel_initializer=kernel_initializer)
+
+    def call(self, inputs):
+        return self.dense(inputs)
 
 
 class DiscriminatorHiddenLayer(layers.Layer):
