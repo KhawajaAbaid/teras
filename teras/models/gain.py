@@ -201,20 +201,6 @@ class GAIN(keras.Model):
         https://arxiv.org/abs/1806.02920
 
     Args:
-        hint_rate: Hint rate will be used to sample binary vectors for
-            `hint vectors` generation. Must be between 0. and 1.
-            Hint vectors ensure that generated samples follow the
-            underlying data distribution.
-        alpha: Hyper parameter for the generator loss computation that
-            controls how much weight should be given to the MSE loss.
-            Precisely, `generator_loss` = `cross_entropy_loss` + `alpha` * `mse_loss`
-            The higher the `alpha`, the more the mse_loss will affect the
-            overall generator loss.
-
-        The following parameters are optional to allow
-        for advanced use case when you want to pass
-        a customized Generator or Discriminator model.
-
         generator: A customized Generator model that can fit right in
             with the architecture.
             If specified, it will replace the default generator instance
@@ -225,10 +211,24 @@ class GAIN(keras.Model):
             available params, subclass it or construct your own Generator
             from scratch given that it can fit within the architecture,
             for instance, satisfy the input/output requirements.
+
         discriminator: A customized Discriminator model that can fit right in
             with the architecture.
             Everything specified about generator above applies here as well.
 
+        num_discriminator_steps: default 1, Number of discriminator training steps
+            per GAIN training step.
+
+        hint_rate: Hint rate will be used to sample binary vectors for
+            `hint vectors` generation. Must be between 0. and 1.
+            Hint vectors ensure that generated samples follow the
+            underlying data distribution.
+
+        alpha: Hyper parameter for the generator loss computation that
+            controls how much weight should be given to the MSE loss.
+            Precisely, `generator_loss` = `cross_entropy_loss` + `alpha` * `mse_loss`
+            The higher the `alpha`, the more the mse_loss will affect the
+            overall generator loss.
     Example:
         ```python
         input_data = tf.random.uniform([200, 10])
@@ -270,16 +270,18 @@ class GAIN(keras.Model):
         ```
     """
     def __init__(self,
-                 hint_rate: float = 0.9,
-                 alpha: float = 100,
                  generator: keras.Model = None,
                  discriminator: keras.Model = None,
+                 num_discriminator_steps: int = 1,
+                 hint_rate: float = 0.9,
+                 alpha: float = 100,
                  **kwargs):
         super().__init__(**kwargs)
-        self.hint_rate = hint_rate
-        self.alpha = alpha
         self.generator = generator
         self.discriminator = discriminator
+        self.num_discriminator_steps = num_discriminator_steps
+        self.hint_rate = hint_rate
+        self.alpha = alpha
 
         if self.generator is None:
             self.generator = Generator()
@@ -327,30 +329,31 @@ class GAIN(keras.Model):
         x_gen, x_disc = data
 
         # =====> Train the discriminator <=====
-        # Create mask
-        mask = tf.constant(1.) - tf.cast(tf.math.is_nan(x_disc), dtype=tf.float32)
-        # replace nans with 0.
-        x_disc = tf.where(tf.math.is_nan(x_disc), x=0., y=x_disc)
-        # Sample noise
-        z = self.z_sampler.sample(sample_shape=tf.shape(x_disc))
-        # Sample hint vectors
-        hint_vectors = self.hint_vectors_sampler.sample(sample_shape=(tf.shape(x_disc)))
-        hint_vectors *= mask
-        # Combine random vectors with original data
-        x_disc = x_disc * mask + (1 - mask) * z
-        # Keras model raises `gain`'s weights not created error if we don't implement the
-        # `call` method and call it from our code no matter if we compile it or not.
-        # so to work around that error we place the call to `Generator`'s `call` method
-        # in the `call` method of the `GAIN` model, this way the model's
-        # generated_samples = self.generator(tf.concat([x_disc, mask], axis=1))
-        generated_samples = self(x_disc, mask=mask)
-        # Combine generated samples with original data
-        x_hat_disc = (generated_samples * (1 - mask)) + (x_disc * mask)
-        with tf.GradientTape() as tape:
-            discriminator_pred = self.discriminator(tf.concat([x_hat_disc, hint_vectors], axis=1))
-            loss_disc = self.discriminator_loss(discriminator_pred, mask)
-        gradients = tape.gradient(loss_disc, self.discriminator.trainable_weights)
-        self.discriminator_optimizer.apply_gradients(zip(gradients, self.discriminator.trainable_weights))
+        for _ in range(self.num_discriminator_steps):
+            # Create mask
+            mask = tf.constant(1.) - tf.cast(tf.math.is_nan(x_disc), dtype=tf.float32)
+            # replace nans with 0.
+            x_disc = tf.where(tf.math.is_nan(x_disc), x=0., y=x_disc)
+            # Sample noise
+            z = self.z_sampler.sample(sample_shape=tf.shape(x_disc))
+            # Sample hint vectors
+            hint_vectors = self.hint_vectors_sampler.sample(sample_shape=(tf.shape(x_disc)))
+            hint_vectors *= mask
+            # Combine random vectors with original data
+            x_disc = x_disc * mask + (1 - mask) * z
+            # Keras model raises `gain`'s weights not created error if we don't implement the
+            # `call` method and call it from our code no matter if we compile it or not.
+            # so to work around that error we place the call to `Generator`'s `call` method
+            # in the `call` method of the `GAIN` model, this way the model's
+            # generated_samples = self.generator(tf.concat([x_disc, mask], axis=1))
+            generated_samples = self(x_disc, mask=mask)
+            # Combine generated samples with original data
+            x_hat_disc = (generated_samples * (1 - mask)) + (x_disc * mask)
+            with tf.GradientTape() as tape:
+                discriminator_pred = self.discriminator(tf.concat([x_hat_disc, hint_vectors], axis=1))
+                loss_disc = self.discriminator_loss(discriminator_pred, mask)
+            gradients = tape.gradient(loss_disc, self.discriminator.trainable_weights)
+            self.discriminator_optimizer.apply_gradients(zip(gradients, self.discriminator.trainable_weights))
 
         # =====> Train the generator <=====
         mask = tf.constant(1.) - tf.cast(tf.math.is_nan(x_gen), dtype=tf.float32)
