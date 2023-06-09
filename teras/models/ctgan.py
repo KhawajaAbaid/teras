@@ -2,12 +2,12 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras import models
+from tensorflow.keras import optimizers
 from teras.layers.ctgan import GeneratorResidualBlock, DiscriminatorBlock
 from teras.layers.activations import GumbelSoftmax
-from teras.losses.ctgan import generator_loss, discriminator_loss, generator_dummy_loss
+from teras.losses.ctgan import generator_loss, discriminator_loss
 from teras.preprocessing.ctgan import DataTransformer, DataSampler
 from typing import List, Union, Tuple
-from functools import partial
 from tqdm import tqdm
 
 
@@ -24,37 +24,38 @@ class Generator(keras.Model):
         https://arxiv.org/abs/1907.00503
 
     Args:
-        generator_dim: A list or tuple of integers. For each value, a Residual block
-            of that dimensionality is added to the generator.
-            Defaults to [256, 256].
+        units_hidden: default [256, 256], A list or tuple of units.
+            For each value, a Residual block of that dimensionality (units)
+             is added to the generator.
         data_dim: Dimensionality of the transformed dataset.
         features_meta_data: A dictionary of features meta data.
             Obtained from data_transformer.features_meta_data
     """
     def __init__(self,
-                 generator_dim: LIST_OR_TUPLE = [256, 256],
+                 units_hidden: LIST_OR_TUPLE = [256, 256],
                  data_dim: int = None,
                  features_meta_data: dict = None,
                  **kwargs):
         super().__init__(**kwargs)
-        assert isinstance(generator_dim, list) or isinstance(generator_dim, tuple),\
-            ("generator_dim must be a list or tuple of integers which determines the number of Residual blocks "
-            "and the dimensionality of the hidden layer in those blocks.")
-        self.generator_dim = generator_dim
+        if not isinstance(units_hidden, (list, tuple)):
+            raise ValueError("`units_hidden` must be a list or tuple of units "
+                             "which determines the number of Residual blocks "
+                             "and the dimensionality of the hidden layer in those blocks.")
+        self.units_hidden = units_hidden
         self.data_dim = data_dim
         self.features_meta_data = features_meta_data
-        self.generator = models.Sequential()
-        for dim in generator_dim:
-            self.generator.add(GeneratorResidualBlock(dim))
+        self.hidden_block = models.Sequential(name="generator_hidden_block")
+        for units in units_hidden:
+            self.hidden_block.add(GeneratorResidualBlock(units))
         self.gumbel_softmax = GumbelSoftmax()
-        dense_out = layers.Dense(self.data_dim)
-        self.generator.add(dense_out)
+        self.dense_out = layers.Dense(self.data_dim)
 
     def call(self, inputs):
         # inputs have the shape |z| + |cond|
         # while the outputs will have the shape of equal to (batch_size, transformed_data_dims)
         outputs = []
-        interim_outputs = self.generator(inputs)
+        interim_outputs = self.dense_out(self.hidden_block(inputs))
+
         continuous_features_relative_indices = self.features_meta_data["continuous"]["relative_indices_all"]
 
         features_relative_indices_all = self.features_meta_data["relative_indices_all"]
@@ -94,35 +95,46 @@ class Discriminator(keras.Model):
         https://arxiv.org/abs/1907.00503
 
     Args:
-        discriminator_dim: A list or tuple of integers. For each value,
-            a Discriminator block of that dimensionality is added to the discriminator.
-            Defaults to [256, 256]
+        units_hidden: default [256, 256], A list or tuple of integers.
+            For each value, a Discriminator block of that dimensionality (units)
+            is added to the discriminator.
         packing_degree: The number of samples concatenated or "packed" together.
             Defaults to 8.
-        leaky_relu_alpha: alpha value to use for leaky relu activation
-            Defaults to 0.2.
-        dropout_rate: Dropout rate to use in the dropout layer
+
+    Example:
+        ```python
+        # Instantiate Generator
+        generator = Generator(data_dim=data_dim,
+                              features_meta_data=features_meta_data)
+
+        # Instantiate Discriminator
+        discriminator = Discriminator()
+
+        # Sample noise to generate samples from
+        z = tf.random.normal([512, 18])
+
+        # Generate samples
+        generated_samples = generator(z)
+
+        # Predict using discriminator
+        y_pred = discriminator(generated_samples)
+        ```
     """
     def __init__(self,
-                 discriminator_dim: LIST_OR_TUPLE = [256, 256],
+                 units_hidden: LIST_OR_TUPLE = [256, 256],
                  packing_degree: int = 8,
-                 leaky_relu_alpha: float = 0.2,
-                 dropout_rate: float = 0.,
                  **kwargs):
         super().__init__(**kwargs)
-        assert isinstance(discriminator_dim, list) or isinstance(discriminator_dim, tuple),\
-            ("discriminator_dim must be a list or tuple of integers which determines the number of Discriminator blocks "
-            "and the dimensionality of the hidden layer in those blocks.")
-        self.discriminator_dim = discriminator_dim
+        if not isinstance(units_hidden, (list, tuple)):
+            raise ValueError("`units_hidden` must be a list or tuple of units "
+                             "which determines the number of Discriminator blocks "
+                             "and the dimensionality of the hidden layer in those blocks.")
+        self.units_hidden = units_hidden
         self.packing_degree = packing_degree
-        self.discriminator = keras.models.Sequential()
-        self.leaky_relu_alpha = leaky_relu_alpha
-        self.dropout_rate = dropout_rate
-        for dim in self.discriminator_dim:
-            self.discriminator.add(DiscriminatorBlock(dim,
-                                                      leaky_relu_alpha=self.leaky_relu_alpha,
-                                                      dropout_rate=self.dropout_rate))
-        self.discriminator.add(layers.Dense(1))
+        self.hidden_block = models.Sequential(name="discriminator_hidden_block")
+        for units in self.units_hidden:
+            self.hidden_block.add(DiscriminatorBlock(units))
+        self.dense_out = layers.Dense(1)
 
     @tf.function
     def gradient_penalty(self,
@@ -137,9 +149,14 @@ class Discriminator(keras.Model):
             https://arxiv.org/abs/1704.00028
 
         Args:
-            real_samples:
-            generated_samples:
-            lambda_:
+            real_samples: Data samples drawn from the real dataset
+            generated_samples: Data samples generated by the generator
+            lambda_: Controls the strength of gradient penalty.
+                lambda_ value is directly proportional to the strength
+                of gradient penalty.
+
+        Returns:
+            Gradient penalty computed for given values.
         """
         batch_size = tf.shape(real_samples)[0]
         dim = tf.shape(real_samples)[1]
@@ -161,113 +178,85 @@ class Discriminator(keras.Model):
 
     def call(self, inputs):
         inputs_dim = tf.shape(inputs)[1]
-        reshaped_inputs = tf.reshape(inputs, shape=(-1, self.packing_degree * inputs_dim))
-        return self.discriminator(reshaped_inputs)
+        inputs = tf.reshape(inputs, shape=(-1, self.packing_degree * inputs_dim))
+        outputs = self.hidden_block(inputs)
+        outputs = self.dense_out(outputs)
+        return outputs
 
 
 class CTGAN(keras.Model):
     """
-    This CTGAN implementation provides you with two ways of using CTGAN:
-        1. The usual way:
-                Specify the parameter values except for
-                `generator` and `discriminator`,
-                The framework will take care of instantiating
-                and building the generator and discriminator models.
-        2. The new more flexible way:
-                For a finer control, over the building of either generator and discriminator,
-                you can import the generator or discriminator model from this `ctgan` module
-                or use a complete custom one, build it, and pass it as parameter,
-                the framework will ignore the other `discriminator_*` and `generator_*` parameters
-                and won't instantiate or build the models.
-        NOTE:
-            Please note that, you can pass a custom `generator` (or `discriminator`) model
-            and specify the `discriminator_*` (or `generator_*`) params, so the framework instantiates
-            and builds the  `discriminator` (or `generator`) model the usual way.
+    CTGAN is a state-of-the-art tabular data generation architecture
+    proposed by Lei Xu et al. in the paper,
+    "Modeling Tabular data using Conditional GAN".
+
+    Reference(s):
+        https://arxiv.org/abs/1907.00503
 
     Args:
-        latent_dim: Latent dimensionality. Defaults to 128.
-        packing_degree: Packing degree - taken from the PacGAN paper.
+        latent_dim: default 128, Dimensionality of noise or `z` that serves as
+            input to Generator to generate samples.
+        packing_degree: default 8, Packing degree - taken from the PacGAN paper.
             The number of samples concatenated or "packed" together.
             It must be a factor of batch_size.
-            Defaults to 8.
-        use_log_frequency: Whether to calculate probability of values
-            by taking log of their frequency in the feature.
-            Defaults to True.
-        num_discriminator_steps: Number of discriminator steps per training step.
+        num_discriminator_steps: default 1, Number of discriminator training steps
+            per CTGAN training step.
         data_transformer: An instance of DataTransformer class.
         data_sampler: An instance of DataSampler class
         generator: A custom generator model
         discriminator: A custom discriminator model
-        generator_dim: A list or tuple of integers. For each value, a Residual block
-            of that dimensionality is added to the generator.
-            Defaults to [256, 256].
-        generator_lr: Learning rate for Generator. Defaults to 1e-3.
-        discriminator_dim: A list or tuple of integers. For each value,
-            a Discriminator block of that dimensionality is added to the discriminator.
-            Defaults to [256, 256]
-        discriminator_lr: Learning rate for discriminator.
-        gradient_penalty_lambda: Controls the magnitude of the gradient penalty.
-            Proposed in the paper: Improved Training of Wasserstein GANs.
-            Defaults to 10.
-        discriminator_leaky_relu_alpha: Alpha value for leaky relu activation in Discriminator.
-        discriminator_dropout_rate: Dropout rate for dropout layer in Discriminator.
     """
     def __init__(self,
-                 latent_dim=128,
-                 packing_degree=8,
-                 log_frequency=True,
-                 num_discriminator_steps: int = 1,
-                 data_transformer: DataTransformer = None,
-                 data_sampler: DataSampler = None,
                  generator: keras.Model = None,
                  discriminator: keras.Model = None,
-                 generator_dim: LIST_OR_TUPLE = [256, 256],
-                 generator_lr: float = 1e-3,
-                 discriminator_dim: LIST_OR_TUPLE = [256, 256],
-                 discriminator_lr: float = 1e-3,
-                 gradient_penalty_lambda=10,
-                 discriminator_leaky_relu_alpha: float = 0.2,
-                 discriminator_dropout_rate: float = 0.,
+                 num_discriminator_steps: int = 1,
+                 latent_dim=128,
+                 packing_degree=8,
+                 data_transformer: DataTransformer = None,
+                 data_sampler: DataSampler = None,
                  **kwargs):
         super().__init__(**kwargs)
+        self.generator = generator
+        self.discriminator = discriminator
+        self.num_discriminator_steps = num_discriminator_steps
         self.latent_dim = latent_dim
         self.packing_degree = packing_degree
-        self.log_frequency = log_frequency
-        self.num_discriminator_steps = num_discriminator_steps
         self.data_sampler = data_sampler
         self.data_transformer = data_transformer
-        # If user specifies a custom generator, we won't instantiate or build a generator.
-        # All the generator_* params will be ignored.
-        self.generator = generator
-        if self.generator is None:
-            self.generator_dim = generator_dim
-            self.generator_lr = generator_lr
 
-        # If user specifies a custom discriminator, we won't instantiate or build a discriminator.
-        # All the discriminator_* params will be ignored.
-        self.discriminator = discriminator
-        if discriminator is None:
-            self.discriminator_dim = discriminator_dim
-            self.gradient_penalty_lambda = gradient_penalty_lambda
-            self.discriminator_leaky_relu_alpha = discriminator_leaky_relu_alpha
-            self.discriminator_dropout_rate = discriminator_dropout_rate
-            self.discriminator_lr = discriminator_lr
-            # instantiate discriminator
-            self.discriminator = Discriminator(discriminator_dim=self.discriminator_dim,
-                                               leaky_relu_alpha=self.discriminator_leaky_relu_alpha,
-                                               dropout_rate=self.discriminator_dropout_rate)
-            self.discriminator.compile(optimizer=keras.optimizers.Adam(learning_rate=self.generator_lr,
-                                                                       beta_1=0.5, beta_2=0.9),
-                                       loss=discriminator_loss)
+
         self.features_meta_data = self.data_transformer.features_meta_data
         self.data_dim = self.features_meta_data["total_transformed_features"]
-        # self.built_generator = False
-        self.generator = Generator(generator_dim=self.generator_dim,
-                                   data_dim=self.data_dim,
-                                   features_meta_data=self.features_meta_data)
-        self.generator.compile(optimizer=keras.optimizers.Adam(learning_rate=self.generator_lr,
-                                                               beta_1=0.5, beta_2=0.9),
-                               loss=generator_dummy_loss)
+
+        # If user specifies a custom generator, we won't instantiate Generator.
+        if self.generator is None:
+            # Instantiate Generator
+            self.generator = Generator(data_dim=self.data_dim,
+                                       features_meta_data=self.features_meta_data)
+
+        # If user specifies a custom discriminator, we won't instantiate Discriminator.
+        if discriminator is None:
+            # Instantiate discriminator
+            self.discriminator = Discriminator()
+
+        # Loss trackers
+        self.generator_loss_tracker = keras.metrics.Mean(name="generator_loss")
+        self.discriminator_loss_tracker = keras.metrics.Mean(name="discriminator_loss")
+
+    def compile(self,
+                generator_optimizer=optimizers.Adam(learning_rate=1e-3,
+                                                    beta_1=0.5, beta_2=0.9),
+                discriminator_optimizer=optimizers.Adam(learning_rate=1e-3,
+                                                        beta_1=0.5, beta_2=0.9),
+                generator_loss=generator_loss,
+                discriminator_loss=discriminator_loss,
+                ):
+        super().compile()
+        self.generator_optimizer = generator_optimizer
+        self.discriminator_optimizer = discriminator_optimizer
+        self.generator_loss = generator_loss
+        self.discriminator_loss = discriminator_loss
+
     def call(self, inputs, cond_vector=None):
         generated_samples = self.generator(inputs)
         generated_samples = tf.concat([generated_samples, cond_vector], axis=1)
@@ -293,11 +282,11 @@ class CTGAN(keras.Model):
                 y_generated = self.discriminator(generated_samples_cat)
                 y_real = self.discriminator(real_samples_cat)
                 grad_pen = self.discriminator.gradient_penalty(real_samples_cat, generated_samples_cat)
-                loss_disc = self.discriminator.compiled_loss(y_real, y_generated)
+                loss_disc = self.discriminator_loss(y_real, y_generated)
             gradients_pen = tape.gradient(grad_pen, self.discriminator.trainable_weights)
             gradients_loss = tape.gradient(loss_disc, self.discriminator.trainable_weights)
-            self.discriminator.optimizer.apply_gradients(zip(gradients_pen, self.discriminator.trainable_weights))
-            self.discriminator.optimizer.apply_gradients(zip(gradients_loss, self.discriminator.trainable_weights))
+            self.discriminator_optimizer.apply_gradients(zip(gradients_pen, self.discriminator.trainable_weights))
+            self.discriminator_optimizer.apply_gradients(zip(gradients_loss, self.discriminator.trainable_weights))
 
         z = tf.random.normal(shape=[self.batch_size, self.latent_dim])
         cond_vector, mask = self.data_sampler.sample_cond_vector_for_training(self.batch_size,
@@ -311,32 +300,34 @@ class CTGAN(keras.Model):
             tape.watch(cond_vector)
             tape.watch(mask)
             generated_samples, y_generated = self(input_gen, cond_vector=cond_vector)
-            loss_gen = generator_loss(generated_samples, y_generated,
-                                      cond_vector=cond_vector, mask=mask,
-                                      features_meta_data=self.features_meta_data)
-            dummy_targets = tf.zeros(shape=(self.batch_size,))
-            loss_gen_dummy = self.generator.compiled_loss(dummy_targets, loss_gen)
+            loss_gen = self.generator_loss(generated_samples, y_generated,
+                                           cond_vector=cond_vector, mask=mask,
+                                           features_meta_data=self.features_meta_data)
+            # dummy_targets = tf.zeros(shape=(self.batch_size,))
+            # loss_gen_dummy = self.generator.compiled_loss(dummy_targets, loss_gen)
+        gradients = tape.gradient(loss_gen, self.generator.trainable_weights)
+        self.generator_optimizer.apply_gradients(zip(gradients, self.generator.trainable_weights))
 
-        gradients = tape.gradient(loss_gen_dummy, self.generator.trainable_weights)
-        self.generator.optimizer.apply_gradients(zip(gradients, self.generator.trainable_weights))
+        self.generator_loss_tracker.update_state(loss_gen)
+        self.discriminator_loss_tracker.update_state(loss_disc)
+
         results = {m.name: m.result() for m in self.metrics}
-        generator_results = {'generator_'+m.name: m.result() for m in self.generator.metrics}
+        generator_results = {'generator_' + m.name: m.result() for m in self.generator.metrics}
         results.update(generator_results)
-        discriminator_results = {'discriminator_'+m.name: m.result() for m in self.discriminator.metrics}
+        discriminator_results = {'discriminator_' + m.name: m.result() for m in self.discriminator.metrics}
         results.update(discriminator_results)
         return results
 
-    def generate_new_data(self,
-                          num_samples,
-                          reverse_transform=True,
-                          batch_size=None):
+    def generate_samples(self,
+                         num_samples,
+                         reverse_transform=True,
+                         batch_size=None):
         """
         Args:
             num_samples: Number of new samples to generate
             reverse_transform: Whether to reverse transform the generated data to the original data format.
                 Defaults to True. If False, the raw generated data will be returned.
             batch_size: If None `batch_size` of training will be used.
-
         """
         batch_size = self.data_sampler.batch_size if batch_size is None else batch_size
         num_steps = num_samples // batch_size
