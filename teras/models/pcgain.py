@@ -24,27 +24,23 @@ class Classifier(keras.Model):
         https://arxiv.org/abs/2011.07770
 
     Args:
-        num_classes: Number of classes to predict.
-            It should be equal to the `num_clusters`,
-            computed during the pseudo label generation.
         units_hidden: A list/tuple of units for hidden block.
             For each element, a new hidden layer will be added.
             In official implementation, `units` for every hidden
             layer is equal to `input_dim`,
             and the number of hidden layers is 2.
             So, if None, by default we use [input_dim, input_dim].
-        activation: Activation function to use for hidden layers.
-            Defaults to 'relu'.
+        num_classes: Number of classes to predict.
+            It should be equal to the `num_clusters`,
+            computed during the pseudo label generation.
     """
     def __init__(self,
                  num_classes: int = None,
                  units_hidden: LIST_OR_TUPLE = None,
-                 activation_hidden="relu",
                  **kwargs):
         super().__init__(**kwargs)
         self.num_classes = num_classes
         self.units_hidden = units_hidden
-        self.activation_hidden = activation_hidden
 
         self.hidden_block = keras.models.Sequential(name="classifier_hidden_block")
         self.dense_out = keras.layers.Dense(num_classes, activation="softmax")
@@ -54,7 +50,7 @@ class Classifier(keras.Model):
             self.units_hidden = [input_shape[1]] * 2
         for dim in self.units_hidden:
             self.hidden_block.add(keras.layers.Dense(dim,
-                                                     activation=self.activation_hidden))
+                                                     activation="relu"))
 
     def call(self, inputs):
         x = self.hidden_block(inputs)
@@ -75,6 +71,21 @@ class PCGAIN(keras.Model):
         https://arxiv.org/abs/2011.07770
 
     Args:
+        generator: A customized Generator model that can fit right in
+            with the architecture.
+            If specified, it will replace the default generator instance
+            created by the model.
+            This allows you to take full control over the Generator architecture.
+            Note that, you import the standalone `Generator` model
+            `from teras.models.gain import Generator` customize it through
+            available params, subclass it or construct your own Generator
+            from scratch given that it can fit within the architecture,
+            for instance, satisfy the input/output requirements.
+        discriminator: A customized Discriminator model that can fit right in
+            with the architecture.
+            Everything specified about generator above applies here as well.
+        num_discriminator_steps: default 1, Number of discriminator training steps
+            per PCGAIN training step.
         hint_rate: Hint rate will be used to sample binary vectors for
             `hint vectors` generation. Should be between 0. and 1.
             Hint vectors ensure that generated samples follow the
@@ -97,35 +108,21 @@ class PCGAIN(keras.Model):
             ["Agglomerative", "KMeans", "MiniBatchKMeans", "Spectral", "SpectralBiclustering"]
             The names are case in-sensitive.
             Defaults to "kmeans"
-
-        The following parameters are optional to allow
-        for advanced use case when you want to pass
-        a customized Generator or Discriminator model.
-
-        generator: A customized Generator model that can fit right in
-            with the architecture.
-            If specified, it will replace the default generator instance
-            created by the model.
-            This allows you to take full control over the Generator architecture.
-            Note that, you import the standalone `Generator` model
-            `from teras.models.gain import Generator` customize it through
-            available params, subclass it or construct your own Generator
-            from scratch given that it can fit within the architecture,
-            for instance, satisfy the input/output requirements.
-        discriminator: A customized Discriminator model that can fit right in
-            with the architecture.
-            Everything specified about generator above applies here as well.
     """
     def __init__(self,
+                 generator: keras.Model = None,
+                 discriminator: keras.Model = None,
+                 num_discriminator_steps: int = 1,
                  hint_rate: float = 0.9,
                  alpha: INT_OR_FLOAT = 200,
                  beta: INT_OR_FLOAT = 100,
                  num_clusters: int = 5,
                  clustering_method: str = "kmeans",
-                 generator: keras.Model = None,
-                 discriminator: keras.Model = None,
                  **kwargs):
         super().__init__(**kwargs)
+        self.generator = generator
+        self.discriminator = discriminator
+        self.num_discriminator_steps = num_discriminator_steps
         if not 0. <= hint_rate <= 1.0:
             raise ValueError("`hint_rate` should be between 0. and 1. "
                              f"Received {hint_rate}.")
@@ -134,8 +131,6 @@ class PCGAIN(keras.Model):
         self.beta = beta
         self.num_clusters = num_clusters
         self.clustering_method = clustering_method
-        self.generator = generator
-        self.discriminator = discriminator
 
         if self.generator is None:
             self.generator = Generator()
@@ -193,10 +188,10 @@ class PCGAIN(keras.Model):
         # using these losses.
         # Note that only generator has a different pretraining loss,
         # as the discriminator uses the same loss!
-        self.pretrainer.compile(gen_optimizer=generator_optimizer,
-                                disc_optimizer=discriminator_optimizer,
-                                gen_loss=generator_pretraining_loss,
-                                disc_loss=discriminator_loss
+        self.pretrainer.compile(generator_optimizer=generator_optimizer,
+                                discriminator_optimizer=discriminator_optimizer,
+                                generator_loss=generator_pretraining_loss,
+                                discriminator_loss=discriminator_loss
                                 )
 
         self.classifier.compile(loss=classifier_loss,
@@ -267,26 +262,27 @@ class PCGAIN(keras.Model):
         x_gen, x_disc = data
 
         # ====> Training the Discriminator <=====
-        # Create mask
-        mask = tf.constant(1.) - tf.cast(tf.math.is_nan(x_disc), dtype=tf.float32)
-        # replace nans with 0.
-        x_disc = tf.where(tf.math.is_nan(x_disc), x=0., y=x_disc)
-        # Sample noise
-        z = self.z_sampler.sample(sample_shape=tf.shape(x_disc))
-        # Sample hint vectors
-        hint_vectors = self.hint_vectors_sampler.sample(sample_shape=(tf.shape(x_disc)))
-        hint_vectors *= mask
-        # Combine random vectors with original data
-        x_disc = x_disc * mask + (1 - mask) * z
-        # Generate samples
-        generated_samples = self(x_disc, mask=mask)
-        # Combine generated samples with original data
-        x_hat_disc = (generated_samples * (1 - mask)) + (x_disc * mask)
-        with tf.GradientTape() as tape:
-            discriminator_pred = self.discriminator(tf.concat([x_hat_disc, hint_vectors], axis=1))
-            loss_disc = self.discriminator_loss(discriminator_pred, mask)
-        gradients = tape.gradient(loss_disc, self.discriminator.trainable_weights)
-        self.discriminator_optimizer.apply_gradients(zip(gradients, self.discriminator.trainable_weights))
+        for _ in range(self.num_discriminator_steps):
+            # Create mask
+            mask = tf.constant(1.) - tf.cast(tf.math.is_nan(x_disc), dtype=tf.float32)
+            # replace nans with 0.
+            x_disc = tf.where(tf.math.is_nan(x_disc), x=0., y=x_disc)
+            # Sample noise
+            z = self.z_sampler.sample(sample_shape=tf.shape(x_disc))
+            # Sample hint vectors
+            hint_vectors = self.hint_vectors_sampler.sample(sample_shape=(tf.shape(x_disc)))
+            hint_vectors *= mask
+            # Combine random vectors with original data
+            x_disc = x_disc * mask + (1 - mask) * z
+            # Generate samples
+            generated_samples = self(x_disc, mask=mask)
+            # Combine generated samples with original data
+            x_hat_disc = (generated_samples * (1 - mask)) + (x_disc * mask)
+            with tf.GradientTape() as tape:
+                discriminator_pred = self.discriminator(tf.concat([x_hat_disc, hint_vectors], axis=1))
+                loss_disc = self.discriminator_loss(discriminator_pred, mask)
+            gradients = tape.gradient(loss_disc, self.discriminator.trainable_weights)
+            self.discriminator_optimizer.apply_gradients(zip(gradients, self.discriminator.trainable_weights))
 
         # =====> Train the Generator <=====
         mask = tf.constant(1.) - tf.cast(tf.math.is_nan(x_gen), dtype=tf.float32)
