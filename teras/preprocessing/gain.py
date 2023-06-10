@@ -24,8 +24,6 @@ class DataTransformer:
             And then MinMax normalization is applied.
         numerical_features: A list of names of categorical/continuous features.
             Numerical features are encoded using MinMax normalization.
-        normalize: Whether to use MinMax normalization at all.
-            It is strongly recommended to use normalization.
 
     Example:
         ```python
@@ -33,90 +31,33 @@ class DataTransformer:
                                     columns=['A', 'B', 'C'])
             numerical_features = input_df.columns
             data_transformer = DataTransformer(categorical_features=None,
-                                               numerical_features=numerical_features,
-                                               normalize=True)
+                                               numerical_features=numerical_features)
             transformed_df = data_transformer.transform(input_df)
         ```
     """
     def __init__(self,
                  categorical_features: FEATURE_NAMES_TYPE = None,
-                 numerical_features: FEATURE_NAMES_TYPE = None,
-                 normalize=True):
-        if categorical_features is None and numerical_features is None:
-            raise ValueError("You must pass features names list for at least one of "
-                             "categorical or numerical types, if not both.")
+                 numerical_features: FEATURE_NAMES_TYPE = None):
+        super().__init__(categorical_features=categorical_features,
+                         numerical_features=numerical_features)
         self.categorical_features = categorical_features
         self.numerical_features = numerical_features
         self.all_features_names = categorical_features + numerical_features
-        self.normalize = normalize
         self.min_vals = []
         self.max_vals = []
 
-    def transform_categorical(self, x: pd.DataFrame):
-        """
-        Applies ordinal encoding to categorical features
+    def fit(self, x):
+        if self.numerical_features is not None:
+            self.min_vals = np.nanmin(x[self.numerical_features], axis=0)
+            self.max_vals = np.nanmax(x[self.numerical_features], axis=0)
 
-        x: Transformed data with numerical features.
-            Must be a pandas DataFrame.
-
-        Returns:
-            Encoded categorical data.
-        """
-        self.oe = OrdinalEncoder()
-        return self.oe.fit_transform(x[self.categorical_features])
-
-    def reverse_transform_categorical(self, x: pd.DataFrame):
-        """
-        Rounds values and reverses the transformation to original values.
-
-        Args:
-            x: Data with categorical features that is to be transformed.
-                Must be a pandas DataFrame.
-
-        Returns:
-            Categorical data in its original format.
-        """
-        return self.oe.inverse_transform(x[self.categorical_features].round().astype(np.float))
-
-    def transform_numerical(self, x):
-        """
-        Applies the MinMax transformation in accordance with the official
-        GAIN paper and implementation.
-        We don't just normalize numerical features values but all values,
-        even the categorical features values that we converted using ordinal encoder.
-
-        Returns:
-            Transformed numerical data.
-        """
-        if isinstance(x, pd.DataFrame):
-            x = x.values
-        if self.normalize:
-            self.min_vals = np.nanmin(x, axis=0)
-            self.max_vals = np.nanmax(x, axis=0)
-            x = (x - self.min_vals) / self.max_vals
-            x = x.astype(np.float)
-        return x
-
-    def reverse_transform_numerical(self, x):
-        """
-        Reverses the numerical transformation.
-
-        Args:
-            x: Transformed data
-
-        Returns:
-            Numerical data in its original format.
-        """
-        if self.min_vals is None and self.max_vals is None:
-            raise ValueError("The values for `self.min_vals` and `self.max_vals` are not yet set. "
-                             "This implies that you haven't yet used the `transform` method "
-                             "to transform numerical features. ")
-        x = (x * self.max_vals) + self.min_vals
-        return x
+        if self.categorical_features is not None:
+            self.oe = OrdinalEncoder()
+            self.oe.fit(x[self.categorical_features])
 
     def transform(self,
                   x: pd.DataFrame,
-                  return_dataframe=False):
+                  return_dataframe: bool = True):
         """
         Transforms the data (applying normalization etc)
         and returns a tensorflow dataset.
@@ -138,16 +79,24 @@ class DataTransformer:
         self.all_ordered_features_names = x.columns
 
         if self.categorical_features is not None:
-            x[self.categorical_features] = self.transform_categorical(x)
+            x[self.categorical_features] = self.oe.transform(x[self.categorical_features])
 
         # we don't need to check if there are numerical features,
         # because we apply this "numerical" MinMax transformation to the whole
         # dataset, even to the categorical features we converted using ordinal encoder
-        x = self.transform_numerical(x)
+        x = x.values
+        x = (x - self.min_vals) / self.max_vals
+        x = x.astype(np.float)
 
         if return_dataframe:
             x = pd.DataFrame(x, columns=self.all_ordered_features_names)
         return x
+
+    def fit_transform(self,
+                      x: pd.DataFrame,
+                      return_dataframe: bool = True):
+        self.fit(x)
+        return self.transform(x, return_dataframe=return_dataframe)
 
     def reverse_transform(self,
                           x,
@@ -165,22 +114,25 @@ class DataTransformer:
         Returns:
             Data in its original format and scale.
         """
-        if isinstance(x, tf.Tensor):
-            x = x.numpy()
         if not isinstance(x, pd.DataFrame):
             x = pd.DataFrame(x, columns=self.all_ordered_features_names)
+
+        if self.min_vals is None and self.max_vals is None:
+            raise ValueError("The values for `self.min_vals` and `self.max_vals` are not yet set. "
+                             "This implies that you haven't yet used the `transform` method "
+                             "to transform numerical features. ")
 
         # Since we apply the numerical minmax transformation to the whole dataset
         # even the ordinal encoded categorical features, so we first reverse
         # transform the numerical transformations on the whole dataset and then
         # we reverse categorical transformations if any.
         if self.numerical_features is not None:
-            x = self.reverse_transform_numerical(x)
+            x = (x * self.max_vals) + self.min_vals
         if self.categorical_features is not None:
-            x[self.categorical_features] = self.reverse_transform_categorical(x)
+            x[self.categorical_features] = self.oe.inverse_transform(x[self.categorical_features])
 
-        if return_dataframe:
-            x = pd.DataFrame(x, columns=self.all_ordered_features_names)
+        if not return_dataframe:
+            x = x.values
         return x
 
 
