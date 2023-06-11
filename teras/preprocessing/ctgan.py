@@ -467,7 +467,8 @@ class DataSampler:
         self.meta_data = meta_data
 
         self.num_samples = None
-        self.batch_size = None
+        self.data_dim = None
+        self.batch_size = batch_size
         self.row_idx_by_categories = list()
 
     def get_dataset(self,
@@ -485,6 +486,7 @@ class DataSampler:
             to create batches of data. This way user can just pass the dataset object to the fit
             method of the model and each batch generated will satisfies all out requirements of sampling
         """
+        self.num_samples, self.data_dim = x_transformed.shape
         # adapting the approach from the official implementation
         # to sample evenly across the categories to combat imbalance
         row_idx_raw = [x_original.groupby(feature).groups for feature in self.categorical_features]
@@ -511,7 +513,8 @@ class DataSampler:
                                   tf.TensorSpec(shape=(self.batch_size, total_num_categories),
                                                 dtype=tf.float32, name="cond_vectors"),
                                   tf.TensorSpec(shape=(self.batch_size, len(self.categorical_features)),
-                                                dtype=tf.float32, name="mask"))
+                                                dtype=tf.float32, name="mask")),
+                args=[x_transformed]
             )
         return dataset
 
@@ -601,7 +604,7 @@ class DataSampler:
         for _ in range(num_steps_per_epoch):
             random_features_idx = tf.random.uniform([self.batch_size], minval=0,
                                                     maxval=len(self.categorical_features),
-                                                    dtype=tf.int64)
+                                                    dtype=tf.int32)
             # NOTE: We've precomputed the probabilities in the DataTransformer class for each feature already
             # to speed things up.
             random_features_categories_probs = tf.gather(tf.ragged.constant(self.meta_data.categorical.categories_probs_all),
@@ -610,7 +613,7 @@ class DataSampler:
                                                   n_samples=1,
                                                   p=feature_probs)
                                  for feature_probs in random_features_categories_probs]
-            random_values_idx = tf.squeeze(random_values_idx)
+            random_values_idx = tf.cast(tf.squeeze(random_values_idx), dtype=tf.int32)
             # the official implementation uses actual indices during the sample_cond_vector method
             # but uses the shuffled version in sampling data, so we're gonna do just that.
             shuffled_idx = tf.random.shuffle(tf.range(self.batch_size))
