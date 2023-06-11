@@ -6,7 +6,7 @@ def generator_loss(generated_samples,
                    y_generated,
                    cond_vectors=None,
                    mask=None,
-                   features_meta_data=None):
+                   meta_data=None):
     """
     Loss for the Generator model in the CTGAN architecture.
 
@@ -23,7 +23,7 @@ def generator_loss(generated_samples,
         cond_vectors: Conditional vectors that are used for and with
             generated samples
         mask: Mask created during the conditional vectors generation step
-        features_meta_data: Dictionary containing meta deta of features.
+        meta_data: Namedtuple meta deta of features.
             That meta data contains miscellaneous information about features,
             which is calculated during data transformation step.
 
@@ -33,12 +33,12 @@ def generator_loss(generated_samples,
     loss = []
     cross_entropy_loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True,
                                                                     reduction=keras.losses.Reduction.NONE)
-    continuous_features_relative_indices = features_meta_data["continuous"]["relative_indices_all"]
-    features_relative_indices_all = features_meta_data["relative_indices_all"]
-    num_categories_all = features_meta_data["categorical"]["num_categories_all"]
-    # the first k features in the data are continuous which we'll ignore as we're only
+    numerical_features_relative_indices = meta_data.numerical.relative_indices_all
+    features_relative_indices_all = meta_data.relative_indices_all
+    num_categories_all = meta_data.categorical.num_categories_all
+    # the first k features in the data are numerical which we'll ignore as we're only
     # concerned with the categorical features here
-    offset = len(continuous_features_relative_indices)
+    offset = len(numerical_features_relative_indices)
     for i, index in enumerate(features_relative_indices_all[offset:]):
         logits = generated_samples[:, index: index + num_categories_all[i]]
         temp_cond_vector = cond_vectors[:, i: i + num_categories_all[i]]

@@ -28,13 +28,13 @@ class Generator(keras.Model):
             For each value, a Residual block of that dimensionality (units)
              is added to the generator.
         data_dim: Dimensionality of the transformed dataset.
-        features_meta_data: A dictionary of features meta data.
-            Obtained from data_transformer.features_meta_data
+        meta_data: A namedtuple of features meta data.
+            Obtained from data_transformer.meta_data
     """
     def __init__(self,
                  units_hidden: LIST_OR_TUPLE = [256, 256],
                  data_dim: int = None,
-                 features_meta_data: dict = None,
+                 meta_data=None,
                  **kwargs):
         super().__init__(**kwargs)
         if not isinstance(units_hidden, (list, tuple)):
@@ -43,7 +43,7 @@ class Generator(keras.Model):
                              "and the dimensionality of the hidden layer in those blocks.")
         self.units_hidden = units_hidden
         self.data_dim = data_dim
-        self.features_meta_data = features_meta_data
+        self.meta_data = meta_data
         self.hidden_block = models.Sequential(name="generator_hidden_block")
         for units in units_hidden:
             self.hidden_block.add(GeneratorResidualBlock(units))
@@ -56,17 +56,17 @@ class Generator(keras.Model):
         outputs = []
         interim_outputs = self.dense_out(self.hidden_block(inputs))
 
-        continuous_features_relative_indices = self.features_meta_data["continuous"]["relative_indices_all"]
+        numerical_features_relative_indices = self.meta_data.numerical.relative_indices_all
 
-        features_relative_indices_all = self.features_meta_data["relative_indices_all"]
-        num_valid_clusters_all = self.features_meta_data["continuous"]["num_valid_clusters_all"]
+        features_relative_indices_all = self.meta_data.relative_indices_all
+        num_valid_clusters_all = self.meta_data.numerical.num_valid_clusters_all
         cont_i = 0
         cat_i = 0
-        num_categories_all = self.features_meta_data["categorical"]["num_categories_all"]
+        num_categories_all = self.meta_data.categorical.num_categories_all
         for i, index in enumerate(features_relative_indices_all):
-            # the first k = num_continuous_features are continuous in the data
-            if i < len(continuous_features_relative_indices):
-                # each continuous features has been transformed into num_valid_clusters + 1 features
+            # the first k = num_numerical_features are numerical in the data
+            if i < len(numerical_features_relative_indices):
+                # each numerical features has been transformed into num_valid_clusters + 1 features
                 # where the first feature is alpha while the following features are beta components
                 alphas = tf.nn.tanh(interim_outputs[:, index])
                 alphas = tf.expand_dims(alphas, 1)
@@ -105,7 +105,7 @@ class Discriminator(keras.Model):
         ```python
         # Instantiate Generator
         generator = Generator(data_dim=data_dim,
-                              features_meta_data=features_meta_data)
+                              meta_data=meta_data)
 
         # Instantiate Discriminator
         discriminator = Discriminator()
@@ -224,15 +224,14 @@ class CTGAN(keras.Model):
         self.data_sampler = data_sampler
         self.data_transformer = data_transformer
 
-
-        self.features_meta_data = self.data_transformer.features_meta_data
-        self.data_dim = self.features_meta_data["total_transformed_features"]
+        self.meta_data = self.data_transformer.get_meta_data()
+        self.data_dim = self.meta_data.total_transformed_features
 
         # If user specifies a custom generator, we won't instantiate Generator.
         if self.generator is None:
             # Instantiate Generator
             self.generator = Generator(data_dim=self.data_dim,
-                                       features_meta_data=self.features_meta_data)
+                                       meta_data=self.meta_data)
 
         # If user specifies a custom discriminator, we won't instantiate Discriminator.
         if discriminator is None:
@@ -293,7 +292,7 @@ class CTGAN(keras.Model):
         #                                                                       random_values_indices=random_values_indices)
         # Practically speaking, we don't really need the partial function,
         # but it makes things look more neat
-        # generator_partial_loss_fn = partial(generator_loss, mask=mask, features_meta_data=self.features_meta_data)
+        # generator_partial_loss_fn = partial(generator_loss, mask=mask, meta_data=self.meta_data)
         input_gen = tf.concat([z, cond_vectors], axis=1)
         with tf.GradientTape() as tape:
             tape.watch(cond_vectors)
@@ -304,7 +303,7 @@ class CTGAN(keras.Model):
             y_generated = self.discriminator(generated_samples, training=False)
             loss_gen = self.generator_loss(generated_samples, y_generated,
                                            cond_vectors=cond_vectors, mask=mask,
-                                           features_meta_data=self.features_meta_data)
+                                           meta_data=self.meta_data)
             # dummy_targets = tf.zeros(shape=(self.batch_size,))
             # loss_gen_dummy = self.generator.compiled_loss(dummy_targets, loss_gen)
         gradients = tape.gradient(loss_gen, self.generator.trainable_weights)
