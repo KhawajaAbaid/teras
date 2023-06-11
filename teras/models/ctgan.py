@@ -324,6 +324,8 @@ class CTGAN(keras.Model):
                          reverse_transform=True,
                          batch_size=None):
         """
+        Generates new samples using the trained generator.
+
         Args:
             num_samples: Number of new samples to generate
             reverse_transform: Whether to reverse transform the generated data to the original data format.
