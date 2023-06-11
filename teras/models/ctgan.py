@@ -303,7 +303,7 @@ class CTGAN(keras.Model):
             generated_samples = tf.concat([generated_samples, cond_vectors], axis=1)
             y_generated = self.discriminator(generated_samples, training=False)
             loss_gen = self.generator_loss(generated_samples, y_generated,
-                                           cond_vector=cond_vectors, mask=mask,
+                                           cond_vectors=cond_vectors, mask=mask,
                                            features_meta_data=self.features_meta_data)
             # dummy_targets = tf.zeros(shape=(self.batch_size,))
             # loss_gen_dummy = self.generator.compiled_loss(dummy_targets, loss_gen)
