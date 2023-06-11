@@ -4,6 +4,8 @@ from sklearn.mixture import BayesianGaussianMixture
 from teras.utils import tf_random_choice
 import numpy as np
 import pandas as pd
+from collections import namedtuple
+from copy import deepcopy
 
 
 class ModeSpecificNormalization:
@@ -16,9 +18,9 @@ class ModeSpecificNormalization:
         https://arxiv.org/abs/1907.00503
 
     Args:
-        continuous_features:
-            List of continuous features names.
-            In the case of ndarray, pass a list of continuous column indices.
+        numerical_features:
+            List of numerical features names.
+            In the case of ndarray, pass a list of numerical column indices.
         max_clusters: Maximum clusters
         std_multiplier:
             Multiplies the standard deviation in the normalization.
@@ -33,14 +35,14 @@ class ModeSpecificNormalization:
         weight_concentration_prior: parameter for the GaussianMixtureModel class of sklearn
     """
     def __init__(self,
-                 continuous_features=None,
+                 numerical_features=None,
                  max_clusters=10,
                  std_multiplier=4,
                  weight_threshold=0.,
                  covariance_type="full",
                  weight_concentration_prior_type="dirichlet_process",
                  weight_concentration_prior=0.001):
-        self.continuous_features = continuous_features
+        self.numerical_features = numerical_features
         self.max_clusters = max_clusters
         self.std_multiplier = std_multiplier
         self.weight_threshold = weight_threshold
@@ -53,7 +55,7 @@ class ModeSpecificNormalization:
         #
         # 1. `Clusters indices` will be used in the transform method
         #       to create the one hot vector B(i,j) where B stands for Beta, for each value c(i,j)
-        #       where c(i,j) is the jth value in the ith continuous feature.
+        #       where c(i,j) is the jth value in the ith numerical feature.
         #       as proposed in the paper in the steps to apply mode specific normalization method on page 3-4.
         # 2. `Number of valid clusters` will be used in the transform method when one-hotting
         # 3. `means` and `standard deviations` will be used in transform
@@ -75,7 +77,7 @@ class ModeSpecificNormalization:
         relative_indices_all = []
         num_valid_clusters_all = []
         relative_index = 0
-        for feature_name in self.continuous_features:
+        for feature_name in self.numerical_features:
             if isinstance(x, pd.DataFrame):
                 feature = x[feature_name].values.reshape(-1, 1)
             elif isinstance(x, np.ndarray):
@@ -90,7 +92,7 @@ class ModeSpecificNormalization:
             # For consistency's sake, we're going to use this idea but with slight modification.
             # Reference to the official implementation: https://github.com/sdv-dev/CTGAN
             valid_clusters_indicator = self.bay_guass_mix.weights_ > self.weight_threshold
-            # Compute probability of coming from each cluster for each value in the given (continuous) feature.
+            # Compute probability of coming from each cluster for each value in the given (numerical) feature.
             clusters_probs = self.bay_guass_mix.predict_proba(feature)
             # Filter out the "invalid" clusters
             clusters_probs = clusters_probs[:, valid_clusters_indicator]
@@ -116,7 +118,7 @@ class ModeSpecificNormalization:
             self.features_meta_data[feature_name]['num_valid_clusters'] = num_valid_clusters
 
             relative_indices_all.append(relative_index)
-            # The 1 is for the alpha feature, since each continuous feature
+            # The 1 is for the alpha feature, since each numerical feature
             # gets transformed into alpha + betas where,
             # |alpha| = 1 and |betas| = num_valid_clusters
             relative_index += (1 + num_valid_clusters)
@@ -140,11 +142,11 @@ class ModeSpecificNormalization:
         Args:
             x: A pandas DataFrame
         Returns:
-            A numpy ndarray of transformed continuous data
+            A numpy ndarray of transformed numerical data
         """
-        # Contain the normalized continuous features
+        # Contain the normalized numerical features
         x_cont_normalized = []
-        for feature_name in self.continuous_features:
+        for feature_name in self.numerical_features:
             selected_clusters_indices = self.features_meta_data[feature_name]['selected_clusters_indices']
             num_valid_clusters = self.features_meta_data[feature_name]['num_valid_clusters']
             # One hot components for all values in the feature
@@ -191,7 +193,7 @@ class ModeSpecificNormalization:
             effectively reversing the transformation
         """
         x = x_normalized.copy()
-        for feature_name in self.continuous_features:
+        for feature_name in self.numerical_features:
             means = self.features_clusters_means[feature_name]
             stds = self.features_clusters_stds[feature_name]
             if isinstance(x_normalized, pd.DataFrame):
@@ -217,7 +219,7 @@ class DataTransformer:
         https://github.com/sdv-dev/CTGAN/
 
     Args:
-        continuous_features: List of continuous features names
+        numerical_features: List of numerical features names
         categorical_features: List of categorical features names
         max_clusters: Maximum Number of clusters to use in ModeSpecificNormalization
             Defaults to 10
@@ -237,7 +239,7 @@ class DataTransformer:
             Defaults to 0.001
     """
     def __init__(self,
-                 continuous_features=None,
+                 numerical_features=None,
                  categorical_features=None,
                  max_clusters=10,
                  std_multiplier=4,
@@ -246,7 +248,7 @@ class DataTransformer:
                  weight_concentration_prior_type="dirichlet_process",
                  weight_concentration_prior=0.001
                  ):
-        self.continuous_features = continuous_features if continuous_features else []
+        self.numerical_features = numerical_features if numerical_features else []
         self.categorical_features = categorical_features if categorical_features else []
         self.max_clusters = max_clusters
         self.std_multiplier = std_multiplier
@@ -256,12 +258,12 @@ class DataTransformer:
         self.weight_concentration_prior = weight_concentration_prior
 
         self.num_categorical_features = len(categorical_features)
-        self.num_continuous_features = len(continuous_features)
+        self.num_numerical_features = len(numerical_features)
 
         self.mode_specific_normalizer = None
-        if self.num_continuous_features > 0:
+        if self.num_numerical_features > 0:
             self.mode_specific_normalizer = ModeSpecificNormalization(
-                                                    continuous_features=self.continuous_features,
+                                                    numerical_features=self.numerical_features,
                                                     max_clusters=self.max_clusters,
                                                     std_multiplier=self.std_multiplier,
                                                     weight_threshold=self.weight_threshold,
@@ -272,7 +274,7 @@ class DataTransformer:
         self.categorical_values_probs = dict()
         self.one_hot_enc = OneHotEncoder()
 
-    def transform_continuous_data(self, x):
+    def transform_numerical_data(self, x):
         return self.mode_specific_normalizer.fit_transform(x)
 
     def transform_categorical_data(self, x):
@@ -326,32 +328,32 @@ class DataTransformer:
 
     def transform(self, x):
         total_transformed_features = 0
-        x_continuous, x_categorical = None, None
-        if self.num_continuous_features > 0:
-            x_continuous = self.transform_continuous_data(x[self.continuous_features])
-            self.features_meta_data["continuous"] = self.mode_specific_normalizer.features_meta_data
-            total_transformed_features += (self.features_meta_data["continuous"]["relative_indices_all"][-1] +
-                                            self.features_meta_data["continuous"]["num_valid_clusters_all"][-1])
+        x_numerical, x_categorical = None, None
+        if self.num_numerical_features > 0:
+            x_numerical = self.transform_numerical_data(x[self.numerical_features])
+            self.features_meta_data["numerical"] = self.mode_specific_normalizer.features_meta_data
+            total_transformed_features += (self.features_meta_data["numerical"]["relative_indices_all"][-1] +
+                                            self.features_meta_data["numerical"]["num_valid_clusters_all"][-1])
         if self.num_categorical_features > 0:
             x_categorical = self.transform_categorical_data(x[self.categorical_features])
             total_transformed_features += (self.features_meta_data["categorical"]["relative_indices_all"][-1] +
                                             self.features_meta_data["categorical"]["num_categories_all"][-1] + 1)
 
-        # since we concatenate the categorical features AFTER the continuous alphas and betas
+        # since we concatenate the categorical features AFTER the numerical alphas and betas
         # so we'll create an overall relative indices array where we offset the relative indices
-        # of the categorical features by the total number of continuous features components
+        # of the categorical features by the total number of numerical features components
         relative_indices_all = []
         offset = 0
-        if x_continuous is not None:
-            cont_relative_indices = self.features_meta_data["continuous"]["relative_indices_all"]
+        if x_numerical is not None:
+            cont_relative_indices = self.features_meta_data["numerical"]["relative_indices_all"]
             relative_indices_all.extend(cont_relative_indices)
-            offset = cont_relative_indices[-1] + self.features_meta_data["continuous"]["num_valid_clusters_all"][-1]
+            offset = cont_relative_indices[-1] + self.features_meta_data["numerical"]["num_valid_clusters_all"][-1]
         if x_categorical is not None:
             # +1 since the categorical relative indices start at 0
             relative_indices_all.extend(self.features_meta_data["categorical"]["relative_indices_all"] + 1 + offset)
         self.features_meta_data["relative_indices_all"] = relative_indices_all
         self.features_meta_data["total_transformed_features"] = total_transformed_features
-        x_transformed = np.concatenate([x_continuous, x_categorical.toarray()], axis=1)
+        x_transformed = np.concatenate([x_numerical, x_categorical.toarray()], axis=1)
         return x_transformed
 
     @property
@@ -365,14 +367,14 @@ class DataTransformer:
         return self.features_meta_data["categorical"]
 
     @property
-    def continuous_features_meta_data(self):
+    def numerical_features_meta_data(self):
         """
         Returns:
-            A dictionary of continuous features meta data
+            A dictionary of numerical features meta data
         """
-        if self.num_continuous_features == 0:
+        if self.num_numerical_features == 0:
             return None
-        return self.features_meta_data["continuous"]
+        return self.features_meta_data["numerical"]
 
     def reverse_transform(self, x_generated):
         """
@@ -384,23 +386,23 @@ class DataTransformer:
         Returns:
             Generated data in the original data format.
         """
-        all_features = self.continuous_features + self.categorical_features
-        if self.num_continuous_features > 0:
-            num_valid_clusters_all = self.continuous_features_meta_data["num_valid_clusters_all"]
+        all_features = self.numerical_features + self.categorical_features
+        if self.num_numerical_features > 0:
+            num_valid_clusters_all = self.numerical_features_meta_data["num_valid_clusters_all"]
         if self.num_categorical_features > 0:
             num_categories_all = self.categorical_features_meta_data["num_categories_all"]
         data = {}
         cat_index = 0       # categorical index
-        cont_index = 0      # continuous index
+        cont_index = 0      # numerical index
         for index, feature_name in enumerate(all_features):
-            # the first n features are continuous
-            if index < len(self.continuous_features):
+            # the first n features are numerical
+            if index < len(self.numerical_features):
                 alphas = x_generated[:, index]
                 betas = x_generated[:, index + 1 : index + 1 + num_valid_clusters_all[cont_index]]
                 # Recall that betas represent the one hot encoded form of the cluster number
                 cluster_indices = np.argmax(betas, axis=1)
                 # List of cluster means for a feature. contains one value per cluster
-                means = self.continuous_features_meta_data[feature_name]["clusters_means"]
+                means = self.numerical_features_meta_data[feature_name]["clusters_means"]
 
                 # Since each individual element within the cluster is associated with
                 # one of the cluster's mean. We use the `cluster_indices` to get
@@ -408,13 +410,13 @@ class DataTransformer:
                 # element in the feature
                 means = means[cluster_indices]
                 # Do the same for stds
-                stds = self.continuous_features_meta_data[feature_name]["clusters_stds"]
+                stds = self.numerical_features_meta_data[feature_name]["clusters_stds"]
                 stds = stds[cluster_indices]
                 feature = alphas * (self.std_multiplier * stds) + means
                 data[feature_name] = feature
                 cont_index += 1
             else:
-                # if the index is greater than or equal to len(continuous_features),
+                # if the index is greater than or equal to len(numerical_features),
                 # then the column at hand is categorical
                 raw_feature_parts = x_generated[:, index: index + num_categories_all[cat_index]]
                 categories = self.one_hot_enc.categories_[cat_index]
