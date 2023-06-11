@@ -435,94 +435,124 @@ class DataSampler:
         https://github.com/sdv-dev/CTGAN/
 
     Args:
-        x_original: Original Dataset - a pandas DataFrame
-        x_transformed: Dataset transformed using DataTransformer class
         categorical_features: List of categorical features names
-        categorical_features_meta_data: A dict of meta data for categorical features.
-            You can access that from the DataTransformer.categorical_features_meta_data
+        numerical_features: List of numerical features names
+        features_meta_data: Features meta data computed during data transformation.
+            You can access that from the DataTransformer.features_meta_data
     """
     def __init__(self,
-                 x_original: pd.DataFrame,
-                 x_transformed = None,
+                 batch_size=512,
                  categorical_features=None,
-                 categorical_features_meta_data=None):
-        self.x_original = x_original
-        self.x_transformed = x_transformed
-        self.categorical_features = np.array(categorical_features)
-        self.num_categorical_features = len(categorical_features)
-        self.categorical_features_meta_data = categorical_features_meta_data
+                 numerical_features=None,
+                 features_meta_data=None):
+        if categorical_features is None:
+            raise ValueError("`categorical_features` must not be None. "
+                             "CTGAN requires dataset to have atleast one categorical feature, "
+                             "if your dataset doesn't contain any categorical features, "
+                             "then you should use some other generative model. ")
 
-        self.num_samples = len(x_original)
+        if features_meta_data is None:
+            raise ValueError("`features_meta_data` must not be None. "
+                             "DataSampler requires meta data computed in the transformation step "
+                             "to sample data. "
+                             "Use DataTransformer's `get_features_meta_data` method to "
+                             "access meta data and pass it as argument to DataSampler.")
 
+        if isinstance(features_meta_data, dict):
+            # TODO convert nested dict to namedtuple or dataclasses
+            pass
+        self.batch_size = batch_size
+        self.categorical_features = categorical_features
+        self.numerical_features = numerical_features
+        self.features_meta_data = features_meta_data
+        self.categorical_features_meta_data = features_meta_data.categorical
+
+        self.num_samples = None
+        self.batch_size = None
+        self.row_idx_by_categories = list()
+
+    def get_dataset(self,
+                    x_transformed,
+                    x_original=None,
+                    for_tvae=False):
+        """
+        Args:
+                x_transformed: Dataset transformed using DataTransformer class
+                x_original: Original Dataset - a pandas DataFrame.
+                    It is used for computing categorical values' probabilities
+                    for later sampling.
+        Returns:
+            Returns a tensorflow dataset that utilizes the sample_data method
+            to create batches of data. This way user can just pass the dataset object to the fit
+            method of the model and each batch generated will satisfies all out requirements of sampling
+        """
         # adapting the approach from the official implementation
         # to sample evenly across the categories to combat imbalance
-        self.row_idx_by_categories = list()
         row_idx_raw = [x_original.groupby(feature).groups for feature in self.categorical_features]
         self.row_idx_by_categories = tf.ragged.constant([[values.to_list()
                                                           for values in feat.values()]
                                                          for feat in row_idx_raw])
 
-    def get_dataset(self, batch_size, for_tvae=False):
-        """
-        Returns a tensoflow dataset that utilizes the sample_data method
-        to create batches of data. This way user can just pass the dataset object to the fit
-        method of the model and each batch generated will satisfies all out requirements of sampling
-        """
-        self.batch_size = batch_size
         if for_tvae:
             dataset = tf.data.Dataset.from_generator(
-                self.sample_data,
-                output_signature=(tf.TensorSpec(shape=(batch_size, tf.shape(self.x_transformed)[1]), name="data_batch")
+                self.generator,
+                output_signature=(tf.TensorSpec(shape=(self.batch_size, tf.shape(x_transformed)[1]), name="data_batch")
                                   ),
                 args=(tf.constant(True),),
             )
         else:
+            total_num_categories = self.categorical_features_meta_data["total_num_categories"]
+
             dataset = tf.data.Dataset.from_generator(
                 self.generator,
-                output_signature=(tf.TensorSpec(shape=(batch_size, tf.shape(self.x_transformed)[1]), name="data_batch"),
-                                  tf.TensorSpec(shape=(batch_size,), dtype=tf.int32, name="shuffled_idx"),
-                                  tf.TensorSpec(shape=(batch_size,), dtype=tf.int32, name="random_features_indices"),
-                                  tf.TensorSpec(shape=(batch_size,), dtype=tf.int32, name="random_values_indices"))
+                output_signature=(tf.TensorSpec(shape=(self.batch_size, tf.shape(x_transformed)[1]),
+                                                name="real_samples"),
+                                  tf.TensorSpec(shape=(self.batch_size, total_num_categories),
+                                                dtype=tf.float32, name="cond_vectors_real"),
+                                  tf.TensorSpec(shape=(self.batch_size, total_num_categories),
+                                                dtype=tf.float32, name="cond_vectors"),
+                                  tf.TensorSpec(shape=(self.batch_size, len(self.categorical_features)),
+                                                dtype=tf.float32, name="mask"))
             )
         return dataset
 
-    def sample_cond_vector_for_training(self, batch_size,
-                                        random_features_indices=None,
-                                        random_values_indices=None):
+    def sample_cond_vector_for_training(self,
+                                        random_features_idx=None,
+                                        random_values_idx=None):
         # 1. Create Nd zero-filled mask vectors mi = [mi(k)] where k=1...|Di| and for i = 1,...,Nd,
         # so the ith mask vector corresponds to the ith column,
         # and each component is associated to the category of that column.
-        masks = tf.zeros([batch_size, self.num_categorical_features])
-        cond_vectors = tf.zeros([batch_size, self.categorical_features_meta_data["total_num_categories"]])
+        masks = tf.zeros([self.batch_size, len(self.categorical_features)])
+        cond_vectors = tf.zeros([self.batch_size, self.categorical_features_meta_data["total_num_categories"]])
         # 2. Randomly select a discrete column Di out of all the Nd discrete columns, with equal probability.
-        # >>> We select them in sample_data method
+        # >>> We select them in generator method
 
         random_features_relative_indices = tf.gather(self.categorical_features_meta_data["relative_indices_all"],
-                                                     indices=random_features_indices)
+                                                     indices=random_features_idx)
 
         # 3. Construct a PMF across the range of values of the column selected in 2, Di* , such that the
         # probability mass of each value is the logarithm of its frequency in that column.
-        # >>> Moved to the sample_data method, which runs before this method
-        # and populates the value of `self.random_features_indices`
+        # >>> Moved to the generator method, which calls this method
+        # and passes the value of `random_features_idx`
 
         # Choose random value index for each feature
-        # >>> Moved to the sample_data method, which runs before this method
-        # and populates the value of `self.random_values_indices`
+        # >>> Moved to the generator method, which calls this method
+        # and passes the value of `random_values_idx`
 
         # Offset this index by relative index of the feature that it belongs to.
         # because the final cond vector is the concatenation of all features and
         # is just one vector that has the length equal to total_num_categories
-        random_values_indices_offsetted = random_values_indices + tf.cast(random_features_relative_indices,
-                                                                          dtype=tf.int32)
+        random_values_idx_offsetted = random_values_idx + tf.cast(random_features_relative_indices,
+                                                                  dtype=tf.int32)
         # Indices are required by the tensor_scatter_nd_update method to be of type int32 and NOT int64
-        # random_values_indices_offsetted = tf.cast(random_values_indices_offsetted, dtype=tf.int32)
-        # indices_cond = list(zip(tf.range(batch_size), random_values_indices_offsetted))
-        indices_cond = tf.stack([tf.range(batch_size), random_values_indices_offsetted], axis=1)
-        ones = tf.ones(batch_size)
+        # random_values_idx_offsetted = tf.cast(random_values_idx_offsetted, dtype=tf.int32)
+        # indices_cond = list(zip(tf.range(batch_size), random_values_idx_offsetted))
+        indices_cond = tf.stack([tf.range(self.batch_size), random_values_idx_offsetted], axis=1)
+        ones = tf.ones(self.batch_size)
         cond_vectors = tf.tensor_scatter_nd_update(cond_vectors, indices_cond, ones)
-        # indices_mask = list(zip(tf.range(batch_size), tf.cast(random_features_indices, dtype=tf.int32)))
-        indices_mask = tf.stack([tf.range(batch_size), random_features_indices], axis=1)
-        masks = tf.tensor_scatter_nd_update(masks, indices_mask, tf.ones(batch_size))
+        # indices_mask = list(zip(tf.range(batch_size), tf.cast(random_features_idx, dtype=tf.int32)))
+        indices_mask = tf.stack([tf.range(self.batch_size), random_features_idx], axis=1)
+        masks = tf.tensor_scatter_nd_update(masks, indices_mask, tf.ones(self.batch_size))
         return cond_vectors, masks
 
     def sample_cond_vector_for_generation(self, batch_size):
@@ -531,35 +561,33 @@ class DataSampler:
         we sample indices purely randomly instead of based on the calculated
         probability as proposed in the paper.
         """
-        if self.num_categorical_features == 0:
-            return None
         num_categories_all = self.categorical_features_meta_data["num_categories_all"]
         cond_vectors = tf.zeros((batch_size, self.categorical_features_meta_data["total_num_categories"]))
-        random_features_indices = tf.random.uniform(shape=(batch_size,),
-                                                    minval=0, maxval=self.num_categorical_features,
-                                                    dtype=tf.int32)
+        random_features_idx = tf.random.uniform(shape=(batch_size,),
+                                                minval=0, maxval=len(self.categorical_features),
+                                                dtype=tf.int32)
 
         # For each randomly picked feature, we get it's corresponding num_categories
         random_num_categories_all = tf.gather(num_categories_all,
-                                              indices=random_features_indices)
+                                              indices=random_features_idx)
         # Then we select one category index from a feature using a range of 0 — num_categories
-        random_values_indices = [tf.squeeze(tf.random.uniform(shape=(1,),
-                                    minval=0, maxval=num_categories, dtype=tf.int32))
-                                 for num_categories in random_num_categories_all]
-        random_values_indices = tf.stack(random_values_indices)
+        random_values_idx = [tf.squeeze(tf.random.uniform(shape=(1,),
+                                                          minval=0, maxval=num_categories, dtype=tf.int32))
+                             for num_categories in random_num_categories_all]
+        random_values_idx = tf.stack(random_values_idx)
         # Offset this index by relative index of the feature that it belongs to.
         # because the final cond vector is the concatenation of all features and
         # is just one vector that has the length equal to total_num_categories
         random_features_relative_indices = tf.gather(self.categorical_features_meta_data["relative_indices_all"],
-                                                     indices=random_features_indices)
-        random_values_indices_offsetted =  random_values_indices + tf.cast(random_features_relative_indices, dtype=tf.int32)
-        # random_values_indices_offsetted = tf.cast(random_values_indices_offsetted, dtype=tf.int32)
-        indices_cond = list(zip(tf.range(batch_size), random_values_indices_offsetted))
+                                                     indices=random_features_idx)
+        random_values_idx_offsetted =  random_values_idx + tf.cast(random_features_relative_indices, dtype=tf.int32)
+        # random_values_idx_offsetted = tf.cast(random_values_idx_offsetted, dtype=tf.int32)
+        indices_cond = list(zip(tf.range(batch_size), random_values_idx_offsetted))
         ones = tf.ones(batch_size)
         cond_vectors = tf.tensor_scatter_nd_update(cond_vectors, indices_cond, ones)
         return cond_vectors
 
-    def generator(self, for_tvae=False):
+    def generator(self, x_transformed, for_tvae=False):
         """
         Used to create a tensorflow dataset.
         Returns:
@@ -572,30 +600,30 @@ class DataSampler:
         # and pass them as argument to the sample cond_vec but for now let's just work with it.
         num_steps_per_epoch = self.num_samples // self.batch_size
         for _ in range(num_steps_per_epoch):
-            random_features_indices = tf.random.uniform([self.batch_size], minval=0,
-                                                        maxval=self.num_categorical_features,
-                                                        dtype=tf.int64)
+            random_features_idx = tf.random.uniform([self.batch_size], minval=0,
+                                                    maxval=len(self.categorical_features),
+                                                    dtype=tf.int64)
             # NOTE: We've precomputed the probabilities in the DataTransformer class for each feature already
             # to speed things up.
             random_features_categories_probs = tf.gather(tf.ragged.constant(self.categorical_features_meta_data["categories_probs_all"]),
-                                                            indices=random_features_indices)
-            random_values_indices = [tf_random_choice(np.arange(len(feature_probs)),
-                                                      n_samples=1,
-                                                      p=feature_probs)
-                                     for feature_probs in random_features_categories_probs]
-            random_values_indices = tf.squeeze(random_values_indices)
+                                                         indices=random_features_idx)
+            random_values_idx = [tf_random_choice(np.arange(len(feature_probs)),
+                                                  n_samples=1,
+                                                  p=feature_probs)
+                                 for feature_probs in random_features_categories_probs]
+            random_values_idx = tf.squeeze(random_values_idx)
             # the official implementation uses actual indices during the sample_cond_vector method
             # but uses the shuffled version in sampling data, so we're gonna do just that.
             shuffled_idx = tf.random.shuffle(tf.range(self.batch_size))
-            features_idx = random_features_indices
-            values_idx = random_values_indices
-            if shuffled_idx is not None:
-                features_idx = tf.gather(features_idx, indices=shuffled_idx)
-                values_idx = tf.gather(values_idx, indices=shuffled_idx)
+            # features_idx = random_features_idx
+            # values_idx = random_values_idx
+            shuffled_features_idx = tf.gather(random_features_idx, indices=shuffled_idx)
+            shuffled_values_idx = tf.gather(random_values_idx, indices=shuffled_idx)
             sample_idx = []
-            for feat_id, val_id in zip(features_idx, values_idx):
+            # TODO make it more efficient -- maybe replace with gather or gathernd or something
+            for feat_id, val_id in zip(shuffled_features_idx, shuffled_values_idx):
                 s_id = tf_random_choice(self.row_idx_by_categories[tf.squeeze(feat_id)][tf.squeeze(val_id)],
-                                                   n_samples=1)
+                                        n_samples=1)
                 sample_idx.append(tf.squeeze(s_id))
 
             # IN THE CASE OF CTGAN, we return all the extra things
@@ -603,7 +631,19 @@ class DataSampler:
                 # we also return shuffled_idx because it will be required to shuffle the conditional vector
                 # in the training loop as we want to keep the shuffling consistent as the batch of
                 # transformed data and cond vector must have one to one feature correspondence.
-                yield self.x_transformed[sample_idx], shuffled_idx, random_features_indices, random_values_indices
+                # yield x_transformed[sample_idx], shuffled_idx, random_features_idx, random_values_idx
+
+                # `cond_vectors` will be first concatenated with the noise
+                # vector `z` to create generator input and then will be concatenated
+                # with the generated samples to serve as input for discriminator
+                cond_vectors, mask = self.sample_cond_vector_for_training(random_features_idx=random_features_idx,
+                                                                          random_values_idx=random_values_idx)
+                # `cond_vectors_real` will be concatenated with the real_samples
+                # and passed to the discriminator
+                cond_vectors_real = tf.gather(cond_vectors, indices=shuffled_idx)
+                real_samples = x_transformed[sample_idx]
+                yield real_samples, cond_vectors_real, cond_vectors, mask
+
             # otherwise, i.e. in the case of TVAE, we just return the batch of data
             else:
-                yield self.x_transformed[sample_idx]
+                yield x_transformed[sample_idx]

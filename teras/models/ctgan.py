@@ -262,24 +262,25 @@ class CTGAN(keras.Model):
         return generated_samples
 
     def train_step(self, data):
-        real_samples, shuffled_idx, random_features_indices, random_values_indices = data
+        # real_samples, shuffled_idx, random_features_indices, random_values_indices = data
+        real_samples, cond_vectors_real, cond_vectors, mask = data
         self.batch_size = tf.shape(real_samples)[0]
 
         for _ in range(self.num_discriminator_steps):
             z = tf.random.normal(shape=[self.batch_size, self.latent_dim])
-            cond_vector, mask = self.data_sampler.sample_cond_vector_for_training(self.batch_size,
-                                                                                  random_features_indices=random_features_indices,
-                                                                                  random_values_indices=random_values_indices)
-            input_gen = tf.concat([z, cond_vector], axis=1)
+            # cond_vector, mask = self.data_sampler.sample_cond_vector_for_training(self.batch_size,
+            #                                                                       random_features_indices=random_features_indices,
+            #                                                                       random_values_indices=random_values_indices)
+            input_gen = tf.concat([z, cond_vectors], axis=1)
             generated_samples = self.generator(input_gen, training=False)
-            cond_vector_2 = tf.gather(cond_vector, indices=tf.cast(shuffled_idx, tf.int32))
-            generated_samples_cat = tf.concat([generated_samples, cond_vector], axis=1)
-            real_samples_cat = tf.concat([real_samples, cond_vector_2], axis=1)
+            # cond_vector_2 = tf.gather(cond_vector, indices=tf.cast(shuffled_idx, tf.int32))
+            generated_samples = tf.concat([generated_samples, cond_vectors], axis=1)
+            real_samples = tf.concat([real_samples, cond_vectors_real], axis=1)
 
             with tf.GradientTape(persistent=True) as tape:
-                y_generated = self.discriminator(generated_samples_cat)
-                y_real = self.discriminator(real_samples_cat)
-                grad_pen = self.discriminator.gradient_penalty(real_samples_cat, generated_samples_cat)
+                y_generated = self.discriminator(generated_samples)
+                y_real = self.discriminator(real_samples)
+                grad_pen = self.discriminator.gradient_penalty(real_samples, generated_samples)
                 loss_disc = self.discriminator_loss(y_real, y_generated)
             gradients_pen = tape.gradient(grad_pen, self.discriminator.trainable_weights)
             gradients_loss = tape.gradient(loss_disc, self.discriminator.trainable_weights)
@@ -287,22 +288,22 @@ class CTGAN(keras.Model):
             self.discriminator_optimizer.apply_gradients(zip(gradients_loss, self.discriminator.trainable_weights))
 
         z = tf.random.normal(shape=[self.batch_size, self.latent_dim])
-        cond_vector, mask = self.data_sampler.sample_cond_vector_for_training(self.batch_size,
-                                                                              random_features_indices=random_features_indices,
-                                                                              random_values_indices=random_values_indices)
+        # cond_vector, mask = self.data_sampler.sample_cond_vector_for_training(self.batch_size,
+        #                                                                       random_features_indices=random_features_indices,
+        #                                                                       random_values_indices=random_values_indices)
         # Practically speaking, we don't really need the partial function,
         # but it makes things look more neat
         # generator_partial_loss_fn = partial(generator_loss, mask=mask, features_meta_data=self.features_meta_data)
-        input_gen = tf.concat([z, cond_vector], axis=1)
+        input_gen = tf.concat([z, cond_vectors], axis=1)
         with tf.GradientTape() as tape:
-            tape.watch(cond_vector)
+            tape.watch(cond_vectors)
             tape.watch(mask)
             # generated_samples, y_generated = self(input_gen, cond_vector=cond_vector)
             generated_samples = self(input_gen)
-            generated_samples = tf.concat([generated_samples, cond_vector], axis=1)
+            generated_samples = tf.concat([generated_samples, cond_vectors], axis=1)
             y_generated = self.discriminator(generated_samples, training=False)
             loss_gen = self.generator_loss(generated_samples, y_generated,
-                                           cond_vector=cond_vector, mask=mask,
+                                           cond_vector=cond_vectors, mask=mask,
                                            features_meta_data=self.features_meta_data)
             # dummy_targets = tf.zeros(shape=(self.batch_size,))
             # loss_gen_dummy = self.generator.compiled_loss(dummy_targets, loss_gen)
