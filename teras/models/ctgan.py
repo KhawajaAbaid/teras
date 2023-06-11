@@ -257,11 +257,9 @@ class CTGAN(keras.Model):
         self.generator_loss = generator_loss
         self.discriminator_loss = discriminator_loss
 
-    def call(self, inputs, cond_vector=None):
+    def call(self, inputs):
         generated_samples = self.generator(inputs)
-        generated_samples = tf.concat([generated_samples, cond_vector], axis=1)
-        y_generated = self.discriminator(generated_samples, training=False)
-        return generated_samples, y_generated
+        return generated_samples
 
     def train_step(self, data):
         real_samples, shuffled_idx, random_features_indices, random_values_indices = data
@@ -299,7 +297,10 @@ class CTGAN(keras.Model):
         with tf.GradientTape() as tape:
             tape.watch(cond_vector)
             tape.watch(mask)
-            generated_samples, y_generated = self(input_gen, cond_vector=cond_vector)
+            # generated_samples, y_generated = self(input_gen, cond_vector=cond_vector)
+            generated_samples = self(input_gen)
+            generated_samples = tf.concat([generated_samples, cond_vector], axis=1)
+            y_generated = self.discriminator(generated_samples, training=False)
             loss_gen = self.generator_loss(generated_samples, y_generated,
                                            cond_vector=cond_vector, mask=mask,
                                            features_meta_data=self.features_meta_data)
