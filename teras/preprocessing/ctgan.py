@@ -478,7 +478,7 @@ class DataSampler:
             )
         else:
             dataset = tf.data.Dataset.from_generator(
-                self.sample_data,
+                self.generator,
                 output_signature=(tf.TensorSpec(shape=(batch_size, tf.shape(self.x_transformed)[1]), name="data_batch"),
                                   tf.TensorSpec(shape=(batch_size,), dtype=tf.int32, name="shuffled_idx"),
                                   tf.TensorSpec(shape=(batch_size,), dtype=tf.int32, name="random_features_indices"),
@@ -559,7 +559,7 @@ class DataSampler:
         cond_vectors = tf.tensor_scatter_nd_update(cond_vectors, indices_cond, ones)
         return cond_vectors
 
-    def sample_data(self, for_tvae=False):
+    def generator(self, for_tvae=False):
         """
         Used to create a tensorflow dataset.
         Returns:
