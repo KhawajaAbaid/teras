@@ -5,18 +5,22 @@ from tensorflow.keras import layers
 from tensorflow.keras import models
 from tensorflow.keras import optimizers
 from teras.losses.gain import generator_loss, discriminator_loss
-from teras.models.base.gan import BaseGenerator, BaseDiscriminator
+from teras.models.base.gan import Generator, Discriminator
 from teras.layers.gain import (GeneratorHiddenLayer,
                                GeneratorOutputLayer,
                                DiscriminatorHiddenLayer,
                                DiscriminatorOutputLayer)
+
+from teras.preprocessing.gain import DataTransformer, DataSampler
+
 from typing import List, Tuple, Union
 
 
 LIST_OR_TUPLE = Union[List[int], Tuple[int]]
 
 
-class Generator(BaseGenerator):
+
+class Generator_():
     """
     Generator model for the GAIN architecture proposed by
     Jinsung Yoon et al. in the paper
@@ -60,14 +64,17 @@ class Generator(BaseGenerator):
         ```
     """
     def __init__(self,
-                 units_hidden: LIST_OR_TUPLE = None,
-                 hidden_layer=GeneratorHiddenLayer,
-                 output_layer=GeneratorOutputLayer,
+                 data_dim: int,
+                 hidden_block: keras.layers.Layer = None,
+                 output_layer: keras.layers.Layer = None,
                  **kwargs):
-        super().__init__(units_hidden=units_hidden,
-                         hidden_layer=hidden_layer,
+        super().__init__(hidden_block=hidden_block,
                          output_layer=output_layer,
                          **kwargs)
+        self.hidden_block = hidden_block
+        self.output_layer = output_layer
+        if self.hidden_block is None:
+
 
     def build(self, input_shape):
         # inputs is the concatenation of `mask` and `original data`
@@ -100,7 +107,7 @@ class Generator(BaseGenerator):
         return outputs
 
 
-class Discriminator(BaseDiscriminator):
+class Discriminator_():
     """
     Discriminator model for the GAIN architecture proposed by
     Jinsung Yoon et al. in the paper
@@ -286,20 +293,17 @@ class GAIN(keras.Model):
                  generator: keras.Model = None,
                  discriminator: keras.Model = None,
                  num_discriminator_steps: int = 1,
+                 data_dim: int = None,
                  hint_rate: float = 0.9,
                  alpha: float = 100,
                  **kwargs):
         super().__init__(**kwargs)
         self.generator = generator
         self.discriminator = discriminator
+
         self.num_discriminator_steps = num_discriminator_steps
         self.hint_rate = hint_rate
         self.alpha = alpha
-
-        if self.generator is None:
-            self.generator = Generator()
-        if self.discriminator is None:
-            self.discriminator = Discriminator()
 
         self.z_sampler = tfp.distributions.Uniform(low=0.,
                                                    high=0.01,

@@ -165,6 +165,11 @@ class DataSampler:
         self.batch_size = batch_size
         self.shuffle = shuffle
         self.random_seed = random_seed
+        self.num_samples = None
+        self.data_dim = None
+
+        if self.random_seed:
+            np.random.seed(self.random_seed)
 
     def get_dataset(self, x_transformed):
         """
@@ -177,29 +182,20 @@ class DataSampler:
             be readily passed to the GAIN fit method without requiring
             any further processing.
         """
-        num_samples, dim = x_transformed.shape
-        generator_idx = np.arange(num_samples)
-        discriminator_idx = np.arange(num_samples)
-        if self.shuffle:
-            if self.random_seed:
-                np.random.seed(self.random_seed)
-            # since we need to draw a batch of data separately for generator and discriminator
-            # so we generate shuffled idx for separately for generator and discriminator
-            gen_idx = np.random.permutation(generator_idx)
-            disc_idx = np.random.permutation(discriminator_idx)
+        self.num_samples, self.data_dim = x_transformed.shape
 
         dataset = (tf.data.Dataset
                    .from_generator(self.generator,
                                    output_signature=(
-                                       tf.TensorSpec(shape=(None, dim), dtype=tf.float32, name="x_generator"),
-                                       tf.TensorSpec(shape=(None, dim), dtype=tf.float32, name="x_discriminator"),
+                                       tf.TensorSpec(shape=(None, self.data_dim), dtype=tf.float32, name="x_generator"),
+                                       tf.TensorSpec(shape=(None, self.data_dim), dtype=tf.float32, name="x_discriminator"),
                                         ),
-                                   args=[x_transformed, generator_idx, discriminator_idx]
+                                   args=[x_transformed]
                                    )
                    )
         return dataset
 
-    def generator(self, x, generator_idx, discriminator_idx):
+    def generator(self, x):
         """
         Generator function that is used to create tensorflow dataset.
         It applies any manipulations that are required and then generates
@@ -207,15 +203,20 @@ class DataSampler:
 
         Args:
             x: Dataset to be converted into tensorflow dataset.
-            generator_idx: A numpy array of indices for
-                generating data batches for generator.
-            discriminator_idx: A numpy array of indices for
-                generating data batches for discriminator.
         """
-        num_samples, dim = x.shape
-        steps_per_epoch = num_samples // self.batch_size
-        is_n_divisible_by_batch_size = num_samples % self.batch_size == 0
+        steps_per_epoch = self.num_samples // self.batch_size
+        is_n_divisible_by_batch_size = self.num_samples % self.batch_size == 0
         steps_per_epoch += 1 if not is_n_divisible_by_batch_size else 0
+
+        # since we need to draw a batch of data separately for generator and discriminator
+        # so we generate idx separately for generator and discriminator
+        # and shuffle them if necessary
+        generator_idx = np.arange(self.num_samples)
+        discriminator_idx = np.arange(self.num_samples)
+        if self.shuffle:
+            generator_idx = np.random.permutation(generator_idx)
+            discriminator_idx = np.random.permutation(discriminator_idx)
+
         from_index = 0
         to_index = self.batch_size
         for i in range(steps_per_epoch):
