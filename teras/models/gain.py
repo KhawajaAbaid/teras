@@ -5,13 +5,8 @@ from tensorflow.keras import layers
 from tensorflow.keras import models
 from tensorflow.keras import optimizers
 from teras.losses.gain import generator_loss, discriminator_loss
-from teras.models.base.gan import Generator, Discriminator
-from teras.layers.gain import (GeneratorHiddenLayer,
-                               GeneratorOutputLayer,
-                               DiscriminatorHiddenLayer,
-                               DiscriminatorOutputLayer)
-
 from teras.preprocessing.gain import DataTransformer, DataSampler
+from teras.layers.base.gan import HiddenBlock
 
 from typing import List, Tuple, Union
 
@@ -19,8 +14,7 @@ from typing import List, Tuple, Union
 LIST_OR_TUPLE = Union[List[int], Tuple[int]]
 
 
-
-class Generator_():
+class Generator(keras.Model):
     """
     Generator model for the GAIN architecture proposed by
     Jinsung Yoon et al. in the paper
@@ -30,31 +24,25 @@ class Generator_():
         https://arxiv.org/abs/1806.02920
 
     Args:
-        units_hidden: `list` | `tuple`, A list or tuple of units.
-            For each element, a new hidden layer will be added,
-            with units equal to that element value.
-            In official implementation, for each layer,
-            `units` is equal to the data dimensions,
-            and the number of hidden layers is 2.
-            So by default we pass [data_dim, data_dim].
-        hidden_layer: Either `layers.Dense` class
-            or a `subclass of layers.Dense`
-            You must pass the class and NOT an instance of the class.
-            Used to construct the hidden block in the Generator.
-            If units_hidden are passed but hidden_layer is None,
-            then a `Dense` layer with `relu` activation is used.
-        output_layer: Either `layers.Dense` class
-            or a `subclass of layers.Dense`
-            You must pass the class and NOT an instance of the class.
-            Used to construct the hidden block in the Generator.
-            If `data_dim` is passed but `output_layer` is `None`,
-            then a `Dense` layer with no activation is used.
+        data_dim: `int`, dimensionality of the original dataset.
+            It will be the dimensionality of the output produced by the
+            generator as well as by default, the hidden layers are of this
+            same dimension.
+        hidden_block: `layers.Layer` | `models.Model`, it serves as
+            the hidden block of the generator model.
+            If `None`, a default hidden block is constructed and used,
+            where the dimensionality of hidden layers is same as `data_dim`.
+        output_layer: `layers.Layer`, serves as the output layer for the
+            generator.
+            The dimensionality of the output_layer should be equal to `data_dim`.
+            If `None`, a output layer of `data_dim` dimensionality with "sigmoid"
+            activation is used, as proposed by the GAIN architecture.
 
     Example:
         ```python
-
-        # Instantiate Generator with default settings
-        generator = Generator()
+        data_dim = 12
+        # Instantiate Generator.
+        generator = Generator(data_dim=data_dim)
 
         # Sample noise to generate samples from
         z = tf.random.normal([512, 18])
@@ -68,83 +56,67 @@ class Generator_():
                  hidden_block: keras.layers.Layer = None,
                  output_layer: keras.layers.Layer = None,
                  **kwargs):
-        super().__init__(hidden_block=hidden_block,
-                         output_layer=output_layer,
-                         **kwargs)
+        super().__init__(**kwargs)
+        self.data_dim = data_dim
         self.hidden_block = hidden_block
         self.output_layer = output_layer
+
         if self.hidden_block is None:
+            units_values = [self.data_dim] * 2
+            self.hidden_block = HiddenBlock(units_values=units_values,
+                                            activation="relu",
+                                            kernel_initializer="glorot_normal",
+                                            name="generator_hidden_block")
 
-
-    def build(self, input_shape):
-        # inputs is the concatenation of `mask` and `original data`
-        # and `mask` has the same dimensions as `data`, so we halve the
-        # `input_shape[1]` here to get the `original data` dimensions
-        data_dim = input_shape[1] // 2
-        if self.units_hidden is None:
-            self.units_hidden = [data_dim] * 2
-
-        self.hidden_block = models.Sequential(name="generator_hidden_block")
-        for units in self.units_hidden:
-            if self.hidden_layer is None:
-                self.hidden_block.add(
-                    layers.Dense(units,
-                                 activation="relu")
-                )
-            else:
-                self.hidden_block.add(
-                    self.hidden_layer(units)
-                )
         if self.output_layer is None:
-            self.dense_out = layers.Dense(data_dim)
-        else:
-            self.dense_out = self.output_layer(data_dim)
+            self.output_layer = layers.Dense(data_dim,
+                                             activation="sigmoid")
 
     def call(self, inputs):
-        # inputs is the concatenation of mask and original data
+        # inputs is the concatenation of `mask` and `original data`
+        # where `mask` has the same dimensions as data
+        # so the inputs received are 2x the dimensions of `original data`
         outputs = self.hidden_block(inputs)
         outputs = self.dense_out(outputs)
         return outputs
 
 
-class Discriminator_():
+class Discriminator(keras.Model):
     """
     Discriminator model for the GAIN architecture proposed by
     Jinsung Yoon et al. in the paper
     GAIN: Missing Data Imputation using Generative Adversarial Nets.
 
+    Note that the Generator and Discriminator share the exact same
+    architecture by default. They differ in the inputs they receive
+    and the loss functions.
+
     Reference(s):
         https://arxiv.org/abs/1806.02920
 
     Args:
-        units_hidden: `list` | `tuple`, A list of units.
-            For each element, a new hidden layer will be added,
-            with units equal to that element value.
-            In official implementation, for each layer,
-            `units` is equal to the data dimensions,
-            and the number of hidden layers is 2.
-            So by default we pass [data_dim, data_dim].
-        hidden_layer: Either `layers.Dense` class
-            or a `subclass of layers.Dense`
-            You must pass the class and NOT instance of the class.
-            Used to construct the hidden block in the Generator.
-            If units_hidden are passed but hidden_layer is None,
-            then a `Dense` layer with `relu` activation is used.
-        output_layer: Either `layers.Dense` class
-            or a `subclass of layers.Dense`
-            You must pass the class and NOT instance of the class.
-            If `None` then a `Dense` layer with no activation is used.
-            The dimensionality of outputs is equal to the original
-            data dimensionality `data_dim` which is computed from inputs.
+        data_dim: `int`, dimensionality of the original dataset.
+            It will be the dimensionality of the output produced by the
+            generator as well as by default, the hidden layers are of this
+            same dimension.
+        hidden_block: `layers.Layer` | `models.Model`, it serves as
+            the hidden block of the generator model.
+            If `None`, a default hidden block is constructed and used,
+            where the dimensionality of hidden layers is same as `data_dim`.
+        output_layer: `layers.Layer`, serves as the output layer for the
+            generator.
+            The dimensionality of the output_layer should be equal to `data_dim`.
+            If `None`, a output layer of `data_dim` dimensionality with "sigmoid"
+            activation is used, as proposed by the GAIN architecture.
 
     Example:
         ```python
+        data_dim = 12
+        # Instantiate Generator
+        generator = Generator(data_dim)
 
-        # Instantiate Generator with default settings
-        generator = Generator()
-
-        # Instantiate Discriminator with default settings
-        discriminator = Discriminator()
+        # Instantiate Discriminator
+        discriminator = Discriminator(data_dim)
 
         # Sample noise to generate samples from
         z = tf.random.normal([512, 18])
@@ -157,45 +129,33 @@ class Discriminator_():
         ```
     """
     def __init__(self,
-                 units_hidden: LIST_OR_TUPLE = None,
-                 hidden_layer: keras.layers.Layer = DiscriminatorHiddenLayer,
-                 output_layer: keras.layers.Layer = DiscriminatorOutputLayer,
+                 data_dim: int,
+                 hidden_block: keras.layers.Layer = None,
+                 output_layer: keras.layers.Layer = None,
                  **kwargs):
-        super().__init__(units_hidden=units_hidden,
-                         hidden_layer=hidden_layer,
-                         output_layer=output_layer,
-                         **kwargs)
+        super().__init__(**kwargs)
+        self.data_dim = data_dim
+        self.hidden_block = hidden_block
+        self.output_layer = output_layer
 
-        self.hidden_block = models.Sequential(name="discriminator_hidden_block")
+        if self.hidden_block is None:
+            units_values = [self.data_dim] * 2
+            self.hidden_block = HiddenBlock(units_values=units_values,
+                                            activation="relu",
+                                            kernel_initializer="glorot_normal",
+                                            name="discriminator_hidden_blcok")
 
-    def build(self, input_shape):
-        # inputs is the concatenation of `hint` and original data
-        # and `hint` has the same dimensions as data, so we halve the
-        # input_shape[1] here to get the original data dimensions
-        data_dim = input_shape[1] // 2
-        if self.units_hidden is None:
-            self.units_hidden = [data_dim] * 2
-
-        self.hidden_block = models.Sequential(name="generator_hidden_block")
-        for units in self.units_hidden:
-            if self.hidden_layer is None:
-                self.hidden_block.add(
-                    layers.Dense(units,
-                                 activation="relu")
-                )
-            else:
-                self.hidden_block.add(
-                    self.hidden_layer(units)
-                )
         if self.output_layer is None:
-            self.out = layers.Dense(data_dim)
-        else:
-            self.out = self.output_layer(data_dim)
+            self.output_layer = layers.Dense(data_dim,
+                                             activation="sigmoid")
 
     def call(self, inputs):
-        # inputs is the concatenation of `hint` and `original data`
+        # inputs is the concatenation of `hint` and manipulated
+        # Generator output (i.e. generated samples).
+        # `hint` has the same dimensions as data
+        # so the inputs received are 2x the dimensions of original data
         outputs = self.hidden_block(inputs)
-        outputs = self.out(outputs)
+        outputs = self.dense_out(outputs)
         return outputs
 
 
@@ -293,17 +253,27 @@ class GAIN(keras.Model):
                  generator: keras.Model = None,
                  discriminator: keras.Model = None,
                  num_discriminator_steps: int = 1,
-                 data_dim: int = None,
+                 data_transformer: DataTransformer = None,
+                 data_sampler: DataSampler = None,
                  hint_rate: float = 0.9,
                  alpha: float = 100,
                  **kwargs):
         super().__init__(**kwargs)
         self.generator = generator
         self.discriminator = discriminator
-
         self.num_discriminator_steps = num_discriminator_steps
+        self.data_transformer = data_transformer
+        self.data_sampler = data_sampler
         self.hint_rate = hint_rate
         self.alpha = alpha
+
+        self.data_dim = self.data_sampler.data_dim
+
+        if self.generator is None:
+            self.generator = Generator(data_dim=self.data_dim)
+
+        if self.discriminator is None:
+            self.discriminator = Discriminator(data_dim=self.data_dim)
 
         self.z_sampler = tfp.distributions.Uniform(low=0.,
                                                    high=0.01,
