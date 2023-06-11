@@ -63,9 +63,9 @@ class ModeSpecificNormalization:
         self.features_meta_data = {}
 
         self.bay_guass_mix = BayesianGaussianMixture(n_components=self.max_clusters,
-                                                      covariance_type=self.covariance_type,
-                                                      weight_concentration_prior_type=self.weight_concentration_prior_type,
-                                                      weight_concentration_prior=self.weight_concentration_prior)
+                                                     covariance_type=self.covariance_type,
+                                                     weight_concentration_prior_type=self.weight_concentration_prior_type,
+                                                     weight_concentration_prior=self.weight_concentration_prior)
 
         self.fitted = False
 
@@ -107,9 +107,9 @@ class ModeSpecificNormalization:
                 return np.random.choice(np.arange(len(probs_array)), p=probs_array)
 
             selected_clusters_indices = np.apply_along_axis(
-                                                    random_choice,
-                                                    axis=1,
-                                                    arr=clusters_probs)
+                random_choice,
+                axis=1,
+                arr=clusters_probs)
 
             # To create one-hot component, we'll store the selected clusters indices
             # and the number of valid clusters
@@ -263,13 +263,13 @@ class DataTransformer:
         self.mode_specific_normalizer = None
         if self.num_numerical_features > 0:
             self.mode_specific_normalizer = ModeSpecificNormalization(
-                                                    numerical_features=self.numerical_features,
-                                                    max_clusters=self.max_clusters,
-                                                    std_multiplier=self.std_multiplier,
-                                                    weight_threshold=self.weight_threshold,
-                                                    covariance_type=self.covariance_type,
-                                                    weight_concentration_prior_type=self.weight_concentration_prior_type,
-                                                    weight_concentration_prior=self.weight_concentration_prior)
+                numerical_features=self.numerical_features,
+                max_clusters=self.max_clusters,
+                std_multiplier=self.std_multiplier,
+                weight_threshold=self.weight_threshold,
+                covariance_type=self.covariance_type,
+                weight_concentration_prior_type=self.weight_concentration_prior_type,
+                weight_concentration_prior=self.weight_concentration_prior)
         self.meta_data = dict()
         self.categorical_values_probs = dict()
         self.one_hot_enc = OneHotEncoder()
@@ -333,11 +333,11 @@ class DataTransformer:
             x_numerical = self.transform_numerical_data(x[self.numerical_features])
             self.meta_data["numerical"] = self.mode_specific_normalizer.meta_data
             total_transformed_features += (self.meta_data["numerical"]["relative_indices_all"][-1] +
-                                            self.meta_data["numerical"]["num_valid_clusters_all"][-1])
+                                           self.meta_data["numerical"]["num_valid_clusters_all"][-1])
         if self.num_categorical_features > 0:
             x_categorical = self.transform_categorical_data(x[self.categorical_features])
             total_transformed_features += (self.meta_data["categorical"]["relative_indices_all"][-1] +
-                                            self.meta_data["categorical"]["num_categories_all"][-1] + 1)
+                                           self.meta_data["categorical"]["num_categories_all"][-1] + 1)
 
         # since we concatenate the categorical features AFTER the numerical alphas and betas
         # so we'll create an overall relative indices array where we offset the relative indices
