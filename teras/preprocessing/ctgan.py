@@ -389,9 +389,9 @@ class DataTransformer:
         """
         all_features = self.numerical_features + self.categorical_features
         if self.num_numerical_features > 0:
-            num_valid_clusters_all = self.numerical_meta_data["num_valid_clusters_all"]
+            num_valid_clusters_all = self.meta_data["numerical"]["num_valid_clusters_all"]
         if self.num_categorical_features > 0:
-            num_categories_all = self.categorical_meta_data["num_categories_all"]
+            num_categories_all = self.meta_data["categorical"]["num_categories_all"]
         data = {}
         cat_index = 0       # categorical index
         cont_index = 0      # numerical index
@@ -403,7 +403,7 @@ class DataTransformer:
                 # Recall that betas represent the one hot encoded form of the cluster number
                 cluster_indices = np.argmax(betas, axis=1)
                 # List of cluster means for a feature. contains one value per cluster
-                means = self.numerical_meta_data[feature_name]["clusters_means"]
+                means = self.meta_data["numerical"][feature_name]["clusters_means"]
 
                 # Since each individual element within the cluster is associated with
                 # one of the cluster's mean. We use the `cluster_indices` to get
@@ -411,7 +411,7 @@ class DataTransformer:
                 # element in the feature
                 means = means[cluster_indices]
                 # Do the same for stds
-                stds = self.numerical_meta_data[feature_name]["clusters_stds"]
+                stds = self.meta_data["numerical"][feature_name]["clusters_stds"]
                 stds = stds[cluster_indices]
                 feature = alphas * (self.std_multiplier * stds) + means
                 data[feature_name] = feature
