@@ -440,35 +440,31 @@ class DataSampler:
     Args:
         categorical_features: List of categorical features names
         numerical_features: List of numerical features names
-        features_meta_data: Features meta data computed during data transformation.
+        meta_data: Named tuple of features meta data computed during data transformation.
             You can access that from the DataTransformer.features_meta_data
     """
     def __init__(self,
                  batch_size=512,
                  categorical_features=None,
                  numerical_features=None,
-                 features_meta_data=None):
+                 meta_data=None):
         if categorical_features is None:
             raise ValueError("`categorical_features` must not be None. "
                              "CTGAN requires dataset to have atleast one categorical feature, "
                              "if your dataset doesn't contain any categorical features, "
                              "then you should use some other generative model. ")
 
-        if features_meta_data is None:
-            raise ValueError("`features_meta_data` must not be None. "
+        if meta_data is None:
+            raise ValueError("`meta_data` must not be None. "
                              "DataSampler requires meta data computed in the transformation step "
                              "to sample data. "
-                             "Use DataTransformer's `get_features_meta_data` method to "
+                             "Use DataTransformer's `get_meta_data` method to "
                              "access meta data and pass it as argument to DataSampler.")
 
-        if isinstance(features_meta_data, dict):
-            # TODO convert nested dict to namedtuple or dataclasses
-            pass
         self.batch_size = batch_size
         self.categorical_features = categorical_features
         self.numerical_features = numerical_features
-        self.features_meta_data = features_meta_data
-        self.categorical_features_meta_data = features_meta_data.categorical
+        self.meta_data = meta_data
 
         self.num_samples = None
         self.batch_size = None
@@ -504,7 +500,7 @@ class DataSampler:
                 args=(tf.constant(True),),
             )
         else:
-            total_num_categories = self.categorical_features_meta_data["total_num_categories"]
+            total_num_categories = self.meta_data.categorical.total_num_categories
 
             dataset = tf.data.Dataset.from_generator(
                 self.generator,
@@ -526,11 +522,11 @@ class DataSampler:
         # so the ith mask vector corresponds to the ith column,
         # and each component is associated to the category of that column.
         masks = tf.zeros([self.batch_size, len(self.categorical_features)])
-        cond_vectors = tf.zeros([self.batch_size, self.categorical_features_meta_data["total_num_categories"]])
+        cond_vectors = tf.zeros([self.batch_size, self.meta_data.categorical.total_num_categories])
         # 2. Randomly select a discrete column Di out of all the Nd discrete columns, with equal probability.
         # >>> We select them in generator method
 
-        random_features_relative_indices = tf.gather(self.categorical_features_meta_data["relative_indices_all"],
+        random_features_relative_indices = tf.gather(self.meta_data.categorical.relative_indices_all,
                                                      indices=random_features_idx)
 
         # 3. Construct a PMF across the range of values of the column selected in 2, Di* , such that the
@@ -564,8 +560,8 @@ class DataSampler:
         we sample indices purely randomly instead of based on the calculated
         probability as proposed in the paper.
         """
-        num_categories_all = self.categorical_features_meta_data["num_categories_all"]
-        cond_vectors = tf.zeros((batch_size, self.categorical_features_meta_data["total_num_categories"]))
+        num_categories_all = self.meta_data.categorical.num_categories_all
+        cond_vectors = tf.zeros((batch_size, self.meta_data.categorical.total_num_categories))
         random_features_idx = tf.random.uniform(shape=(batch_size,),
                                                 minval=0, maxval=len(self.categorical_features),
                                                 dtype=tf.int32)
@@ -581,7 +577,7 @@ class DataSampler:
         # Offset this index by relative index of the feature that it belongs to.
         # because the final cond vector is the concatenation of all features and
         # is just one vector that has the length equal to total_num_categories
-        random_features_relative_indices = tf.gather(self.categorical_features_meta_data["relative_indices_all"],
+        random_features_relative_indices = tf.gather(self.meta_data.categorical.relative_indices_all,
                                                      indices=random_features_idx)
         random_values_idx_offsetted =  random_values_idx + tf.cast(random_features_relative_indices, dtype=tf.int32)
         # random_values_idx_offsetted = tf.cast(random_values_idx_offsetted, dtype=tf.int32)
@@ -608,7 +604,7 @@ class DataSampler:
                                                     dtype=tf.int64)
             # NOTE: We've precomputed the probabilities in the DataTransformer class for each feature already
             # to speed things up.
-            random_features_categories_probs = tf.gather(tf.ragged.constant(self.categorical_features_meta_data["categories_probs_all"]),
+            random_features_categories_probs = tf.gather(tf.ragged.constant(self.meta_data.categorical.categories_probs_all),
                                                          indices=random_features_idx)
             random_values_idx = [tf_random_choice(np.arange(len(feature_probs)),
                                                   n_samples=1,
