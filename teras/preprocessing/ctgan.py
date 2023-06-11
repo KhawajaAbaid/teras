@@ -518,7 +518,7 @@ class DataSampler:
             )
         return dataset
 
-    def sample_cond_vector_for_training(self,
+    def sample_cond_vectors_for_training(self,
                                         random_features_idx=None,
                                         random_values_idx=None):
         # 1. Create Nd zero-filled mask vectors mi = [mi(k)] where k=1...|Di| and for i = 1,...,Nd,
@@ -557,7 +557,7 @@ class DataSampler:
         masks = tf.tensor_scatter_nd_update(masks, indices_mask, tf.ones(self.batch_size))
         return cond_vectors, masks
 
-    def sample_cond_vector_for_generation(self, batch_size):
+    def sample_cond_vectors_for_generation(self, batch_size):
         """
         The difference between this method and the training one is that, here
         we sample indices purely randomly instead of based on the calculated
@@ -638,7 +638,7 @@ class DataSampler:
                 # `cond_vectors` will be first concatenated with the noise
                 # vector `z` to create generator input and then will be concatenated
                 # with the generated samples to serve as input for discriminator
-                cond_vectors, mask = self.sample_cond_vector_for_training(random_features_idx=random_features_idx,
+                cond_vectors, mask = self.sample_cond_vectors_for_training(random_features_idx=random_features_idx,
                                                                           random_values_idx=random_values_idx)
                 # `cond_vectors_real` will be concatenated with the real_samples
                 # and passed to the discriminator
