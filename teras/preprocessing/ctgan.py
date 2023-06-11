@@ -60,7 +60,7 @@ class ModeSpecificNormalization:
         # 2. `Number of valid clusters` will be used in the transform method when one-hotting
         # 3. `means` and `standard deviations` will be used in transform
         #       step to normalize the value c(i,j) to create a(i,j) where a stands for alpha.
-        self.features_meta_data = {}
+        self.meta_data = {}
 
         self.bay_guass_mix = BayesianGaussianMixture(n_components=self.max_clusters,
                                                      covariance_type=self.covariance_type,
@@ -86,7 +86,7 @@ class ModeSpecificNormalization:
                 raise ValueError(f"`x` must be either a pandas DataFrame or numpy ndarray. "
                                  f"{type(x)} was given.")
 
-            self.features_meta_data[feature_name] = {}
+            self.meta_data[feature_name] = {}
             self.bay_guass_mix.fit(feature)
             # The authors use a weight threshold to filter out components in their implementation.
             # For consistency's sake, we're going to use this idea but with slight modification.
@@ -114,8 +114,8 @@ class ModeSpecificNormalization:
             # To create one-hot component, we'll store the selected clusters indices
             # and the number of valid clusters
             num_valid_clusters = sum(valid_clusters_indicator)
-            self.features_meta_data[feature_name]['selected_clusters_indices'] = selected_clusters_indices
-            self.features_meta_data[feature_name]['num_valid_clusters'] = num_valid_clusters
+            self.meta_data[feature_name]['selected_clusters_indices'] = selected_clusters_indices
+            self.meta_data[feature_name]['num_valid_clusters'] = num_valid_clusters
 
             relative_indices_all.append(relative_index)
             # The 1 is for the alpha feature, since each numerical feature
@@ -128,13 +128,13 @@ class ModeSpecificNormalization:
             # To normalize, we need the means and standard deviations
             # Means
             clusters_means = self.bay_guass_mix.means_.squeeze()[valid_clusters_indicator]
-            self.features_meta_data[feature_name]['clusters_means'] = clusters_means
+            self.meta_data[feature_name]['clusters_means'] = clusters_means
             # Standard Deviations
             clusters_stds = np.sqrt(self.bay_guass_mix.covariances_).squeeze()[valid_clusters_indicator]
-            self.features_meta_data[feature_name]['clusters_stds'] = clusters_stds
+            self.meta_data[feature_name]['clusters_stds'] = clusters_stds
 
-        self.features_meta_data["relative_indices_all"] = np.array(relative_indices_all)
-        self.features_meta_data["num_valid_clusters_all"] = num_valid_clusters_all
+        self.meta_data["relative_indices_all"] = np.array(relative_indices_all)
+        self.meta_data["num_valid_clusters_all"] = num_valid_clusters_all
         self.fitted = True
 
     def transform(self, x):
@@ -147,16 +147,16 @@ class ModeSpecificNormalization:
         # Contain the normalized numerical features
         x_cont_normalized = []
         for feature_name in self.numerical_features:
-            selected_clusters_indices = self.features_meta_data[feature_name]['selected_clusters_indices']
-            num_valid_clusters = self.features_meta_data[feature_name]['num_valid_clusters']
+            selected_clusters_indices = self.meta_data[feature_name]['selected_clusters_indices']
+            num_valid_clusters = self.meta_data[feature_name]['num_valid_clusters']
             # One hot components for all values in the feature
             # we borrow the beta notation from the paper
             # for clarity and understanding's sake.
             betas = np.eye(num_valid_clusters)[selected_clusters_indices]
 
             # Normalizing
-            means = self.features_meta_data[feature_name]['clusters_means']
-            stds = self.features_meta_data[feature_name]['clusters_stds']
+            means = self.meta_data[feature_name]['clusters_means']
+            stds = self.meta_data[feature_name]['clusters_stds']
             if isinstance(x, pd.DataFrame):
                 feature = x[feature_name].values
             elif isinstance(x, np.ndarray):
@@ -441,7 +441,7 @@ class DataSampler:
         categorical_features: List of categorical features names
         numerical_features: List of numerical features names
         meta_data: Named tuple of features meta data computed during data transformation.
-            You can access that from the DataTransformer.features_meta_data
+            You can access that from the DataTransformer.meta_data
     """
     def __init__(self,
                  batch_size=512,
