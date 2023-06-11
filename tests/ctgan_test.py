@@ -21,9 +21,11 @@ data_transformer = DataTransformer(numerical_features=num_cols,
                                    categorical_features=cat_cols)
 x_transformed = data_transformer.transform(gem_df)
 
-data_sampler = DataSampler(x_original=gem_df, x_transformed=x_transformed,
+data_sampler = DataSampler(batch_size=512,
                            categorical_features=cat_cols,
-                           categorical_features_meta_data=data_transformer.categorical_features_meta_data)
+                           meta_data=data_transformer.get_meta_data())
+dataset = data_sampler.get_dataset(x_transformed=x_transformed,
+                                   x_original=gem_df)
 
 ctgan = CTGAN(data_sampler=data_sampler,
               data_transformer=data_transformer)
