@@ -270,7 +270,7 @@ class DataTransformer:
                                                     covariance_type=self.covariance_type,
                                                     weight_concentration_prior_type=self.weight_concentration_prior_type,
                                                     weight_concentration_prior=self.weight_concentration_prior)
-        self.features_meta_data = dict()
+        self.meta_data = dict()
         self.categorical_values_probs = dict()
         self.one_hot_enc = OneHotEncoder()
 
@@ -286,7 +286,7 @@ class DataTransformer:
         #   city_relative_index: gender_relative_index + num_categories_in_gender => 0 + 2 = 2
         #   economic_class_relative_index: city_relative_index + num_categories_in_city => 2 + 4 = 6
 
-        categorical_features_meta_data = dict()
+        categorical_meta_data = dict()
         # NOTE: The purpose of using these lists is that, this way we'll later be able to access
         # metadata for multiple features at once using their indices rather than names
         # which would've been required in case of a dict and would have been less efficient
@@ -315,13 +315,13 @@ class DataTransformer:
             categories, categories_probs = list(categories_probs_dict.keys()), probs
             categories_probs_all.append(categories_probs)
             categories_all.append(categories)
-        categorical_features_meta_data["total_num_categories"] = sum(num_categories_all)
-        categorical_features_meta_data["num_categories_all"] = num_categories_all
-        categorical_features_meta_data["relative_indices_all"] = np.array(relative_indices_all)
-        categorical_features_meta_data["categories_probs_all"] = categories_probs_all
-        categorical_features_meta_data["categories_all"] = categories_all
+        categorical_meta_data["total_num_categories"] = sum(num_categories_all)
+        categorical_meta_data["num_categories_all"] = num_categories_all
+        categorical_meta_data["relative_indices_all"] = np.array(relative_indices_all)
+        categorical_meta_data["categories_probs_all"] = categories_probs_all
+        categorical_meta_data["categories_all"] = categories_all
 
-        self.features_meta_data["categorical"] = categorical_features_meta_data
+        self.meta_data["categorical"] = categorical_meta_data
 
         self.one_hot_enc.fit(x)
         return self.one_hot_enc.transform(x)
@@ -331,13 +331,13 @@ class DataTransformer:
         x_numerical, x_categorical = None, None
         if self.num_numerical_features > 0:
             x_numerical = self.transform_numerical_data(x[self.numerical_features])
-            self.features_meta_data["numerical"] = self.mode_specific_normalizer.features_meta_data
-            total_transformed_features += (self.features_meta_data["numerical"]["relative_indices_all"][-1] +
-                                            self.features_meta_data["numerical"]["num_valid_clusters_all"][-1])
+            self.meta_data["numerical"] = self.mode_specific_normalizer.meta_data
+            total_transformed_features += (self.meta_data["numerical"]["relative_indices_all"][-1] +
+                                            self.meta_data["numerical"]["num_valid_clusters_all"][-1])
         if self.num_categorical_features > 0:
             x_categorical = self.transform_categorical_data(x[self.categorical_features])
-            total_transformed_features += (self.features_meta_data["categorical"]["relative_indices_all"][-1] +
-                                            self.features_meta_data["categorical"]["num_categories_all"][-1] + 1)
+            total_transformed_features += (self.meta_data["categorical"]["relative_indices_all"][-1] +
+                                            self.meta_data["categorical"]["num_categories_all"][-1] + 1)
 
         # since we concatenate the categorical features AFTER the numerical alphas and betas
         # so we'll create an overall relative indices array where we offset the relative indices
@@ -345,36 +345,37 @@ class DataTransformer:
         relative_indices_all = []
         offset = 0
         if x_numerical is not None:
-            cont_relative_indices = self.features_meta_data["numerical"]["relative_indices_all"]
+            cont_relative_indices = self.meta_data["numerical"]["relative_indices_all"]
             relative_indices_all.extend(cont_relative_indices)
-            offset = cont_relative_indices[-1] + self.features_meta_data["numerical"]["num_valid_clusters_all"][-1]
+            offset = cont_relative_indices[-1] + self.meta_data["numerical"]["num_valid_clusters_all"][-1]
         if x_categorical is not None:
             # +1 since the categorical relative indices start at 0
-            relative_indices_all.extend(self.features_meta_data["categorical"]["relative_indices_all"] + 1 + offset)
-        self.features_meta_data["relative_indices_all"] = relative_indices_all
-        self.features_meta_data["total_transformed_features"] = total_transformed_features
+            relative_indices_all.extend(self.meta_data["categorical"]["relative_indices_all"] + 1 + offset)
+        self.meta_data["relative_indices_all"] = relative_indices_all
+        self.meta_data["total_transformed_features"] = total_transformed_features
         x_transformed = np.concatenate([x_numerical, x_categorical.toarray()], axis=1)
         return x_transformed
 
-    @property
-    def categorical_features_meta_data(self):
+    def get_meta_data(self):
         """
         Returns:
-            A dictionary of categorical features meta data
+            named tuple of features meta data.
         """
-        if self.num_categorical_features == 0:
-            return None
-        return self.features_meta_data["categorical"]
+        MetaData = namedtuple("MetaData", self.meta_data.keys())
 
-    @property
-    def numerical_features_meta_data(self):
-        """
-        Returns:
-            A dictionary of numerical features meta data
-        """
-        if self.num_numerical_features == 0:
-            return None
-        return self.features_meta_data["numerical"]
+        CategoricalMetaData = namedtuple("CategoricalMetaData",
+                                         self.meta_data["categorical"].keys())
+        categorical_meta_data = CategoricalMetaData(**self.meta_data["categorical"])
+
+        NumericalMetaData = namedtuple("NumericalMetaData",
+                                       self.meta_data["numerical"].keys())
+        numerical_meta_data = NumericalMetaData(**self.meta_data["numerical"])
+
+        meta_data_copy = deepcopy(self.meta_data)
+        meta_data_copy["categorical"] = categorical_meta_data
+        meta_data_copy["numerical"] = numerical_meta_data
+        meta_data_tuple = MetaData(**meta_data_copy)
+        return meta_data_tuple
 
     def reverse_transform(self, x_generated):
         """
@@ -388,9 +389,9 @@ class DataTransformer:
         """
         all_features = self.numerical_features + self.categorical_features
         if self.num_numerical_features > 0:
-            num_valid_clusters_all = self.numerical_features_meta_data["num_valid_clusters_all"]
+            num_valid_clusters_all = self.numerical_meta_data["num_valid_clusters_all"]
         if self.num_categorical_features > 0:
-            num_categories_all = self.categorical_features_meta_data["num_categories_all"]
+            num_categories_all = self.categorical_meta_data["num_categories_all"]
         data = {}
         cat_index = 0       # categorical index
         cont_index = 0      # numerical index
@@ -402,7 +403,7 @@ class DataTransformer:
                 # Recall that betas represent the one hot encoded form of the cluster number
                 cluster_indices = np.argmax(betas, axis=1)
                 # List of cluster means for a feature. contains one value per cluster
-                means = self.numerical_features_meta_data[feature_name]["clusters_means"]
+                means = self.numerical_meta_data[feature_name]["clusters_means"]
 
                 # Since each individual element within the cluster is associated with
                 # one of the cluster's mean. We use the `cluster_indices` to get
@@ -410,7 +411,7 @@ class DataTransformer:
                 # element in the feature
                 means = means[cluster_indices]
                 # Do the same for stds
-                stds = self.numerical_features_meta_data[feature_name]["clusters_stds"]
+                stds = self.numerical_meta_data[feature_name]["clusters_stds"]
                 stds = stds[cluster_indices]
                 feature = alphas * (self.std_multiplier * stds) + means
                 data[feature_name] = feature
