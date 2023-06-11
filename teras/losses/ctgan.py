@@ -16,7 +16,7 @@ def generator_loss(generated_samples, y_generated,
     offset = len(continuous_features_relative_indices)
     for i, index in enumerate(features_relative_indices_all[offset:]):
         logits = generated_samples[:, index: index + num_categories_all[i]]
-        temp_cond_vector = cond_vector[:, i: i + num_categories_all[i]]
+        temp_cond_vector = cond_vectors[:, i: i + num_categories_all[i]]
         labels = tf.argmax(temp_cond_vector, axis=1)
         ce_loss = cross_entropy_loss(y_pred=logits,
                                      y_true=labels
@@ -31,11 +31,21 @@ def generator_loss(generated_samples, y_generated,
 @tf.function
 def discriminator_loss(y_real, y_generated):
     """
-    CTGAN's discriminator loss as proposed by xyz et al.
-    in abc paper.
+    Loss for the Discriminator model in the CTGAN architecture.
+
+    CTGAN is a state-of-the-art tabular data generation architecture
+    proposed by Lei Xu et al. in the paper,
+    "Modeling Tabular data using Conditional GAN".
+
+    Reference(s):
+        https://arxiv.org/abs/1907.00503
+
     Args:
         y_real: Discriminator's output for real samples
         y_generated: Discriminator's output for generated samples
+
+    Returns:
+        Discriminator's loss.
     """
     return -(tf.reduce_mean(y_real) - tf.reduce_mean(y_generated))
 
