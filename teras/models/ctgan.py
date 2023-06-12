@@ -194,39 +194,57 @@ class CTGAN(keras.Model):
         https://arxiv.org/abs/1907.00503
 
     Args:
-        latent_dim: default 128, Dimensionality of noise or `z` that serves as
-            input to Generator to generate samples.
-        packing_degree: default 8, Packing degree - taken from the PacGAN paper.
-            The number of samples concatenated or "packed" together.
-            It must be a factor of batch_size.
-        num_discriminator_steps: default 1, Number of discriminator training steps
+        generator: `keras.Model`, a customized Generator model that can
+            fit right in with the architecture.
+            If specified, it will replace the default generator instance
+            created by the model.
+            This allows you to take full control over the Generator architecture.
+            Note that, you import the standalone `Generator` model
+            `from teras.models.gain import Generator` customize it through
+            available params, subclass it or construct your own Generator
+            from scratch given that it can fit within the architecture,
+            for instance, satisfy the input/output requirements.
+        discriminator: `keras.Model`, a customized Discriminator model that
+            can fit right in with the architecture.
+            Everything specified about generator above applies here as well.
+        num_discriminator_steps: `int`, default 1, Number of discriminator training steps
             per CTGAN training step.
-        data_transformer: An instance of DataTransformer class.
-        data_sampler: An instance of DataSampler class
-        generator: A custom generator model
-        discriminator: A custom discriminator model
+        data_dim: `int`, dimensionality of the input dataset.
+            Note the dimensionality must be equal to the dimensionality of dataset
+            that is passed to the fit method and not necessarily the dimensionality
+            of the raw input dataset as sometimes data transformation alters the
+            dimensionality of the dataset.
+            This parameter can be left None if instances of Generator and Discriminator
+            are passed, otherwise it must be specified.
+        latent_dim: `int`, default 128, Dimensionality of noise or `z` that serves as
+            input to Generator to generate samples.
+        packing_degree: `int`, default 8, Packing degree - taken from the PacGAN paper.
+            The number of samples concatenated or "packed" together.
+            It must be a factor of the batch_size.
     """
     def __init__(self,
                  generator: keras.Model = None,
                  discriminator: keras.Model = None,
                  num_discriminator_steps: int = 1,
-                 latent_dim=128,
+                 data_dim: int = None,
+                 latent_dim: int =128,
                  packing_degree=8,
-                 data_transformer: DataTransformer = None,
-                 data_sampler: DataSampler = None,
                  **kwargs):
         super().__init__(**kwargs)
         self.generator = generator
         self.discriminator = discriminator
         self.num_discriminator_steps = num_discriminator_steps
+        self.data_dim = data_dim
         self.latent_dim = latent_dim
         self.packing_degree = packing_degree
-        self.data_sampler = data_sampler
-        self.data_transformer = data_transformer
 
-        self.meta_data = self.data_transformer.get_meta_data()
-        self.data_dim = self.meta_data.total_transformed_features
-
+        if self.data_dim is None and (self.generator is None and self.discriminator is None):
+            raise ValueError("`data_dim` is required to instantiate the Generator and Discriminator objects. "
+                             f"But {data_dim} was passed."
+                             "Either pass the value for `data_dim` -- which can be accessed through "
+                             "`.data_dim` attribute of DataSampler class if you don't know the data dimensions -- "
+                             "or you can instantiate and pass your own Generator and Discriminator instances, in which "
+                             "case you can leave the `data_dim` as None.")
         # If user specifies a custom generator, we won't instantiate Generator.
         if self.generator is None:
             # Instantiate Generator
@@ -319,32 +337,55 @@ class CTGAN(keras.Model):
         results.update(discriminator_results)
         return results
 
-    def generate_samples(self,
-                         num_samples,
-                         reverse_transform=True,
-                         batch_size=None):
+    def generate(self,
+                 num_samples: int,
+                 data_sampler,
+                 data_transformer=None,
+                 reverse_transform: bool = True,
+                 batch_size: int = None):
         """
         Generates new samples using the trained generator.
 
         Args:
             num_samples: Number of new samples to generate
-            reverse_transform: Whether to reverse transform the generated data to the original data format.
-                Defaults to True. If False, the raw generated data will be returned.
-            batch_size: If None `batch_size` of training will be used.
+            data_sampler: Instance of the DataSampler class used in preparing
+                the tensorflow dataset for training.
+            data_transformer: Instance of DataTransformer class used to preprocess
+                the raw data.
+                This is required only if the `reverse_transform` is set to True.
+            reverse_transform: bool, default True,
+                whether to reverse transform the generated data to the original data format.
+                If False, the raw generated data will be returned, which you can then manually
+                transform into original data format by utilizing DataTransformer instance's
+                `reverse_transform` method.
+            batch_size: int, default None.
+                If a value is passed, samples will be generated in batches
+                where `batch_size` determines the size of each batch.
+                If `None`, all `num_samples` will be generated at once.
+                Note that, if the number of samples to generate aren't huge
+                or you know your hardware can handle to generate all samples at once,
+                you can leave the value to None, otherwise it is recommended to specify
+                a value for batch size.
         """
-        batch_size = self.data_sampler.batch_size if batch_size is None else batch_size
+        if batch_size is None:
+            batch_size = num_samples
         num_steps = num_samples // batch_size
         num_steps += 1 if num_samples % batch_size != 0 else 0
         generated_samples = []
         for _ in tqdm(range(num_steps), desc="Generating Data"):
             z = tf.random.normal(shape=[batch_size, self.latent_dim])
-            cond_vector = self.data_sampler.sample_cond_vectors_for_generation(batch_size)
+            cond_vector = data_sampler.sample_cond_vectors_for_generation(batch_size)
             input_gen = tf.concat([z, cond_vector], axis=1)
             generated_samples.append(self.generator(input_gen, training=False))
         generated_samples = tf.concat(generated_samples, axis=0)
         generated_samples = generated_samples[:num_samples]
 
         if reverse_transform:
-            generated_samples = self.data_transformer.reverse_transform(x_generated=generated_samples)
+            if data_transformer is None:
+                raise ValueError("To reverse transform the raw generated data, `data_transformer` must not be None. "
+                                 "Please pass the instance of DataTransformer class used to transform the input "
+                                 "data. Or alternatively, you can set `reverse_transform` to False, and later "
+                                 "manually reverse transform the generated raw data to original format. ")
+            generated_samples = data_transformer.reverse_transform(x_generated=generated_samples)
 
         return generated_samples
