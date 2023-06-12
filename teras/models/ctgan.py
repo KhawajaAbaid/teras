@@ -3,11 +3,10 @@ from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras import models
 from tensorflow.keras import optimizers
-from teras.layers.ctgan import GeneratorResidualBlock, DiscriminatorBlock
+from teras.layers.ctgan import GeneratorBlock, DiscriminatorBlock
 from teras.layers.activations import GumbelSoftmax
 from teras.losses.ctgan import generator_loss, discriminator_loss
 from teras.preprocessing.ctgan import DataTransformer, DataSampler
-from teras.layers.base.gan import HiddenBlock
 from typing import List, Union, Tuple
 from tqdm import tqdm
 from warnings import warn
@@ -35,8 +34,8 @@ class Generator(keras.Model):
             of the raw input dataset as sometimes data transformation alters the
             dimensionality of the dataset.
         units_values: default [256, 256], A list or tuple of units.
-            For each value, a `GeneratorResidualBlock`
-            (`from teras.layers.ctgan import GeneratorResidualBlock`)
+            For each value, a `GeneratorBlock`
+            (`from teras.layers.ctgan import GeneratorBlock`)
             of that dimensionality (units) is added to the generator
             to form the `hidden block` of the generator.
         hidden_block: `layers.Layer` or `keras.Model`. If you want more control
@@ -45,8 +44,8 @@ class Generator(keras.Model):
             In this case, you have full control of the hidden block.
             Note that if you specify a hidden block, the `units_values` parameter
             will be ignored.
-            If `None`, a hidden block is constructed with `GeneratorResidualBlock`
-            (`from teras.layers.ctgan import GeneratorResidualBlock`)
+            If `None`, a hidden block is constructed with `GeneratorBlock`
+            (`from teras.layers.ctgan import GeneratorBlock`)
             where the number and dimensionality of blocks is determined by the
             `units_values` argument.
         output_layer: `layers.Layer`. If you want full control over the
@@ -99,7 +98,7 @@ class Generator(keras.Model):
         if self.hidden_block is None:
             self.hidden_block = models.Sequential(name="generator_hidden_block")
             for units in self.units_values:
-                self.hidden_block.add(GeneratorResidualBlock(units))
+                self.hidden_block.add(GeneratorBlock(units))
 
         if self.output_layer is None:
             self.output_layer = layers.Dense(self.data_dim, name="generator_output_layer")
