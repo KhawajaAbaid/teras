@@ -397,8 +397,12 @@ class GAIN(keras.Model):
 
     def get_config(self):
         config = super(GAIN, self).get_config()
-        config.update({'hint_rate': self.hint_rate,
+        config.update({'generator': self.generator,
+                       'discriminator': self.discriminator,
+                       'num_discriminator_steps': self.num_discriminator_steps,
+                       'data_transformer': self.data_transformer,
+                       'data_sampler': self.data_sampler,
+                       'hint_rate': self.hint_rate,
                        'alpha': self.alpha,
-                       'generator': self.generator,
-                       'discriminator': self.discriminator})
+})
         return config
