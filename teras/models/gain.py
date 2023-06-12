@@ -212,7 +212,8 @@ class GAIN(keras.Model):
             overall generator loss.
     Example:
         ```python
-        input_data = tf.random.uniform([200, 10])
+        input_data = pd.DataFrame(tf.random.uniform([200, 5]),
+                                columns=["A", "B", "C", "D", "E"])
 
         from teras.utils.gain import inject_missing_values
         input_data = inject_missing_values(input_data)
@@ -221,9 +222,8 @@ class GAIN(keras.Model):
         # relevant DataSampler and DataTrasnformer classes
         from teras.preprocessing.gain import DataSampler, DataTransformer
 
-        # Assume we have following numerical and categorical features
-        numerical_features = ["num_1", "num_2"]
-        categorical_features = ["cat_1", "cat_2", "cat_3"]
+        numerical_features = ["A", "B"]
+        categorical_features = ["C", "D", "E"]
 
         data_transformer = DataTransformer(numerical_features=numerical_features,
                                            categorical_features=categorical_features)
@@ -234,7 +234,8 @@ class GAIN(keras.Model):
         dataset = data_sampler.get_dataset(transformed_data)
 
         # Instantiate GAIN
-        gain_imputer = GAIN()
+        gain_imputer = GAIN(data_sampler=data_sampler,
+                            data_transformer=data_transformer)
 
         # Compile it
         gain_imputer.compile()
@@ -244,10 +245,15 @@ class GAIN(keras.Model):
 
         # Predict
         test_data = transformed_data[:50]
+
+        # Imputation Method 1:
         imputed_data = gain_imputer.predict(test_data)
 
         # Reverse transform into original format
         imputed_data = data_sampler.reverse_transform(imputed_data)
+
+        # Imputation Method 2:
+        imputed_data = gain_imputer.impute(test_data)
         ```
     """
     def __init__(self,
