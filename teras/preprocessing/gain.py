@@ -3,12 +3,15 @@ import pandas as pd
 import numpy as np
 from typing import List
 from sklearn.preprocessing import OrdinalEncoder
+from teras.preprocessing.base.base_data_transformer import BaseDataTransformer
+from collections import namedtuple
+from copy import deepcopy
 
 
 FEATURE_NAMES_TYPE = List[str]
 
 
-class DataTransformer:
+class DataTransformer(BaseDataTransformer):
     """
     DataTransformer class that performs the required transformations
     on the raw dataset required by the GAIN architecture proposed by
@@ -38,22 +41,31 @@ class DataTransformer:
     def __init__(self,
                  categorical_features: FEATURE_NAMES_TYPE = None,
                  numerical_features: FEATURE_NAMES_TYPE = None):
-        super().__init__(categorical_features=categorical_features,
-                         numerical_features=numerical_features)
+        super().__init__()
         self.categorical_features = categorical_features
         self.numerical_features = numerical_features
-        self.all_features_names = categorical_features + numerical_features
-        self.min_vals = []
-        self.max_vals = []
+        self.encoder = OrdinalEncoder()
+        self.min_vals = None
+        self.max_vals = None
 
     def fit(self, x):
-        if self.numerical_features is not None:
-            self.min_vals = np.nanmin(x[self.numerical_features], axis=0)
-            self.max_vals = np.nanmax(x[self.numerical_features], axis=0)
-
+        # We min max normalize the entire dataset regardless of the
+        # features types - so we first need to have the ordinally
+        # encoded values for the categorical features
+        # So we create a temporary copy which contains these
+        # encoded values so we can compute the min_vals and max_vals
+        # for these features
+        x_temp = x.copy()
         if self.categorical_features is not None:
-            self.oe = OrdinalEncoder()
-            self.oe.fit(x[self.categorical_features])
+            self.encoder.fit(x[self.categorical_features])
+            x_temp[self.categorical_features] = self.encoder.transform(x[self.categorical_features])
+
+        # if self.numerical_features is not None:
+        #     self.min_vals = np.nanmin(x[self.numerical_features], axis=0)
+        #     self.max_vals = np.nanmax(x[self.numerical_features], axis=0)
+        self.min_vals = np.nanmin(x_temp, axis=0)
+        self.max_vals = np.nanmax(x_temp, axis=0)
+        self.fitted = True
 
     def transform(self,
                   x: pd.DataFrame,
@@ -71,15 +83,19 @@ class DataTransformer:
         Returns:
             Transformed data.
         """
+        if not self.fitted:
+            raise RuntimeError("You haven't yet fitted the DataTransformer. "
+                               "You must call the `fit` method before you can call the "
+                               "`transform` method. ")
         if not isinstance(x, pd.DataFrame):
             raise ValueError("Only pandas dataframe is supported by DataTransformation class."
                              f" But data of type {type(x)} was passed. "
                              f"Please convert it to pandas dataframe before passing.")
 
-        self.all_ordered_features_names = x.columns
+        self.ordered_features_names_all = x.columns
 
         if self.categorical_features is not None:
-            x[self.categorical_features] = self.oe.transform(x[self.categorical_features])
+            x[self.categorical_features] = self.encoder.transform(x[self.categorical_features])
 
         # we don't need to check if there are numerical features,
         # because we apply this "numerical" MinMax transformation to the whole
@@ -89,14 +105,8 @@ class DataTransformer:
         x = x.astype(np.float)
 
         if return_dataframe:
-            x = pd.DataFrame(x, columns=self.all_ordered_features_names)
+            x = pd.DataFrame(x, columns=self.ordered_features_names_all)
         return x
-
-    def fit_transform(self,
-                      x: pd.DataFrame,
-                      return_dataframe: bool = True):
-        self.fit(x)
-        return self.transform(x, return_dataframe=return_dataframe)
 
     def reverse_transform(self,
                           x,
@@ -115,10 +125,10 @@ class DataTransformer:
             Data in its original format and scale.
         """
         if not isinstance(x, pd.DataFrame):
-            x = pd.DataFrame(x, columns=self.all_ordered_features_names)
+            x = pd.DataFrame(x, columns=self.ordered_features_names_all)
 
         if self.min_vals is None and self.max_vals is None:
-            raise ValueError("The values for `self.min_vals` and `self.max_vals` are not yet set. "
+            raise ValueError("The values for `min_vals` and `max_vals` do not exist. "
                              "This implies that you haven't yet used the `transform` method "
                              "to transform numerical features. ")
 
@@ -129,7 +139,7 @@ class DataTransformer:
         if self.numerical_features is not None:
             x = (x * self.max_vals) + self.min_vals
         if self.categorical_features is not None:
-            x[self.categorical_features] = self.oe.inverse_transform(x[self.categorical_features])
+            x[self.categorical_features] = self.encoder.inverse_transform(x[self.categorical_features])
 
         if not return_dataframe:
             x = x.values
@@ -174,10 +184,11 @@ class DataSampler:
     def get_dataset(self, x_transformed):
         """
         Args:
-            Transformed data.
+            x_transformed: `np.ndarray` or `pd.DataFrame`,
+                Transformed dataset.
         Returns:
              A tensorflow dataset, that generates batches of
-            size `batch_size` which is the argument passing during
+            size `batch_size` which is the argument passed during
             DataSampler instantiation. The dataset instance then can
             be readily passed to the GAIN fit method without requiring
             any further processing.
