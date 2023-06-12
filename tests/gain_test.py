@@ -1,5 +1,5 @@
 import tensorflow as tf
-# tf.config.run_functions_eagerly(True)
+tf.config.run_functions_eagerly(True)
 import pandas as pd
 from teras.models.gain import GAIN
 from teras.preprocessing.gain import DataTransformer, DataSampler
@@ -21,18 +21,19 @@ x_with_missing = inject_missing_values(x)
 
 data_transformer = DataTransformer(numerical_features=num_cols,
                                    categorical_features=cat_cols)
-x_transformed = data_transformer.transform(x_with_missing, return_dataframe=True)
+x_transformed = data_transformer.fit_transform(x_with_missing, return_dataframe=True)
 
 data_sampler = DataSampler()
 dataset = data_sampler.get_dataset(x_transformed)
 
-gain_imputer = GAIN()
+gain_imputer = GAIN(data_sampler=data_sampler,
+                    data_transformer=data_transformer)
 gain_imputer.compile()
 history = gain_imputer.fit(dataset, epochs=2)
 
 test_chunk = x_transformed[500:1000]
-x_filled = gain_imputer.predict(x=test_chunk)
+# x_filled = gain_imputer.predict(x=test_chunk, )
+# x_filled = data_transformer.reverse_transform(x_filled)
+x_imputed = gain_imputer.impute(test_chunk)
 
-x_filled = data_transformer.reverse_transform(x_filled)
-
-print(x_filled.head())
+print(x_imputed.head())
