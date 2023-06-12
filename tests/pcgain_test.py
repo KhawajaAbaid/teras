@@ -24,13 +24,13 @@ x_with_missing = inject_missing_values(x)
 
 data_transformer = DataTransformer(numerical_features=num_cols,
                                    categorical_features=cat_cols)
-x_transformed = data_transformer.transform(x_with_missing, return_dataframe=True)
+x_transformed = data_transformer.fit_transform(x_with_missing, return_dataframe=True)
 
 data_sampler = DataSampler()
 dataset = data_sampler.get_dataset(x_transformed)
 pretraining_dataset = data_sampler.get_pretraining_dataset(x_transformed, pretraining_size=0.4)
 
-pcgain_imputer = PCGAIN()
+pcgain_imputer = PCGAIN(data_dim=data_sampler.data_dim)
 pcgain_imputer.compile()
 # You MUST pretrain first or perish
 pretrainer_fit_kwargs = {"epochs": 2}
