@@ -248,7 +248,8 @@ class PCGAIN(keras.Model):
     # the GAIN architecture. and hence the incoming data follows the same format.
     def train_step(self, data):
         if self._first_batch:
-            assert self._pretrained, ("The model has not yet been pretrained. "
+            if not self._pretrained:
+                raise AssertionError("The model has not yet been pretrained. "
                                       "PC-GAIN requires Generator and Discriminator "
                                       "to be pretrained before the main training. "
                                       "You must call the `pretrain` method before "
