@@ -433,3 +433,19 @@ class PCGAIN(keras.Model):
                                  "using the `reverse_transform` method of DataTransformer instance.")
             x_imputed = data_transformer.reverse_transform(x_imputed)
         return x_imputed
+
+    def get_config(self):
+        config = super().get_config()
+        config.update({"generator": self.generator,
+                       "discriminator": self.discriminator,
+                       "num_discriminator_steps": self.num_discriminator_steps,
+                       "data_dim": self.data_dim,
+                       "hint_rate": self.hint_rate,
+                       "alpha": self.alpha,
+                       "beta": self.beta,
+                       "num_clusters": self.num_clusters,
+                       "clustering_method": self.clustering_method,
+                       "pretrainer": self.pretrainer,
+                       "classifier": self.classifier
+                       })
+        return config
