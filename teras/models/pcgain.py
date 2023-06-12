@@ -386,3 +386,50 @@ class PCGAIN(keras.Model):
         imputed_data = self(x, mask=mask)
         imputed_data = mask * data + (1 - mask) * imputed_data
         return imputed_data
+
+    def impute(self,
+               x,
+               data_transformer=None,
+               reverse_transform=True,
+               batch_size=None,
+               verbose="auto",
+               steps=None,
+               callbacks=None,
+               max_queue_size=10,
+               workers=1,
+               use_multiprocessing=False
+               ):
+        """
+        Impute function combines PC-GAIN's `predict` method and
+        DataTransformer's `reverse_transform` method to fill
+        the missing data and transform into the original format.
+        It exposes all the arguments taken by the `predict` method.
+
+        Args:
+            x: `pd.DataFrame`, dataset with missing values.
+            data_transformer: An instance of DataTransformer class which
+                was used in transforming the raw input data
+            reverse_transform: `bool`, default True, whether to reverse
+                transformed the raw imputed data to original format.
+
+        Returns:
+            Imputed data in the original format.
+        """
+        x_imputed = self.predict(x,
+                                 batch_size=batch_size,
+                                 verbose=verbose,
+                                 steps=steps,
+                                 callbacks=callbacks,
+                                 max_queue_size=max_queue_size,
+                                 workers=workers,
+                                 use_multiprocessing=use_multiprocessing)
+        if reverse_transform:
+            if data_transformer is None:
+                raise ValueError("To reverse transform the raw imputed data, `data_transformer` must not be None. "
+                                 "Please pass the instance of DataTransformer class used to transform the input "
+                                 "data as argument to this `impute` method."
+                                 "Or alternatively, you can set `reverse_transform` parameter to False, "
+                                 "and manually reverse transform the generated raw data to original format "
+                                 "using the `reverse_transform` method of DataTransformer instance.")
+            x_imputed = data_transformer.reverse_transform(x_imputed)
+        return x_imputed
