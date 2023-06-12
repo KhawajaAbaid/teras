@@ -239,12 +239,12 @@ class CTGAN(keras.Model):
         self.packing_degree = packing_degree
 
         if self.data_dim is None and (self.generator is None and self.discriminator is None):
-            raise ValueError("`data_dim` is required to instantiate the Generator and Discriminator objects. "
-                             f"But {data_dim} was passed."
-                             "Either pass the value for `data_dim` -- which can be accessed through "
-                             "`.data_dim` attribute of DataSampler class if you don't know the data dimensions -- "
-                             "or you can instantiate and pass your own Generator and Discriminator instances, in which "
-                             "case you can leave the `data_dim` as None.")
+            raise ValueError(f"""`data_dim` is required to instantiate the Generator and Discriminator objects.
+                    But {data_dim} was passed.
+                    Either pass the value for `data_dim` -- which can be accessed through `.data_dim`
+                    attribute of DataSampler instance if you don't know the data dimensions --
+                    or you can instantiate and pass your own Generator and Discriminator instances,
+                    in which case you can leave the `data_dim` parameter as None.""")
         # If user specifies a custom generator, we won't instantiate Generator.
         if self.generator is None:
             # Instantiate Generator
@@ -382,10 +382,10 @@ class CTGAN(keras.Model):
 
         if reverse_transform:
             if data_transformer is None:
-                raise ValueError("To reverse transform the raw generated data, `data_transformer` must not be None. "
-                                 "Please pass the instance of DataTransformer class used to transform the input "
-                                 "data. Or alternatively, you can set `reverse_transform` to False, and later "
-                                 "manually reverse transform the generated raw data to original format. ")
+                raise ValueError("""To reverse transform the raw generated data, `data_transformer` must not be None.
+                             Please pass the instance of DataTransformer class used to transform the input
+                             data. Or alternatively, you can set `reverse_transform` to False, and later
+                             manually reverse transform the generated raw data to original format.""")
             generated_samples = data_transformer.reverse_transform(x_generated=generated_samples)
 
         return generated_samples
