@@ -1,6 +1,8 @@
 from collections import namedtuple
 from copy import deepcopy
 from abc import abstractmethod
+import pandas as pd
+import numpy as np
 
 
 class BaseDataTransformer:
