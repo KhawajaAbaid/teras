@@ -72,7 +72,7 @@ class Generator(keras.Model):
                  **kwargs):
         super().__init__(**kwargs)
 
-        if not isinstance(units_values, (list, tuple)):
+        if units_values is not None and not isinstance(units_values, (list, tuple)):
             raise ValueError(f"""`units_values` must be a list or tuple of units which determines
                         the number of Generator residual blocks and the dimensionality of those blocks.
                         But {units_values} was passed.""")
@@ -237,7 +237,7 @@ class Discriminator(keras.Model):
                  **kwargs):
         super().__init__(**kwargs)
 
-        if not isinstance(units_values, (list, tuple)):
+        if units_values is not None and not isinstance(units_values, (list, tuple)):
             raise ValueError(f"""`units_values` must be a list or tuple of units which determines
                         the number of Discriminator blocks and the dimensionality of those blocks.
                         But {units_values} was passed""")
