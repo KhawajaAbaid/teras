@@ -1,3 +1,4 @@
+import pandas as pd
 import tensorflow as tf
 import tensorflow_probability as tfp
 from tensorflow import keras
@@ -394,6 +395,41 @@ class GAIN(keras.Model):
         imputed_data = self(x, mask=mask)
         imputed_data = mask * data + (1 - mask) * imputed_data
         return imputed_data
+
+    def impute(self,
+               x,
+               batch_size=None,
+               verbose="auto",
+               steps=None,
+               callbacks=None,
+               max_queue_size=10,
+               workers=1,
+               use_multiprocessing=False
+               ):
+        """
+        Impute function combines GAIN's `predict` method and
+        DataTransformer's `reverse_transform` method to fill
+        the missing data and transform into the original format.
+        It exposes all the arguments taken by the `predict` method.
+
+        Args:
+            x: `pd.DataFrame`, dataset with missing values.
+
+        Returns:
+            Imputed data in the original format.
+
+        """
+        x_imputed = self.predict(x,
+                                 batch_size=batch_size,
+                                 verbose=verbose,
+                                 steps=steps,
+                                 callbacks=callbacks,
+                                 max_queue_size=max_queue_size,
+                                 workers=workers,
+                                 use_multiprocessing=use_multiprocessing)
+
+        x_imputed = self.data_transformer.reverse_transform(x_imputed)
+        return x_imputed
 
     def get_config(self):
         config = super(GAIN, self).get_config()
