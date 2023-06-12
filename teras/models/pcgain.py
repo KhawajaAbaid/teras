@@ -11,6 +11,7 @@ from typing import List, Tuple, Union
 
 LIST_OR_TUPLE = Union[List[int], Tuple[int]]
 INT_OR_FLOAT = Union[int, float]
+HIDDEN_BLOCK_TYPE = Union[keras.layers.Layer, keras.models.Model]
 
 
 class Classifier(keras.Model):
@@ -24,7 +25,7 @@ class Classifier(keras.Model):
         https://arxiv.org/abs/2011.07770
 
     Args:
-        units_hidden: A list/tuple of units for hidden block.
+        units_values: A list/tuple of units for hidden block.
             For each element, a new hidden layer will be added.
             In official implementation, `units` for every hidden
             layer is equal to `input_dim`,
@@ -35,26 +36,32 @@ class Classifier(keras.Model):
             computed during the pseudo label generation.
     """
     def __init__(self,
+                 data_dim: int,
                  num_classes: int = None,
-                 units_hidden: LIST_OR_TUPLE = None,
+                 units_values: LIST_OR_TUPLE = None,
+                 hidden_block: HIDDEN_BLOCK_TYPE = None,
+                 output_layer: keras.layers.Layer = None,
                  **kwargs):
         super().__init__(**kwargs)
         self.num_classes = num_classes
-        self.units_hidden = units_hidden
+        self.units_values = units_values
+        self.hidden_block = hidden_block
+        self.output_layer = output_layer
 
-        self.hidden_block = keras.models.Sequential(name="classifier_hidden_block")
-        self.dense_out = keras.layers.Dense(num_classes, activation="softmax")
+        if self.hidden_block is None:
+            self.hidden_block = keras.models.Sequential(name="classifier_hidden_block")
+            if self.units_values is None:
+                self.units_values = [data_dim] * 2
+            for units in self.units_values:
+                self.hidden_block.add(keras.layers.Dense(units,
+                                                         activation="relu"))
 
-    def build(self, input_shape):
-        if self.units_hidden is None:
-            self.units_hidden = [input_shape[1]] * 2
-        for dim in self.units_hidden:
-            self.hidden_block.add(keras.layers.Dense(dim,
-                                                     activation="relu"))
+        if self.output_layer is None:
+            self.output_layer = keras.layers.Dense(num_classes, activation="softmax")
 
     def call(self, inputs):
         x = self.hidden_block(inputs)
-        return self.dense_out(x)
+        return self.output_layer(x)
 
 
 class PCGAIN(keras.Model):
@@ -86,6 +93,13 @@ class PCGAIN(keras.Model):
             Everything specified about generator above applies here as well.
         num_discriminator_steps: default 1, Number of discriminator training steps
             per PCGAIN training step.
+        data_dim: `int`, dimensionality of the input dataset.
+            Note the dimensionality must be equal to the dimensionality of dataset
+            that is passed to the fit method and not necessarily the dimensionality
+            of the raw input dataset as sometimes data transformation alters the
+            dimensionality of the dataset.
+            This parameter can be left None if instances of Generator and Discriminator
+            are passed, otherwise it must be specified.
         hint_rate: Hint rate will be used to sample binary vectors for
             `hint vectors` generation. Should be between 0. and 1.
             Hint vectors ensure that generated samples follow the
@@ -108,34 +122,77 @@ class PCGAIN(keras.Model):
             ["Agglomerative", "KMeans", "MiniBatchKMeans", "Spectral", "SpectralBiclustering"]
             The names are case in-sensitive.
             Defaults to "kmeans"
+        pretrainer: `keras.Model`, by default GAIN is used as a pretrainer model,
+            but you can pass your own pretrainer model.
+            It is used to pretrain the Generator and Discriminators, and to impute
+            the pretraining dataset, which is then clustered to generated pseudo labels
+            which combined with the imputed data are used to train the classifier.
+        classifier: `keras.Model`, It is used in the training of the Generator component
+            of the PCGAIN architecture after it has been pretrained by the `pretrainer`.
+            The classifier itself is trained on the imputed data in the pretraining step
+            combined with the pseudo labels generated for the imputed data by clustering.
     """
     def __init__(self,
                  generator: keras.Model = None,
                  discriminator: keras.Model = None,
                  num_discriminator_steps: int = 1,
+                 data_dim: int = None,
                  hint_rate: float = 0.9,
                  alpha: INT_OR_FLOAT = 200,
                  beta: INT_OR_FLOAT = 100,
                  num_clusters: int = 5,
                  clustering_method: str = "kmeans",
+                 pretrainer: keras.Model = None,
+                 classifier: keras.Model = None,
                  **kwargs):
         super().__init__(**kwargs)
-        self.generator = generator
-        self.discriminator = discriminator
-        self.num_discriminator_steps = num_discriminator_steps
+
+        if data_dim is None and (generator is None and discriminator is None):
+            raise ValueError(f"""`data_dim` is required to instantiate the Generator, Discriminator and Classifier objects.
+                    But {data_dim} was passed.
+                    You can either pass the value for `data_dim` -- which can be accessed through `.data_dim`
+                    attribute of DataSampler instance if you don't know the data dimensions --
+                    or you can instantiate and pass your own Generator, Discriminator and Classifier instances,
+                    in which case you can leave the `data_dim` parameter as None.""")
+
         if not 0. <= hint_rate <= 1.0:
             raise ValueError("`hint_rate` should be between 0. and 1. "
                              f"Received {hint_rate}.")
+
+        self.generator = generator
+        self.discriminator = discriminator
+        self.num_discriminator_steps = num_discriminator_steps
+        self.data_dim = data_dim
         self.hint_rate = hint_rate
         self.alpha = alpha
         self.beta = beta
         self.num_clusters = num_clusters
         self.clustering_method = clustering_method
+        self.pretrainer = pretrainer
+        self.classifier = classifier
 
         if self.generator is None:
-            self.generator = Generator()
+            self.generator = Generator(self.data_dim)
         if self.discriminator is None:
-            self.discriminator = Discriminator()
+            self.discriminator = Discriminator(self.data_dim)
+
+        # Since we pretrain using the EXACT SAME architecture as GAIN
+        # so here we simply use the GAIN model, which acts as `pretrainer`,
+        # in case the user does not specify a custom pretrainer model.
+        # And since it accepts generators and discriminator models,
+        # we can instantiate/customize those here and pass it to GAIN and
+        # have it pretrain them, and then we can access those pretrained models
+        # and use them here in our PC-GAIN architecture.
+        if self.pretrainer is None:
+            self.pretrainer = GAIN(generator=self.generator,
+                                   discriminator=self.discriminator,
+                                   data_dim=self.data_dim,
+                                   hint_rate=self.hint_rate,
+                                   alpha=self.alpha
+                                   )
+        if self.classifier is None:
+            self.classifier = Classifier(data_dim=self.data_dim,
+                                         num_classes=self.num_clusters)
 
         self.z_sampler = tfp.distributions.Uniform(low=0.,
                                                    high=0.01,
@@ -149,25 +206,10 @@ class PCGAIN(keras.Model):
         self._pretrained = False
         # Flag to check for training start and call specific functions
         self._first_batch = True
-        # Flag to keep track of whether classifier has been trained
-        self._trained_classifier = False
 
         # Loss trackers
         self.generator_loss_tracker = keras.metrics.Mean(name="generator_loss")
         self.discriminator_loss_tracker = keras.metrics.Mean(name="discriminator_loss")
-
-        # Since we pretrain using the EXACT SAME architecture as GAIN
-        # so here we simply use the GAIN model, which acts as `pretrainer`.
-        # And since it accepts generators and discriminator models,
-        # we can instantiate/customize those and pass it to GAIN and have
-        # it pretrain them and then we can use those pretrain models
-        # here in our PC-GAIN architecture.
-        self.pretrainer = GAIN(hint_rate=self.hint_rate,
-                               alpha=self.alpha,
-                               generator=self.generator,
-                               discriminator=self.discriminator)
-
-        self.classifier = Classifier(num_classes=self.num_clusters)
 
     def compile(self,
                 generator_optimizer=keras.optimizers.Adam(),
@@ -227,6 +269,9 @@ class PCGAIN(keras.Model):
             pretraining_dataset: Get it from DataSampler's `get_pretraining_dataset` method.
             pretrainer_fit_kwargs: Dictionary of keyword arguments for pretrainer's fit method.
             classifier_fit_kwargs: Dictionary of keyword arguments for classifier's fit method.
+
+        p.s. I know accepting arguments as dict is not a good design but for the time being,
+        please tolerate it. I'll fix it in the near future!
         """
         print("Pretrain Step 1/4: Pretraining the generator and discriminator")
         self.pretrainer.fit(pretraining_dataset, **pretrainer_fit_kwargs)
