@@ -27,9 +27,12 @@ data_sampler = DataSampler(batch_size=512,
 dataset = data_sampler.get_dataset(x_transformed=x_transformed,
                                    x_original=gem_df)
 
-ctgan = CTGAN(data_sampler=data_sampler,
-              data_transformer=data_transformer)
+ctgan = CTGAN(data_dim=data_sampler.data_dim,
+              meta_data=data_transformer.get_meta_data())
 ctgan.compile()
 history = ctgan.fit(dataset, epochs=2)
-generated_data = ctgan.generate_samples(num_samples=1000, reverse_transform=True)
+generated_data = ctgan.generate(num_samples=1000,
+                                data_sampler=data_sampler,
+                                data_transformer=data_transformer,
+                                reverse_transform=True)
 print(generated_data.head())
