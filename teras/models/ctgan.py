@@ -7,11 +7,14 @@ from teras.layers.ctgan import GeneratorResidualBlock, DiscriminatorBlock
 from teras.layers.activations import GumbelSoftmax
 from teras.losses.ctgan import generator_loss, discriminator_loss
 from teras.preprocessing.ctgan import DataTransformer, DataSampler
+from teras.layers.base.gan import HiddenBlock
 from typing import List, Union, Tuple
 from tqdm import tqdm
+from warnings import warn
 
 
 LIST_OR_TUPLE = Union[List[int], Tuple[int]]
+HIDDEN_BLOCK_TYPE = Union[keras.layers.Layer, keras.models.Model]
 
 
 class Generator(keras.Model):
@@ -24,40 +27,112 @@ class Generator(keras.Model):
         https://arxiv.org/abs/1907.00503
 
     Args:
-        units_hidden: default [256, 256], A list or tuple of units.
-            For each value, a Residual block of that dimensionality (units)
-             is added to the generator.
-        data_dim: Dimensionality of the transformed dataset.
-        meta_data: A namedtuple of features meta data.
-            Obtained from data_transformer.meta_data
+        data_dim: `int`, dimensionality of the dataset.
+            It will also be the dimensionality of the output produced
+            by the generator.
+            Note the dimensionality must be equal to the dimensionality of dataset
+            that is passed to the fit method and not necessarily the dimensionality
+            of the raw input dataset as sometimes data transformation alters the
+            dimensionality of the dataset.
+        units_values: default [256, 256], A list or tuple of units.
+            For each value, a `GeneratorResidualBlock`
+            (`from teras.layers.ctgan import GeneratorResidualBlock`)
+            of that dimensionality (units) is added to the generator
+            to form the `hidden block` of the generator.
+        hidden_block: `layers.Layer` or `keras.Model`. If you want more control
+            over the hidden block than simply altering the units values,
+            you can create your own hidden block and pass it as argument.
+            In this case, you have full control of the hidden block.
+            Note that if you specify a hidden block, the `units_values` parameter
+            will be ignored.
+            If `None`, a hidden block is constructed with `GeneratorResidualBlock`
+            (`from teras.layers.ctgan import GeneratorResidualBlock`)
+            where the number and dimensionality of blocks is determined by the
+            `units_values` argument.
+        output_layer: `layers.Layer`. If you want full control over the
+            output_layer you can create your own custom layer and
+            pass it as argument.
+            By default, a simple `Dense` layer of `data_dim` dimensionality
+            with no activation is used as the output layer.
+        meta_data: `namedtuple`. The Generator in CTGAN architecture,
+            applies different activation functions to the output of Generator,
+            depending on the type of features.
+            And to determine the feature types and for other computation during
+            activation step, the `meta data` computed during the data transformation step,
+            is required.
+            It can be accessed through the `.get_meta_data()` method of the DataTransformer
+            instance which was used to transform the raw input data.
+            It must NOT be None.
     """
     def __init__(self,
-                 units_hidden: LIST_OR_TUPLE = [256, 256],
-                 data_dim: int = None,
+                 data_dim: int,
+                 units_values: LIST_OR_TUPLE = (256, 256),
+                 hidden_block: HIDDEN_BLOCK_TYPE = None,
+                 output_layer: keras.layers.Layer = None,
                  meta_data=None,
                  **kwargs):
         super().__init__(**kwargs)
-        if not isinstance(units_hidden, (list, tuple)):
-            raise ValueError("`units_hidden` must be a list or tuple of units "
-                             "which determines the number of Residual blocks "
-                             "and the dimensionality of the hidden layer in those blocks.")
-        self.units_hidden = units_hidden
+
+        if not isinstance(units_values, (list, tuple)):
+            raise ValueError(f"""`units_values` must be a list or tuple of units which determines
+                        the number of Generator residual blocks and the dimensionality of those blocks.
+                        But {units_values} was passed.""")
+
+        if hidden_block is not None and units_values is not None:
+            warn(f"A custom hidden block was specified, the `units_values` {units_values} "
+                 f"will be ignored.")
+
+        if meta_data is None:
+            raise ValueError(f"""`meta_data`, which is computed during the data transformation step,
+                    is required by the Generator to apply relevant activation functions to the 
+                    output of the Generator. But {meta_data} was passed.
+                    Please pass the meta data by accessing it through the `.get_meta_data()` method
+                    of the DataTransformer instance which was used to transform the raw input data.
+                    """)
+
         self.data_dim = data_dim
+        self.units_values = units_values
+        self.hidden_block = hidden_block
+        self.output_layer = output_layer
         self.meta_data = meta_data
-        self.hidden_block = models.Sequential(name="generator_hidden_block")
-        for units in units_hidden:
-            self.hidden_block.add(GeneratorResidualBlock(units))
+
+        if self.hidden_block is None:
+            self.hidden_block = models.Sequential(name="generator_hidden_block")
+            for units in self.units_values:
+                self.hidden_block.add(GeneratorResidualBlock(units))
+
+        if self.output_layer is None:
+            self.output_layer = layers.Dense(self.data_dim, name="generator_output_layer")
+
         self.gumbel_softmax = GumbelSoftmax()
-        self.dense_out = layers.Dense(self.data_dim)
 
-    def call(self, inputs):
-        # inputs have the shape |z| + |cond|
-        # while the outputs will have the shape of equal to (batch_size, transformed_data_dims)
+    def apply_activations_by_feature_type(self, interim_outputs):
+        """
+        This function applies activation functions to the interim outputs of
+        the Generator by feature type.
+        As CTGAN architecture requires specific transformations on the raw input data,
+        that decompose one feature in several features,
+        and since each type of feature, i.e. numerical or categorical require
+        different activation functions to be applied, the process of applying those
+        activations becomes rather tricky as it requires knowledge of underlying
+        data transformation and features meta data.
+        To ease the user's burden, in case a user wants to subclass this
+        Generator model and completely customize the inner workings of the generator
+        but would want to use the activation method specific to the CTGAN architecture,
+        so that the subclassed Generator can work seamlessly with the rest of the
+        architecture and there won't be any discrepancies in outputs produced by
+        the subclasses Generator and those expected by the architecture,
+        this function is separated, so user can just call this function on the interim
+        outputs in the `call` method.
+
+        Args:
+            interim_outputs: Outputs produced by the `output_layer` of the Generator.
+
+        Returns:
+            Final outputs activated by the relevant activation functions.
+        """
         outputs = []
-        interim_outputs = self.dense_out(self.hidden_block(inputs))
-
         numerical_features_relative_indices = self.meta_data.numerical.relative_indices_all
-
         features_relative_indices_all = self.meta_data.relative_indices_all
         num_valid_clusters_all = self.meta_data.numerical.num_valid_clusters_all
         cont_i = 0
@@ -84,6 +159,13 @@ class Generator(keras.Model):
         outputs = tf.concat(outputs, axis=1)
         return outputs
 
+    def call(self, inputs):
+        # inputs have the shape |z| + |cond|
+        # while the outputs will have the shape of equal to (batch_size, transformed_data_dims)
+        interim_outputs = self.output_layer(self.hidden_block(inputs))
+        outputs = self.apply_activations_by_feature_type(interim_outputs)
+        return outputs
+
 
 class Discriminator(keras.Model):
     """
@@ -95,11 +177,38 @@ class Discriminator(keras.Model):
         https://arxiv.org/abs/1907.00503
 
     Args:
-        units_hidden: default [256, 256], A list or tuple of integers.
-            For each value, a Discriminator block of that dimensionality (units)
-            is added to the discriminator.
-        packing_degree: The number of samples concatenated or "packed" together.
-            Defaults to 8.
+        units_values: default [256, 256], A list or tuple of units.
+            For each value, a `DiscriminatorBlock`
+            (`from teras.layers.ctgan import DiscriminatorBlock`)
+            of that dimensionality (units) is added to the discriminator
+            to form the `hidden block` of the discriminator.
+        hidden_block: `layers.Layer` or `keras.Model`. If you want more control
+            over the hidden block than simply altering the units values,
+            you can create your own hidden block and pass it as argument.
+            In this case, you have full control of the hidden block.
+            Note that if you specify a hidden block, the `units_values` parameter
+            will be ignored.
+            If `None`, a hidden block is constructed with `DiscriminatorBlock`
+            (`from teras.layers.ctgan import DiscriminatorBlock`)
+            where the number and dimensionality of blocks is determined by the
+            `units_values` argument.
+        output_layer: `layers.Layer`. If you want full control over the
+            output_layer you can create your own custom layer and
+            pass it as argument.
+            By default, a simple `Dense` layer of `1` dimensionality
+            with no activation is used as the output layer.
+        packing_degree: `int`, default 8, Packing degree - taken from the PacGAN paper.
+            The number of samples concatenated or "packed" together.
+            It must be a factor of the batch_size.
+            Packing degree is borrowed from the PacGAN [Diederik P. Kingma et al.] architecture,
+            which proposes passing `m` samples at once to discriminator instead of `1` to be
+            jointly classified as real or fake by the discriminator in order to tackle the
+            issue of mode collapse inherent in the GAN based architectures.
+            The number of samples passed jointly `m`, is termed as the `packing degree`.
+        gradient_penalty_lambda: default 10, Controls the strength of gradient penalty.
+                lambda value is directly proportional to the strength of gradient penalty.
+                Gradient penalty penalizes the discriminator for large weights in an attempt
+                to combat Discriminator becoming too confident and overfitting.
 
     Example:
         ```python
@@ -121,26 +230,41 @@ class Discriminator(keras.Model):
         ```
     """
     def __init__(self,
-                 units_hidden: LIST_OR_TUPLE = [256, 256],
+                 units_values: LIST_OR_TUPLE = (256, 256),
+                 hidden_block: HIDDEN_BLOCK_TYPE = None,
+                 output_layer: keras.layers.Layer = None,
                  packing_degree: int = 8,
+                 gradient_penalty_lambda=10,
                  **kwargs):
         super().__init__(**kwargs)
-        if not isinstance(units_hidden, (list, tuple)):
-            raise ValueError("`units_hidden` must be a list or tuple of units "
-                             "which determines the number of Discriminator blocks "
-                             "and the dimensionality of the hidden layer in those blocks.")
-        self.units_hidden = units_hidden
+
+        if not isinstance(units_values, (list, tuple)):
+            raise ValueError(f"""`units_values` must be a list or tuple of units which determines
+                        the number of Discriminator blocks and the dimensionality of those blocks.
+                        But {units_values} was passed""")
+
+        if hidden_block is not None and units_values is not None:
+            warn(f"A custom hidden block was specified, the `units_values` {units_values} "
+                 f"will be ignored.")
+
+        self.units_values = units_values
+        self.hidden_block = hidden_block
+        self.output_layer = output_layer
         self.packing_degree = packing_degree
-        self.hidden_block = models.Sequential(name="discriminator_hidden_block")
-        for units in self.units_hidden:
-            self.hidden_block.add(DiscriminatorBlock(units))
-        self.dense_out = layers.Dense(1)
+        self.gradient_penalty_lambda = gradient_penalty_lambda
+
+        if self.hidden_block is None:
+            self.hidden_block = models.Sequential(name="discriminator_hidden_block")
+            for units in self.units_values:
+                self.hidden_block.add(DiscriminatorBlock(units))
+
+        if self.output_layer is None:
+            self.output_layer = layers.Dense(1, name="discriminator_output_layer")
 
     @tf.function
     def gradient_penalty(self,
                          real_samples,
-                         generated_samples,
-                         lambda_=10):
+                         generated_samples):
         """
         Calculates the gradient penalty as proposed
         in the paper "Improved Training of Wasserstein GANs"
@@ -151,9 +275,6 @@ class Discriminator(keras.Model):
         Args:
             real_samples: Data samples drawn from the real dataset
             generated_samples: Data samples generated by the generator
-            lambda_: Controls the strength of gradient penalty.
-                lambda_ value is directly proportional to the strength
-                of gradient penalty.
 
         Returns:
             Gradient penalty computed for given values.
@@ -173,14 +294,14 @@ class Discriminator(keras.Model):
 
         # Calculating gradient penalty
         gradients_norm = tf.norm(gradients)
-        gradient_penalty = tf.reduce_mean(tf.square(gradients_norm - 1.0)) * lambda_
+        gradient_penalty = tf.reduce_mean(tf.square(gradients_norm - 1.0)) * self.gradient_penalty_lambda
         return gradient_penalty
 
     def call(self, inputs):
         inputs_dim = tf.shape(inputs)[1]
         inputs = tf.reshape(inputs, shape=(-1, self.packing_degree * inputs_dim))
         outputs = self.hidden_block(inputs)
-        outputs = self.dense_out(outputs)
+        outputs = self.output_layer(outputs)
         return outputs
 
 
@@ -221,30 +342,50 @@ class CTGAN(keras.Model):
         packing_degree: `int`, default 8, Packing degree - taken from the PacGAN paper.
             The number of samples concatenated or "packed" together.
             It must be a factor of the batch_size.
+            Packing degree is borrowed from the PacGAN [Diederik P. Kingma et al.] architecture,
+            which proposes passing `m` samples at once to discriminator instead of `1` to be
+            jointly classified as real or fake by the discriminator in order to tackle the
+            issue of mode collapse inherent in the GAN based architectures.
+            The number of samples passed jointly `m`, is termed as the `packing degree`.
+        meta_data: `namedtuple`. Simply pass the result of `.get_meta_data()`
+            method of the DataTransformer instance which was used to transform the raw input data.
+            The Generator in CTGAN architecture applies different activation functions
+            to the output of Generator, depending on the type of features.
+            And to determine the feature types and for other computation during
+            activation step, the `meta data` computed during the data transformation step,
+            is required.
+            It is also required during the computation of generator loss.
+            Hence, it cannot be None.
+            It can be accessed through the `.get_meta_data()` method of the DataTransformer
+            instance which was used to transform the raw input data.
     """
     def __init__(self,
                  generator: keras.Model = None,
                  discriminator: keras.Model = None,
                  num_discriminator_steps: int = 1,
                  data_dim: int = None,
-                 latent_dim: int =128,
+                 latent_dim: int = 128,
                  packing_degree=8,
+                 meta_data=None,
                  **kwargs):
         super().__init__(**kwargs)
+
+        if data_dim is None and (generator is None and discriminator is None):
+            raise ValueError(f"""`data_dim` is required to instantiate the Generator and Discriminator objects.
+                    But {data_dim} was passed.
+                    You can either pass the value for `data_dim` -- which can be accessed through `.data_dim`
+                    attribute of DataSampler instance if you don't know the data dimensions --
+                    or you can instantiate and pass your own Generator and Discriminator instances,
+                    in which case you can leave the `data_dim` parameter as None.""")
+
         self.generator = generator
         self.discriminator = discriminator
         self.num_discriminator_steps = num_discriminator_steps
         self.data_dim = data_dim
         self.latent_dim = latent_dim
         self.packing_degree = packing_degree
+        self.meta_data = meta_data
 
-        if self.data_dim is None and (self.generator is None and self.discriminator is None):
-            raise ValueError(f"""`data_dim` is required to instantiate the Generator and Discriminator objects.
-                    But {data_dim} was passed.
-                    Either pass the value for `data_dim` -- which can be accessed through `.data_dim`
-                    attribute of DataSampler instance if you don't know the data dimensions --
-                    or you can instantiate and pass your own Generator and Discriminator instances,
-                    in which case you can leave the `data_dim` parameter as None.""")
         # If user specifies a custom generator, we won't instantiate Generator.
         if self.generator is None:
             # Instantiate Generator
