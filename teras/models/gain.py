@@ -77,7 +77,7 @@ class Generator(keras.Model):
         # where `mask` has the same dimensions as data
         # so the inputs received are 2x the dimensions of `original data`
         outputs = self.hidden_block(inputs)
-        outputs = self.dense_out(outputs)
+        outputs = self.output_layer(outputs)
         return outputs
 
 
@@ -155,7 +155,7 @@ class Discriminator(keras.Model):
         # `hint` has the same dimensions as data
         # so the inputs received are 2x the dimensions of original data
         outputs = self.hidden_block(inputs)
-        outputs = self.dense_out(outputs)
+        outputs = self.output_layer(outputs)
         return outputs
 
 
