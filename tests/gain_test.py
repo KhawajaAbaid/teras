@@ -26,14 +26,13 @@ x_transformed = data_transformer.fit_transform(x_with_missing, return_dataframe=
 data_sampler = DataSampler()
 dataset = data_sampler.get_dataset(x_transformed)
 
-gain_imputer = GAIN(data_sampler=data_sampler,
-                    data_transformer=data_transformer)
+gain_imputer = GAIN(data_dim=data_sampler.data_dim)
 gain_imputer.compile()
 history = gain_imputer.fit(dataset, epochs=2)
 
 test_chunk = x_transformed[500:1000]
 # x_filled = gain_imputer.predict(x=test_chunk, )
 # x_filled = data_transformer.reverse_transform(x_filled)
-x_imputed = gain_imputer.impute(test_chunk)
+x_imputed = gain_imputer.impute(test_chunk, data_transformer=data_transformer)
 
 print(x_imputed.head())
