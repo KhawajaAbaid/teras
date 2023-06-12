@@ -78,7 +78,7 @@ from .vime import (MaskEstimator as VimeMaskEstimator,
 from .oenf import (PeriodicEmbedding)
 
 # CTGAN layers
-from .ctgan import (GeneratorResidualBlock as CTGANGeneratorResidualBlock,
+from .ctgan import (GeneratorBlock as CTGANGeneratorBlock,
                     DiscriminatorBlock as CTGANDiscriminatorBlock)
 
 # TVAE layers
