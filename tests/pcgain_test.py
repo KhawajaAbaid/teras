@@ -40,6 +40,7 @@ history = pcgain_imputer.fit(dataset, epochs=2)
 
 
 test_chunk = x_transformed[500:1000]
-x_filled = pcgain_imputer.predict(x=test_chunk)
-x_filled = data_transformer.reverse_transform(x_filled)
+# x_filled = pcgain_imputer.predict(x=test_chunk)
+# x_filled = data_transformer.reverse_transform(x_filled)
+x_filled = pcgain_imputer.impute(test_chunk, data_transformer=data_transformer)
 print(x_filled.head())
