@@ -499,7 +499,7 @@ class DataSampler:
                 self.generator,
                 output_signature=(tf.TensorSpec(shape=(self.batch_size, tf.shape(x_transformed)[1]), name="data_batch")
                                   ),
-                args=(tf.constant(True),),
+                args=[x_transformed, tf.constant(True)],
             )
         else:
             total_num_categories = self.meta_data.categorical.total_num_categories
