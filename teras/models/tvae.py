@@ -2,7 +2,7 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers, models, initializers
 from tensorflow.keras import backend as K
-from teras.preprocessing.ctgan import DataTransformer
+from teras.losses.tvae import elbo_loss_tvae
 from typing import Union, List, Tuple
 from tqdm import tqdm
 
