@@ -438,10 +438,11 @@ class DataSampler:
         https://github.com/sdv-dev/CTGAN/
 
     Args:
+        batch_size: `int`, default 512, Batch size to use for the dataset.
         categorical_features: List of categorical features names
         numerical_features: List of numerical features names
-        meta_data: Named tuple of features meta data computed during data transformation.
-            You can access that from the DataTransformer.meta_data
+        meta_data: Namedtuple of features meta data computed during data transformation.
+            You can access it from the `.get_meta_data()` of DataTransformer instance.
     """
     def __init__(self,
                  batch_size=512,
@@ -473,14 +474,13 @@ class DataSampler:
 
     def get_dataset(self,
                     x_transformed,
-                    x_original=None,
-                    for_tvae=False):
+                    x_original=None):
         """
         Args:
-                x_transformed: Dataset transformed using DataTransformer class
-                x_original: Original Dataset - a pandas DataFrame.
-                    It is used for computing categorical values' probabilities
-                    for later sampling.
+            x_transformed: Dataset transformed using DataTransformer class
+            x_original: Original Dataset - a pandas DataFrame.
+                It is used for computing categorical values' probabilities
+                for later sampling.
         Returns:
             Returns a tensorflow dataset that utilizes the sample_data method
             to create batches of data. This way user can just pass the dataset object to the fit
@@ -494,27 +494,19 @@ class DataSampler:
                                                           for values in feat.values()]
                                                          for feat in row_idx_raw])
 
-        if for_tvae:
-            dataset = tf.data.Dataset.from_generator(
-                self.generator,
-                output_signature=(tf.TensorSpec(shape=(self.batch_size, tf.shape(x_transformed)[1]), name="data_batch")
-                                  ),
-                args=[x_transformed, tf.constant(True)],
-            )
-        else:
-            total_num_categories = self.meta_data.categorical.total_num_categories
+        total_num_categories = self.meta_data.categorical.total_num_categories
 
-            dataset = tf.data.Dataset.from_generator(
-                self.generator,
-                output_signature=(tf.TensorSpec(shape=(self.batch_size, tf.shape(x_transformed)[1]),
-                                                name="real_samples"),
-                                  tf.TensorSpec(shape=(self.batch_size, total_num_categories),
-                                                dtype=tf.float32, name="cond_vectors_real"),
-                                  tf.TensorSpec(shape=(self.batch_size, total_num_categories),
-                                                dtype=tf.float32, name="cond_vectors"),
-                                  tf.TensorSpec(shape=(self.batch_size, len(self.categorical_features)),
-                                                dtype=tf.float32, name="mask")),
-                args=[x_transformed]
+        dataset = tf.data.Dataset.from_generator(
+            self.generator,
+            output_signature=(tf.TensorSpec(shape=(self.batch_size, tf.shape(x_transformed)[1]),
+                                            name="real_samples"),
+                              tf.TensorSpec(shape=(self.batch_size, total_num_categories),
+                                            dtype=tf.float32, name="cond_vectors_real"),
+                              tf.TensorSpec(shape=(self.batch_size, total_num_categories),
+                                            dtype=tf.float32, name="cond_vectors"),
+                              tf.TensorSpec(shape=(self.batch_size, len(self.categorical_features)),
+                                            dtype=tf.float32, name="mask")),
+            args=[x_transformed]
             )
         return dataset
 
@@ -593,7 +585,7 @@ class DataSampler:
         """
         Used to create a tensorflow dataset.
         Returns:
-            A batch of data, shuffled_idx
+            A batch of data
         """
         # This random_feature_indices variable is required during the sample_cond vector method
         # but since we're using sample_data function to create out tensorflow dataset, this
@@ -628,24 +620,18 @@ class DataSampler:
                                         n_samples=1)
                 sample_idx.append(tf.squeeze(s_id))
 
-            # IN THE CASE OF CTGAN, we return all the extra things
-            if not for_tvae:
-                # we also return shuffled_idx because it will be required to shuffle the conditional vector
-                # in the training loop as we want to keep the shuffling consistent as the batch of
-                # transformed data and cond vector must have one to one feature correspondence.
-                # yield x_transformed[sample_idx], shuffled_idx, random_features_idx, random_values_idx
+            # we also return shuffled_idx because it will be required to shuffle the conditional vector
+            # in the training loop as we want to keep the shuffling consistent as the batch of
+            # transformed data and cond vector must have one to one feature correspondence.
+            # yield x_transformed[sample_idx], shuffled_idx, random_features_idx, random_values_idx
 
-                # `cond_vectors` will be first concatenated with the noise
-                # vector `z` to create generator input and then will be concatenated
-                # with the generated samples to serve as input for discriminator
-                cond_vectors, mask = self.sample_cond_vectors_for_training(random_features_idx=random_features_idx,
-                                                                          random_values_idx=random_values_idx)
-                # `cond_vectors_real` will be concatenated with the real_samples
-                # and passed to the discriminator
-                cond_vectors_real = tf.gather(cond_vectors, indices=shuffled_idx)
-                real_samples = x_transformed[sample_idx]
-                yield real_samples, cond_vectors_real, cond_vectors, mask
-
-            # otherwise, i.e. in the case of TVAE, we just return the batch of data
-            else:
-                yield x_transformed[sample_idx]
+            # `cond_vectors` will be first concatenated with the noise
+            # vector `z` to create generator input and then will be concatenated
+            # with the generated samples to serve as input for discriminator
+            cond_vectors, mask = self.sample_cond_vectors_for_training(random_features_idx=random_features_idx,
+                                                                      random_values_idx=random_values_idx)
+            # `cond_vectors_real` will be concatenated with the real_samples
+            # and passed to the discriminator
+            cond_vectors_real = tf.gather(cond_vectors, indices=shuffled_idx)
+            real_samples = x_transformed[sample_idx]
+            yield real_samples, cond_vectors_real, cond_vectors, mask
