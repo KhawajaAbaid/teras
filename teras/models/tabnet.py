@@ -45,7 +45,7 @@ class TabNet(keras.Model):
         self.virtual_batch_size = virtual_batch_size
         self.epsilon = epsilon
 
-        self.encoder = TabNetEncoder(units=self.feature_transformer_dim,
+        self.encoder = TabNetEncoder(feature_transformer_dim=self.feature_transformer_dim,
                                      decision_step_output_dim=self.decision_step_output_dim,
                                      num_decision_steps=self.num_decision_steps,
                                      relaxation_factor=self.relaxation_factor,
