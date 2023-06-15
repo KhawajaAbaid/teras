@@ -28,12 +28,12 @@ class TabNet(keras.Model):
         epsilon: Epsilon is a small number for numerical stability.
     """
     def __init__(self,
-                 feature_transformer_dim=64,
-                 decision_step_output_dim: int = 64,
+                 feature_transformer_dim: int = 32,
+                 decision_step_output_dim: int = 32,
                  num_decision_steps: int = 5,
                  relaxation_factor=1.5,
                  batch_momentum=0.7,
-                 virtual_batch_size: int = 128,
+                 virtual_batch_size: int = 16,
                  epsilon=1e-5,
                  **kwargs):
         super().__init__(**kwargs)
@@ -82,12 +82,12 @@ class TabNetClassifier(TabNet):
     """
     def __init__(self,
                  num_classes=2,
-                 feature_transformer_dim=64,
-                 decision_step_output_dim: int = 64,
+                 feature_transformer_dim=32,
+                 decision_step_output_dim: int = 32,
                  num_decision_steps: int = 5,
                  relaxation_factor=1.5,
                  batch_momentum=0.7,
-                 virtual_batch_size: int = 128,
+                 virtual_batch_size: int = 16,
                  epsilon=1e-5,
                  **kwargs):
         super().__init__(feature_transformer_dim=feature_transformer_dim,
@@ -130,13 +130,13 @@ class TabNetRegressor(TabNet):
         epsilon: Epsilon is a small number for numerical stability.
     """
     def __init__(self,
-                 num_outputs=1,
-                 feature_transformer_dim=64,
-                 decision_step_output_dim: int = 64,
+                 num_outputs: int = 1,
+                 feature_transformer_dim: int = 32,
+                 decision_step_output_dim: int = 32,
                  num_decision_steps: int = 5,
                  relaxation_factor=1.5,
                  batch_momentum=0.7,
-                 virtual_batch_size: int = 128,
+                 virtual_batch_size: int = 16,
                  epsilon=1e-5,
                  **kwargs):
         super().__init__(feature_transformer_dim=feature_transformer_dim,
