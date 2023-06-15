@@ -186,7 +186,7 @@ class Encoder(layers.Layer):
     def call(self, inputs):
         batch_size = tf.shape(inputs)[0]
         # Initializes decision-step dependent variables
-        outputs_aggregated = tf.zeros(shape=tf.shape(inputs))
+        outputs_aggregated = tf.zeros(shape=(batch_size, self.decision_step_output_dim))
         mask_values = tf.zeros(shape=tf.shape(inputs))
         # Aggregated mask values are used for explaining feature importance
         # Here we'll refer to them as feature_importances_per_sample since
@@ -257,4 +257,4 @@ class Encoder(layers.Layer):
         # Add entropy loss
         self.add_loss(entropy_loss)
 
-        return self.output_aggregated
+        return outputs_aggregated
