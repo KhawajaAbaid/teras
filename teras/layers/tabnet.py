@@ -86,7 +86,7 @@ class FeatureTransformerBlock(layers.Layer):
     """
     def __init__(self,
                  units: int,
-                 batch_momentum: flaot = 0.9,
+                 batch_momentum: float = 0.9,
                  virtual_batch_size: int = 64,
                  residual_normalization_factor: float = 0.5,
                  use_residual_normalization: bool = True,
