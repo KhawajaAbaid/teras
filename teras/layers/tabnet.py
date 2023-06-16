@@ -6,7 +6,7 @@ from teras.layers import GLU
 # from teras.activations import glu
 
 
-class AttentiveTransformer(keras.layers.Layer):
+class AttentiveTransformer(layers.Layer):
     """
     Attentive Transformer layer for mask generation
     as proposed by Sercan et al. in TabNet paper.
@@ -17,13 +17,23 @@ class AttentiveTransformer(keras.layers.Layer):
         https://arxiv.org/abs/1908.07442
 
     Args:
-        TODO
+        num_features: `int`, Number of features in the input dataset.
+        batch_momentum: `float`, default 0.9, Momentum value to use for BatchNormalization layer.
+        virtual_batch_size: `int`, default 64, Batch size to use for `virtual_batch_size`
+            parameter in BatchNormalization layer.
+        relaxation_factor: `float`, default 1.5, Relaxation factor that promotes the reuse of each
+            feature at different decision steps. When it is 1, a feature is enforced
+            to be used only at one decision step and as it increases, more
+            flexibility is provided to use a feature at multiple decision steps.
+            An optimal value of relaxation_factor can have a major role on the performance.
+            Typically, a larger value for `num_decision_steps` favors for a larger `relaxation_factor`.
+
     """
     def __init__(self,
                  num_features,
-                 batch_momentum=0.9,
-                 virtual_batch_size: int = None,
-                 relaxation_factor=None,
+                 batch_momentum: float = 0.9,
+                 virtual_batch_size: int = 64,
+                 relaxation_factor: float = 1.5,
                  **kwargs):
         super().__init__(**kwargs)
         self.num_features = num_features
@@ -31,9 +41,9 @@ class AttentiveTransformer(keras.layers.Layer):
         self.virtual_batch_size = virtual_batch_size
         self.relaxation_factor = relaxation_factor
 
-        self.dense = keras.layers.Dense(self.num_features, use_bias=False)
-        self.batch_norm = keras.layers.BatchNormalization(momentum=batch_momentum,
-                                                          virtual_batch_size=self.virtual_batch_size)
+        self.dense = layers.Dense(self.num_features, use_bias=False)
+        self.batch_norm = layers.BatchNormalization(momentum=batch_momentum,
+                                                    virtual_batch_size=self.virtual_batch_size)
 
     def call(self, inputs, prior_scales=None):
         # We need the batch_size and inputs_dimensions to initialize prior scale,
@@ -56,37 +66,43 @@ class FeatureTransformerBlock(layers.Layer):
         https://arxiv.org/abs/1908.07442
 
     Args:
-        units: Number of hidden units to use in Fully Connected (Dense) layer
-        batch_momentum: Momentum value to use for BatchNormalization layer
-        virtual_batch_size: Batch size to use for virtual_batch_size parameter in BatchNormalization layer
-        use_residual_normalization
+        units: `int`, default 32, the dimensionality of the hidden
+            representation in feature transformation block.
+            Each layer first maps the representation to a `2 * feature_transformer_dim`
+            output and half of it is used to determine the
+            non-linearity of the GLU activation where the other half is used as an
+            input to GLU, and eventually `feature_transformer_dim` output is
+            transferred to the next layer.        batch_momentum: Momentum value to use for BatchNormalization layer
+        batch_momentum: `float`, default 0.9, Momentum value to use for BatchNormalization layer.
+        virtual_batch_size: `int`, default 64, Batch size to use for `virtual_batch_size`
+            parameter in BatchNormalization layer.
+            This is typically much smaller than the `batch_size` used for training.
+        residual_normalization_factor: `float`, default 0.5, In the feature transformer, except for the
+            layer, every other layer utilizes normalized residuals, where `residual_normalization_factor`
+            determines the scale of normalization.
+        use_residual_normalization: `bool`, default True, Whether to use residual normalization.
+            According to the default architecture, every layer uses residual normalization EXCEPT
+            for the very first layer.
     """
     def __init__(self,
-                 units,
-                 batch_momentum=0.9,
-                 virtual_batch_size=None,
+                 units: int,
+                 batch_momentum: flaot = 0.9,
+                 virtual_batch_size: int = 64,
+                 residual_normalization_factor: float = 0.5,
                  use_residual_normalization: bool = True,
-                 residual_normalization_factor=0.5,
                  **kwargs):
         super().__init__(**kwargs)
-        # The official implementation says,
-        # feature_dimensionality (here `units`) is the dimensionality of the hidden representation in feature
-        # transformation block. In which, each layer first maps the representation to a
-        # 2*feature_dim-dimensional output and half of it is used to determine the
-        # non-linearity of the GLU activation where the other half is used as an
-        # input to GLU, and eventually feature_dim-dimensional output is
-        # transferred to the next layer.
         self.units = units
         self.batch_momentum = batch_momentum
         self.virtual_batch_size = virtual_batch_size
         self.use_residual_normalization = use_residual_normalization
         self.residual_normalization_factor = residual_normalization_factor
-        self.dense = keras.layers.Dense(self.units * 2, use_bias=False)
-        self.norm = keras.layers.BatchNormalization(momentum=self.batch_momentum,
-                                                    virtual_batch_size=virtual_batch_size)
+        self.dense = layers.Dense(self.units * 2, use_bias=False)
+        self.norm = layers.BatchNormalization(momentum=self.batch_momentum,
+                                              virtual_batch_size=virtual_batch_size)
 
         self.glu = GLU(self.units)
-        self.add = keras.layers.Add()
+        self.add = layers.Add()
 
     def call(self, inputs):
         x = self.dense(inputs)
@@ -100,27 +116,48 @@ class FeatureTransformerBlock(layers.Layer):
 class FeatureTransformer(layers.Layer):
     """
     Feature Transformer as proposed by Sercan et al. in TabNet paper.
+    It is made up of FeatureTransformerBlock building blocks.
 
     Reference(s):
         https://arxiv.org/abs/1908.07442
 
     Args:
-        units: Number of hidden units to use in Fully Connected (Dense) layer
-        batch_momentum: Momentum value to use for BatchNormalization layer
-        virtual_batch_size: Batch size to use for virtual_batch_size parameter in BatchNormalization layer
+        units: `int`, default 32, the dimensionality of the hidden
+            representation in feature transformation block.
+            Each layer first maps the representation to a `2 * feature_transformer_dim`
+            output and half of it is used to determine the
+            non-linearity of the GLU activation where the other half is used as an
+            input to GLU, and eventually `feature_transformer_dim` output is
+            transferred to the next layer.
+        num_shared_layers: `int`, default 2. Number of shared layers to use in the Feature Transformer.
+            These shared layers are `shared` across decision steps.
+        num_decision_dependent_layers: `int`, default 2. Number of decision dependent layers to use in
+            the Feature Transformer. In simple words, `num_decision_dependent_layers` are created
+            for each decision step in the `num_decision_steps`.
+            For instance, if `num_decision_steps = 5` and  `num_decision_dependent_layers = 2`
+            then 10 layers will be created, 2 for each decision step.
+        batch_momentum: `float`, default 0.9, Momentum value to use for BatchNormalization layer.
+        virtual_batch_size: `int`, default 64, Batch size to use for `virtual_batch_size`
+            parameter in BatchNormalization layer.
+            This is typically much smaller than the `batch_size` used for training.
+        residual_normalization_factor: `float`, default 0.5, In the feature transformer, except for the
+            layer, every other layer utilizes normalized residuals, where `residual_normalization_factor`
+            determines the scale of normalization.
     """
     shared_layers = None
+
     def __init__(self,
                  units,
                  num_shared_layers: int = 2,
                  num_decision_dependent_layers: int = 2,
-                 batch_momentum=0.9,
-                 virtual_batch_size=None,
+                 batch_momentum: float = 0.9,
+                 virtual_batch_size: int = 64,
                  residual_normalization_factor=0.5,
                  **kwargs):
 
         if num_shared_layers == 0 and num_decision_dependent_layers == 0:
-            raise ValueError("You both can't be zero (TODO add more specific error msg)")
+            raise ValueError("Feature Transformer requires at least one of either shared or decision depenedent layers."
+                             " But both `num_shared_layers` and `num_decision_dependent_layers` were passed a 0 value.")
 
         super().__init__(**kwargs)
         self.units = units
@@ -155,12 +192,12 @@ class FeatureTransformer(layers.Layer):
                 else:
                     use_residual_normalization = True
                 decision_dependent_layers.add(FeatureTransformerBlock(
-                                                units=self.units,
-                                                batch_momentum=self.batch_momentum,
-                                                virtual_batch_size=self.virtual_batch_size,
-                                                use_residual_normalization=use_residual_normalization,
-                                                name=f"decision_dependent_layer_{j}")
-                                                )
+                    units=self.units,
+                    batch_momentum=self.batch_momentum,
+                    virtual_batch_size=self.virtual_batch_size,
+                    use_residual_normalization=use_residual_normalization,
+                    name=f"decision_dependent_layer_{j}")
+                )
 
             self.inner_block.add(decision_dependent_layers)
 
@@ -198,24 +235,56 @@ class Encoder(layers.Layer):
         https://arxiv.org/abs/1908.07442
 
     Args:
-        units: Number of hidden units to use in Fully Connected (Dense) layer
-        output_dim: Output dimensionality for the decision step
-        relaxation_factor: When = 1, a feature is enforced to be used only at one decision step
-                        and as it increases, more flexibility is provided to use a feature at multiple decision steps.
-        batch_momentum: Momentum value to use for BatchNormalization layer
-        virtual_batch_size: Batch size to use for virtual_batch_size parameter in BatchNormalization layer
-        epsilon: Epsilon is a small number for numerical stability.
+        feature_transformer_dim: `int`, default 32, the dimensionality of the hidden
+            representation in feature transformation block.
+            Each layer first maps the representation to a `2 * feature_transformer_dim`
+            output and half of it is used to determine the
+            non-linearity of the GLU activation where the other half is used as an
+            input to GLU, and eventually `feature_transformer_dim` output is
+            transferred to the next layer.
+        decision_step_output_dim: `int`, default 32, the dimensionality of output at each
+            decision step, which is later mapped to the final classification or regression output.
+            It is recommended to keep `decision_step_output_dim` and `feature_transformer_dim`
+            equal to each other.
+            Adjusting these two parameters values is a good way of obtaining a tradeoff between
+            performance and complexity.
+        num_decision_steps: `int`, default 5, the number of sequential decision steps.
+            For most datasets a value in the range [3, 10] is optimal.
+            If there are more informative features in the dataset, the value tends to
+            be higher. That said, a very high value of `num_decision_steps` may suffer
+            from overfitting.
+        num_shared_layers: `int`, default 2. Number of shared layers to use in the Feature Transformer.
+            These shared layers are `shared` across decision steps.
+        num_decision_dependent_layers: `int`, default 2. Number of decision dependent layers to use in
+            the Feature Transformer. In simple words, `num_decision_dependent_layers` are created
+            for each decision step in the `num_decision_steps`.
+            For instance, if `num_decision_steps = 5` and  `num_decision_dependent_layers = 2`
+            then 10 layers will be created, 2 for each decision step.
+        relaxation_factor: `float`, default 1.5, Relaxation factor that promotes the reuse of each
+            feature at different decision steps. When it is 1, a feature is enforced
+            to be used only at one decision step and as it increases, more
+            flexibility is provided to use a feature at multiple decision steps.
+            An optimal value of relaxation_factor can have a major role on the performance.
+            Typically, a larger value for `num_decision_steps` favors for a larger `relaxation_factor`.
+        batch_momentum: `float`, default 0.9, Momentum value to use for BatchNormalization layer.
+        virtual_batch_size: `int`, default 64, Batch size to use for `virtual_batch_size`
+            parameter in BatchNormalization layer.
+            This is typically much smaller than the `batch_size` used for training.
+        residual_normalization_factor: `float`, default 0.5, In the feature transformer, except for the
+            layer, every other layer utilizes normalized residuals, where `residual_normalization_factor`
+            determines the scale of normalization.
+        epsilon: `float`, default 0.00001, Epsilon is a small number for numerical stability
+            during the computation of entropy loss.
     """
-
     def __init__(self,
                  feature_transformer_dim: int = 32,
                  decision_step_output_dim: int = 32,
+                 num_decision_steps: int = 5,
                  num_shared_layers: int = 2,
                  num_decision_dependent_layers: int = 2,
-                 num_decision_steps: int = 5,
-                 relaxation_factor=1.5,
-                 batch_momentum=0.7,
-                 virtual_batch_size: int = 16,
+                 relaxation_factor: float = 1.5,
+                 batch_momentum: float = 0.9,
+                 virtual_batch_size: int = 64,
                  epsilon=1e-5,
                  **kwargs):
         super().__init__(**kwargs)
@@ -229,21 +298,21 @@ class Encoder(layers.Layer):
         self.virtual_batch_size = virtual_batch_size
         self.epsilon = epsilon
 
-        self.inputs_norm = keras.layers.BatchNormalization(momentum=self.batch_momentum)
+        self.inputs_norm = layers.BatchNormalization(momentum=batch_momentum)
 
         self.features_transformers_per_step = [FeatureTransformer(
-                                            units=self.feature_transformer_dim,
-                                            num_shared_layers=self.num_shared_layers,
-                                            num_decision_dependent_layers=self.num_decision_dependent_layers,
-                                            batch_momentum=self.batch_momentum,
-                                            virtual_batch_size=self.virtual_batch_size,
-                                            name=f"step_{i}_feature_transformer"
-                                        )
-                                        for i in range(self.num_decision_steps)
-                                    ]
+            units=self.feature_transformer_dim,
+            num_shared_layers=self.num_shared_layers,
+            num_decision_dependent_layers=self.num_decision_dependent_layers,
+            batch_momentum=self.batch_momentum,
+            virtual_batch_size=self.virtual_batch_size,
+            name=f"step_{i}_feature_transformer"
+        )
+            for i in range(self.num_decision_steps)
+        ]
 
         self.feature_importances_per_sample = []
-        self.relu = keras.layers.ReLU()
+        self.relu = layers.ReLU()
 
     def build(self, input_shape):
         # Number of features or number of columns is equivalent to the input_dimension i.e. the last dimension
