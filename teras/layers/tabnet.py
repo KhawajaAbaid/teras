@@ -151,7 +151,7 @@ class FeatureTransformer(layers.Layer):
                  num_decision_dependent_layers: int = 2,
                  batch_momentum: float = 0.9,
                  virtual_batch_size: int = 64,
-                 residual_normalization_factor=0.5,
+                 residual_normalization_factor: float = 0.5,
                  **kwargs):
 
         if num_shared_layers == 0 and num_decision_dependent_layers == 0:
@@ -284,6 +284,7 @@ class Encoder(layers.Layer):
                  relaxation_factor: float = 1.5,
                  batch_momentum: float = 0.9,
                  virtual_batch_size: int = 64,
+                 residual_normalization_factor: float = 0.5,
                  epsilon=1e-5,
                  **kwargs):
         super().__init__(**kwargs)
@@ -295,6 +296,7 @@ class Encoder(layers.Layer):
         self.relaxation_factor = relaxation_factor
         self.batch_momentum = batch_momentum
         self.virtual_batch_size = virtual_batch_size
+        self.residual_normalization_factor = residual_normalization_factor
         self.epsilon = epsilon
 
         self.inputs_norm = layers.BatchNormalization(momentum=batch_momentum)
@@ -305,6 +307,7 @@ class Encoder(layers.Layer):
             num_decision_dependent_layers=self.num_decision_dependent_layers,
             batch_momentum=self.batch_momentum,
             virtual_batch_size=self.virtual_batch_size,
+            residual_normalization_factor=self.residual_normalization_factor,
             name=f"step_{i}_feature_transformer"
         )
             for i in range(self.num_decision_steps)
