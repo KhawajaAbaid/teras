@@ -3,7 +3,6 @@ from tensorflow import keras
 from tensorflow.keras import layers, models
 import tensorflow_addons as tfa
 from teras.layers import GLU
-# from teras.activations import glu
 
 
 class AttentiveTransformer(layers.Layer):
