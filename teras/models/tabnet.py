@@ -96,6 +96,50 @@ class TabNet(keras.Model):
                                      residual_normalization_factor=self.residual_normalization_factor,
                                      epsilon=self.epsilon)
 
+        self.is_pretrained = False
+        self.pretrainer = None
+
+    def pretrain(self,
+                 pretraining_dataset,
+                 missing_feature_probability: float = 0.3,
+                 pretraining_epochs: int = 10):
+        """
+
+        Args:
+            pretraining_dataset: Dataset used for pretraining. It doesn't have to be labeled.
+            missing_feature_probability: Missing features are introduced in the pretraining
+                dataset and the probability of missing features is controlled by the parameter.
+                The pretraining objective is to predict values for these missing features,
+                (pre)training the encoder in process.
+            pretraining_epochs: `int`, default 10, Number of epochs to pretrain the model for.
+            fit_kwargs: Any other keyword arguments taken by the `fit` method of a Keras model.
+        """
+
+        dim = tf.shape(pretraining_dataset)[1]
+        pretrainer = TabNetPretrainer(data_dim=dim,
+                                           missing_feature_probability=missing_feature_probability,
+
+                                           encoder_feature_transformer_dim=self.feature_transformer_dim,
+                                           encoder_decision_step_output_dim=self.decision_step_output_dim,
+                                           encoder_num_decision_steps=self.num_decision_steps,
+                                           encoder_num_shared_layers=self.num_shared_layers,
+                                           encoder_num_decision_dependent_layers=self.num_decision_dependent_layers,
+
+                                           decoder_feature_transformer_dim=self.feature_transformer_dim,
+                                           decoder_decision_step_output_dim=self.decision_step_output_dim,
+                                           decoder_num_decision_steps=self.num_decision_steps,
+                                           decoder_num_shared_layers=self.num_shared_layers,
+                                           decoder_num_decision_dependent_layers= self.num_decision_dependent_layers,
+
+                                           virtual_batch_size=self.virtual_batch_size,
+                                           batch_momentum=self.batch_momentum,
+                                           residual_normalization_factor=self.residual_normalization_factor)
+        pretrainer.compile()
+        pretrainer.fit(pretraining_dataset, epochs=pretraining_epochs)
+        self.is_pretrained = True
+        self.encoder = pretrainer.get_encoder()
+
+
     def call(self, inputs):
         outputs = self.encoder(inputs)
         return outputs
@@ -279,37 +323,38 @@ class TabNetPretrainer(keras.Model):
 
     Args:
         data_dim: `int`, Dimensionality of the input dataset.
-        feature_transformer_dim: `int`, default 32, the dimensionality of the hidden
+        encoder_feature_transformer_dim: `int`, default 32, the dimensionality of the hidden
             representation in feature transformation block.
             Each layer first maps the representation to a `2 * feature_transformer_dim`
             output and half of it is used to determine the
             non-linearity of the GLU activation where the other half is used as an
             input to GLU, and eventually `feature_transformer_dim` output is
             transferred to the next layer.
-        decision_step_output_dim: `int`, default 32, the dimensionality of output at each
+        encoder_decision_step_output_dim: `int`, default 32, the dimensionality of output at each
             decision step, which is later mapped to the final classification or regression output.
             It is recommended to keep `decision_step_output_dim` and `feature_transformer_dim`
             equal to each other.
             Adjusting these two parameters values is a good way of obtaining a tradeoff between
             performance and complexity.
-        num_decision_steps: `int`, default 5, the number of sequential decision steps.
+        encoder_num_decision_steps: `int`, default 5, the number of sequential decision steps.
             For most datasets a value in the range [3, 10] is optimal.
             If there are more informative features in the dataset, the value tends to
             be higher. That said, a very high value of `num_decision_steps` may suffer
             from overfitting.
-        num_shared_layers: `int`, default 2. Number of shared layers to use in the Feature Transformer.
+        encoder_num_shared_layers: `int`, default 2. Number of shared layers to use in the Feature Transformer.
             These shared layers are `shared` across decision steps.
-        num_decision_dependent_layers: `int`, default 2. Number of decision dependent layers to use in
+        encoder_num_decision_dependent_layers: `int`, default 2. Number of decision dependent layers to use in
             the Feature Transformer. In simple words, `num_decision_dependent_layers` are created
             for each decision step in the `num_decision_steps`.
             For instance, if `num_decision_steps = 5` and  `num_decision_dependent_layers = 2`
             then 10 layers will be created, 2 for each decision step.
-        relaxation_factor: `float`, default 1.5, Relaxation factor that promotes the reuse of each
-            feature at different decision steps. When it is 1, a feature is enforced
-            to be used only at one decision step and as it increases, more
-            flexibility is provided to use a feature at multiple decision steps.
-            An optimal value of relaxation_factor can have a major role on the performance.
-            Typically, a larger value for `num_decision_steps` favors for a larger `relaxation_factor`.
+
+        decoder_feature_transformer_dim: Feature transformer dimensions for decoder.
+        decoder_decision_step_output_dim: Decision step output dimensions for decoder.
+        decoder_num_decision_steps: Number of decision steps to use in decoder.
+        decoder_num_shared_layers: Number of shared layers in feature transformer in decoder.
+        decoder_num_decision_dependent_layers: Number of decision dependent layers in feature transformer in decoder.
+
         batch_momentum: `float`, default 0.9, Momentum value to use for BatchNormalization layer.
         virtual_batch_size: `int`, default 64, Batch size to use for `virtual_batch_size`
             parameter in BatchNormalization layer.
@@ -317,18 +362,32 @@ class TabNetPretrainer(keras.Model):
         residual_normalization_factor: `float`, default 0.5, In the feature transformer, except for the
             layer, every other layer utilizes normalized residuals, where `residual_normalization_factor`
             determines the scale of normalization.
+        relaxation_factor: `float`, default 1.5, Relaxation factor that promotes the reuse of each
+            feature at different decision steps. When it is 1, a feature is enforced
+            to be used only at one decision step and as it increases, more
+            flexibility is provided to use a feature at multiple decision steps.
+            An optimal value of relaxation_factor can have a major role on the performance.
+            Typically, a larger value for `num_decision_steps` favors for a larger `relaxation_factor`.
         epsilon: `float`, default 0.00001, Epsilon is a small number for numerical stability
             during the computation of entropy loss.
     """
 
     def __init__(self,
                  data_dim: int,
-                 miss_probability: float = 0.3,
-                 feature_transformer_dim: int = 32,
-                 decision_step_output_dim: int = 32,
-                 num_decision_steps: int = 5,
-                 num_shared_layers: int = 2,
-                 num_decision_dependent_layers: int = 2,
+                 missing_feature_probability: float = 0.3,
+
+                 encoder_feature_transformer_dim: int = 32,
+                 encoder_decision_step_output_dim: int = 32,
+                 encoder_num_decision_steps: int = 5,
+                 encoder_num_shared_layers: int = 2,
+                 encoder_num_decision_dependent_layers: int = 2,
+
+                 decoder_feature_transformer_dim: int = 32,
+                 decoder_decision_step_output_dim: int = 32,
+                 decoder_num_decision_steps: int = 5,
+                 decoder_num_shared_layers: int = 2,
+                 decoder_num_decision_dependent_layers: int = 2,
+
                  relaxation_factor: float = 1.5,
                  batch_momentum: float = 0.9,
                  virtual_batch_size: int = 64,
@@ -337,12 +396,20 @@ class TabNetPretrainer(keras.Model):
                  **kwargs):
         super().__init__(**kwargs)
         self.data_dim = data_dim
-        self.miss_probability = miss_probability
-        self.feature_transformer_dim = feature_transformer_dim
-        self.decision_step_output_dim = decision_step_output_dim
-        self.num_decision_steps = num_decision_steps
-        self.num_shared_layers = num_shared_layers
-        self.num_decision_dependent_layers = num_decision_dependent_layers
+        self.missing_feature_probability = missing_feature_probability
+
+        self.encoder_feature_transformer_dim = encoder_feature_transformer_dim
+        self.encoder_decision_step_output_dim = encoder_decision_step_output_dim
+        self.encoder_num_decision_steps = encoder_num_decision_steps
+        self.encoder_num_shared_layers = encoder_num_shared_layers
+        self.encoder_num_decision_dependent_layers = encoder_num_decision_dependent_layers
+
+        self.decoder_feature_transformer_dim = decoder_feature_transformer_dim
+        self.decoder_decision_step_output_dim = decoder_decision_step_output_dim
+        self.decoder_num_decision_steps = decoder_num_decision_steps
+        self.decoder_num_shared_layers = decoder_num_shared_layers
+        self.decoder_num_decision_dependent_layers = decoder_num_decision_dependent_layers
+
         self.relaxation_factor = relaxation_factor
         self.batch_momentum = batch_momentum
         self.virtual_batch_size = virtual_batch_size
@@ -350,14 +417,14 @@ class TabNetPretrainer(keras.Model):
         self.epsilon = epsilon
 
         self.binary_mask_generator = tfp.distributions.Binomial(total_count=1,
-                                                                probability=self.miss_probability,
+                                                                probs=self.missing_feature_probability,
                                                                 name="binary_mask_generator")
 
-        self.encoder = TabNetEncoder(feature_transformer_dim=self.feature_transformer_dim,
-                                     decision_step_output_dim=self.decision_step_output_dim,
-                                     num_decision_steps=self.num_decision_steps,
-                                     num_shared_layers=self.num_shared_layers,
-                                     num_decision_dependent_layers=self.num_decision_dependent_layers,
+        self.encoder = TabNetEncoder(feature_transformer_dim=self.encoder_feature_transformer_dim,
+                                     decision_step_output_dim=self.encoder_decision_step_output_dim,
+                                     num_decision_steps=self.encoder_num_decision_steps,
+                                     num_shared_layers=self.encoder_num_shared_layers,
+                                     num_decision_dependent_layers=self.encoder_num_decision_dependent_layers,
                                      relaxation_factor=self.relaxation_factor,
                                      batch_momentum=self.batch_momentum,
                                      virtual_batch_size=self.virtual_batch_size,
@@ -365,38 +432,61 @@ class TabNetPretrainer(keras.Model):
                                      epsilon=self.epsilon)
 
         self.decoder = Decoder(data_dim=self.data_dim,
-                               feature_transformer_dim=self.feature_transformer_dim,
-                               decision_step_output_dim=self.decision_step_output_dim,
-                               num_decision_steps=self.num_decision_steps,
-                               num_shared_layers=self.num_shared_layers,
-                               num_decision_dependent_layers=self.num_decision_dependent_layers,
+                               feature_transformer_dim=self.decoder_feature_transformer_dim,
+                               decision_step_output_dim=self.decoder_decision_step_output_dim,
+                               num_decision_steps=self.decoder_num_decision_steps,
+                               num_shared_layers=self.decoder_num_shared_layers,
+                               num_decision_dependent_layers=self.decoder_num_decision_dependent_layers,
                                batch_momentum=self.batch_momentum,
                                virtual_batch_size=self.virtual_batch_size,
                                residual_normalization_factor=self.residual_normalization_factor,
                                )
 
+        self._reconstruction_loss_tracker = keras.metrics.Mean(name="reconstruction_loss")
+
+    def get_encoder(self):
+        return self.encoder
+
     def compile(self,
-                reconstruction_loss=reconstruction_loss,
+                loss=reconstruction_loss,
+                optimizer=keras.optimizers.Adam(),
                 **kwargs):
         super().compile(**kwargs)
-        self.reconstruction_loss = reconstruction_loss
+        self.reconstruction_loss = loss
+        self.optimizer = optimizer
 
-    def call(self, inputs):
-        batch_size = tf.shape(inputs)[0]
+    def call(self, inputs, mask=None):
         # this mask below is what `S` means in the paper, where if an index contains
         # value 1, it means that it is missing
-        mask = self.binary_mask_generator(shape=(batch_size, self.data_dim))
         encoder_input = (1 - mask) * inputs
         # The paper says,
-        # The TabNet encoder inputs (1 − S) · f
-        # and the decoder outputs the reconstructed features, S · ^f
+        # The TabNet encoder inputs (1 − S) · f, where f is the original features
+        # and the decoder outputs the reconstructed features, S · f^, where f^ is the reconstructed features
         # We initialize P[0] = (1 − S) in encoder so that the model emphasizes merely on the known features.
         # -- So we pass the mask from here, the encoder checks if it received a value for mask, if so it won't
         # initialized the `mask_values` variable in its call method to zeros.
         encoded_representations = self.encoder(encoder_input, mask=(1 - mask))
         decoder_outputs = self.decoder(encoded_representations)
-        loss = self.reconstruction_loss(real_samples=inputs,
-                                        reconstructed_samples=decoder_outputs,
-                                        mask=mask)
-        self.add_loss(loss)
+        return decoder_outputs
 
+    def train_step(self, data):
+        if isinstance(data, tuple):
+            data = data[0]
+        batch_size = tf.shape(data)[0]
+        # Generate mask to create missing samples
+        mask = self.binary_mask_generator.sample(sample_shape=(batch_size, self.data_dim))
+        with tf.GradientTape() as tape:
+            tape.watch(mask)
+            # Reconstruct samples
+            reconstructed_samples = self(data, mask=mask)
+            # Compute reconstruction loss
+            loss = self.reconstruction_loss(real_samples=data,
+                                            reconstructed_samples=reconstructed_samples,
+                                            mask=mask)
+        gradients = tape.gradient(loss, self.trainable_weights)
+        self.optimizer.apply_gradients(zip(gradients, self.trainable_weights))
+        self._reconstruction_loss_tracker.update_state(loss)
+        self.compiled_metrics.update_state(data, reconstructed_samples)
+        self.compiled_loss(data, reconstructed_samples)
+        results = {m.name: m.result() for m in self.metrics}
+        return results
