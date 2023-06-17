@@ -18,6 +18,10 @@ from .activations import (GLU,
                           GEGLU,
                           GumbelSoftmax)
 
+# Embedding layers
+from .embedding import CategoricalFeaturesEmbedding
+
+
 # NODE layers
 from .node import ObliviousDecisionTree
 
