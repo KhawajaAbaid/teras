@@ -1,32 +1,35 @@
-from teras.models import TabNetClassifier, TabNetRegressor
-from tensorflow import keras
-from tensorflow.keras.datasets import boston_housing
+from teras.models.tabnet import TabNetClassifier, TabNetRegressor
 import tensorflow as tf
 from sklearn import datasets as sklearn_datasets
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder, OrdinalEncoder
+import pandas as pd
+import numpy as np
+from teras.utils.utils import get_categorical_features_vocab, dataframe_to_tf_dataset
 tf.config.run_functions_eagerly(True)
 
-(train_data, train_targets), (test_data, test_target) = (boston_housing.load_data())
 
-# Regression Test
-# tabnet_regressor = TabNetRegressor(units=64,
-#                              decision_step_output_dim=64,
-#                              num_decision_steps=5,
-#                              relaxation_factor=1.5,
-#                              batch_momentum=0.98,
-#                              virtual_batch_size=None,
-#                              epsilon=1e-5)
-#
-# tabnet_regressor.compile(loss="MSE", optimizer="Adam", metrics=["MAE"])
-# tabnet_regressor.fit(train_data, train_targets, batch_size=32, epochs=10)
+#  <<<<<<<<<<<<<<<<<<<<< REGRESSION Test >>>>>>>>>>>>>>>>>>>>>
+print(f"{'-'*15}  REGRESSION TEST {'-'*15}")
 
+# Gemstone dataset from Kaggle's Playground Season 3 Episode 8
+# https://www.kaggle.com/competitions/playground-series-s3e8/data?select=train.csv
+gem_df = pd.read_csv("gemstone_data/train.csv").drop(["id"], axis=1)
+cat_cols = ["cut", "color", "clarity"]
+num_cols = ["carat", "depth", "table", "x", "y", "z"]
+# gem_df = gem_df.drop(cat_cols, axis=1)
 
-# Classification Test
-iris_dataset = sklearn_datasets.load_iris()
-X = iris_dataset.data
-y = iris_dataset.target
+# TODO: WE NEEEEEED TO CONVERT CATEGORICAL VALUES TO INTEGERS (ORDINALLY ENCODE THEM)
 
-tabnet_classifier = TabNetClassifier(num_classes=3,
-                                     virtual_batch_size=2)
-tabnet_classifier.compile(loss=keras.losses.SparseCategoricalCrossentropy(), optimizer="Adam",
-                          metrics=[keras.metrics.SparseCategoricalAccuracy()])
-tabnet_classifier.fit(X, y, batch_size=32, epochs=10)
+oe = OrdinalEncoder()
+gem_df[cat_cols] = oe.fit_transform(gem_df[cat_cols])
+
+cat_feat_vocab = get_categorical_features_vocab(gem_df, cat_cols)
+
+training_df, pretrain_df = train_test_split(gem_df, test_size=0.25, shuffle=True, random_state=1337)
+
+X_ds = dataframe_to_tf_dataset(training_df, 'price', batch_size=1024, as_dict=False)
+pretrain_ds = dataframe_to_tf_dataset(pretrain_df, batch_size=1024, as_dict=False)
+
+tabnet_regressor = TabNetRegressor(categorical_features_vocabulary=cat_feat_vocab)
+tabnet_regressor.pretrain(pretrain_ds, num_features=gem_df.shape[1])
