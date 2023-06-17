@@ -3,12 +3,14 @@ from tensorflow import keras
 from tensorflow.keras import layers
 from teras.layers import TabNetEncoder
 from teras.layers.tabnet import Decoder
-from typing import Union
+from typing import Union, List
 import tensorflow_probability as tfp
 from teras.losses.tabnet import reconstruction_loss
-
+from teras.layers import CategoricalFeaturesEmbedding
+from teras.config.tabnet import TabNetConfig, TabNetClassifierConfig, TabNetRegressorConfig, TabNetPreTrainerConfig
 
 LAYER_OR_MODEL = Union[keras.layers.Layer, keras.Model]
+LIST_OF_STR = List[str]
 
 
 class TabNet(keras.Model):
@@ -62,18 +64,20 @@ class TabNet(keras.Model):
             during the computation of entropy loss.
     """
     def __init__(self,
-                 feature_transformer_dim: int = 32,
-                 decision_step_output_dim: int = 32,
-                 num_decision_steps: int = 5,
-                 num_shared_layers: int = 2,
-                 num_decision_dependent_layers: int = 2,
-                 relaxation_factor: float = 1.5,
-                 batch_momentum: float = 0.9,
-                 virtual_batch_size: int = 64,
-                 residual_normalization_factor: float = 0.5,
-                 epsilon=1e-5,
+                 categorical_features_vocabulary: dict = TabNetConfig.categorical_features_vocabulary,
+                 feature_transformer_dim: int = TabNetConfig.feature_transformer_dim,
+                 decision_step_output_dim: int = TabNetConfig.decision_step_output_dim,
+                 num_decision_steps: int = TabNetConfig.num_decision_steps,
+                 num_shared_layers: int = TabNetConfig.num_shared_layers,
+                 num_decision_dependent_layers: int = TabNetConfig.num_decision_dependent_layers,
+                 relaxation_factor: float = TabNetConfig.relaxation_factor,
+                 batch_momentum: float = TabNetConfig.batch_momentum,
+                 virtual_batch_size: int = TabNetConfig.virtual_batch_size,
+                 residual_normalization_factor: float = TabNetConfig.residual_normalization_factor,
+                 epsilon: float = TabNetConfig.epsilon,
                  **kwargs):
         super().__init__(**kwargs)
+        self.categorical_features_vocabulary = categorical_features_vocabulary
         self.feature_transformer_dim = feature_transformer_dim
         self.decision_step_output_dim = decision_step_output_dim
         self.num_decision_steps = num_decision_steps
@@ -84,6 +88,10 @@ class TabNet(keras.Model):
         self.virtual_batch_size = virtual_batch_size
         self.residual_normalization_factor = residual_normalization_factor
         self.epsilon = epsilon
+
+        self.categorical_features_embedding = CategoricalFeaturesEmbedding(
+                                                                self.categorical_features_vocabulary,
+                                                                embedding_dim=1)
 
         self.encoder = TabNetEncoder(feature_transformer_dim=self.feature_transformer_dim,
                                      decision_step_output_dim=self.decision_step_output_dim,
@@ -101,6 +109,7 @@ class TabNet(keras.Model):
 
     def pretrain(self,
                  pretraining_dataset,
+                 num_features: int = None,
                  missing_feature_probability: float = 0.3,
                  pretraining_epochs: int = 10):
         """
@@ -114,11 +123,11 @@ class TabNet(keras.Model):
             pretraining_epochs: `int`, default 10, Number of epochs to pretrain the model for.
             fit_kwargs: Any other keyword arguments taken by the `fit` method of a Keras model.
         """
-
-        dim = tf.shape(pretraining_dataset)[1]
+        dim = num_features
+        # dim = tf.shape(pretraining_dataset)[1]
         pretrainer = TabNetPretrainer(data_dim=dim,
                                            missing_feature_probability=missing_feature_probability,
-
+                                           categorical_features_vocabulary=self.categorical_features_vocabulary,
                                            encoder_feature_transformer_dim=self.feature_transformer_dim,
                                            encoder_decision_step_output_dim=self.decision_step_output_dim,
                                            encoder_num_decision_steps=self.num_decision_steps,
@@ -141,7 +150,8 @@ class TabNet(keras.Model):
 
 
     def call(self, inputs):
-        outputs = self.encoder(inputs)
+        embedded_inputs = self.categorical_features_embedding(inputs)
+        outputs = self.encoder(embedded_inputs)
         return outputs
 
 
@@ -282,6 +292,7 @@ class TabNetRegressor(TabNet):
     """
     def __init__(self,
                  num_outputs=1,
+                 categorical_features_vocabulary: dict = None,
                  feature_transformer_dim: int = 32,
                  decision_step_output_dim: int = 32,
                  num_decision_steps: int = 5,
@@ -293,7 +304,8 @@ class TabNetRegressor(TabNet):
                  residual_normalization_factor: float = 0.5,
                  epsilon=1e-5,
                  **kwargs):
-        super().__init__(feature_transformer_dim=feature_transformer_dim,
+        super().__init__(categorical_features_vocabulary,
+                         feature_transformer_dim=feature_transformer_dim,
                          decision_step_output_dim=decision_step_output_dim,
                          num_decision_steps=num_decision_steps,
                          num_shared_layers=num_shared_layers,
@@ -304,12 +316,30 @@ class TabNetRegressor(TabNet):
                          residual_normalization_factor=residual_normalization_factor,
                          epsilon=epsilon,
                          **kwargs)
+        # self.body = TabNet(categorical_features_vocabulary=categorical_features_vocabulary,
+        #                    feature_transformer_dim=feature_transformer_dim,
+        #                    decision_step_output_dim=decision_step_output_dim,
+        #                    num_decision_steps=num_decision_steps,
+        #                    num_shared_layers=num_shared_layers,
+        #                    num_decision_dependent_layers=num_decision_dependent_layers,
+        #                    relaxation_factor=relaxation_factor,
+        #                    batch_momentum=batch_momentum,
+        #                    virtual_batch_size=virtual_batch_size,
+        #                    residual_normalization_factor=residual_normalization_factor,
+        #                    epsilon=epsilon,
+        #                    name="tabnet_regressor_body")
         self.num_outputs = num_outputs
-        self.output_layer = layers.Dense(self.num_outputs)
+        self.head = layers.Dense(self.num_outputs, name="tabnet_regressor_head")
+
+    # def get_body(self):
+    #     return self.body
+
+    # def get_head(self):
+    #     return self.head
 
     def call(self, inputs):
-        encoded_features = self.encoder(inputs)
-        predictions = self.output_layer(encoded_features)
+        encoded_features = super().__call__(inputs)
+        predictions = self.head(encoded_features)
         return predictions
 
 
@@ -375,6 +405,7 @@ class TabNetPretrainer(keras.Model):
     def __init__(self,
                  data_dim: int,
                  missing_feature_probability: float = 0.3,
+                 categorical_features_vocabulary: dict = None,
 
                  encoder_feature_transformer_dim: int = 32,
                  encoder_decision_step_output_dim: int = 32,
@@ -397,6 +428,7 @@ class TabNetPretrainer(keras.Model):
         super().__init__(**kwargs)
         self.data_dim = data_dim
         self.missing_feature_probability = missing_feature_probability
+        self.categorical_features_vocabulary = categorical_features_vocabulary
 
         self.encoder_feature_transformer_dim = encoder_feature_transformer_dim
         self.encoder_decision_step_output_dim = encoder_decision_step_output_dim
@@ -419,6 +451,9 @@ class TabNetPretrainer(keras.Model):
         self.binary_mask_generator = tfp.distributions.Binomial(total_count=1,
                                                                 probs=self.missing_feature_probability,
                                                                 name="binary_mask_generator")
+
+        self.categorical_features_embedding = CategoricalFeaturesEmbedding(categorical_features_vocabulary,
+                                                                           embedding_dim=1)
 
         self.encoder = TabNetEncoder(feature_transformer_dim=self.encoder_feature_transformer_dim,
                                      decision_step_output_dim=self.encoder_decision_step_output_dim,
@@ -472,21 +507,22 @@ class TabNetPretrainer(keras.Model):
     def train_step(self, data):
         if isinstance(data, tuple):
             data = data[0]
-        batch_size = tf.shape(data)[0]
+        embedded_inputs = self.categorical_features_embedding(data)
+        batch_size = tf.shape(embedded_inputs)[0]
         # Generate mask to create missing samples
         mask = self.binary_mask_generator.sample(sample_shape=(batch_size, self.data_dim))
         with tf.GradientTape() as tape:
             tape.watch(mask)
             # Reconstruct samples
-            reconstructed_samples = self(data, mask=mask)
+            reconstructed_samples = self(embedded_inputs, mask=mask)
             # Compute reconstruction loss
-            loss = self.reconstruction_loss(real_samples=data,
+            loss = self.reconstruction_loss(real_samples=embedded_inputs,
                                             reconstructed_samples=reconstructed_samples,
                                             mask=mask)
         gradients = tape.gradient(loss, self.trainable_weights)
         self.optimizer.apply_gradients(zip(gradients, self.trainable_weights))
         self._reconstruction_loss_tracker.update_state(loss)
-        self.compiled_metrics.update_state(data, reconstructed_samples)
-        self.compiled_loss(data, reconstructed_samples)
+        self.compiled_metrics.update_state(embedded_inputs, reconstructed_samples)
+        self.compiled_loss(embedded_inputs, reconstructed_samples)
         results = {m.name: m.result() for m in self.metrics}
         return results
