@@ -2,6 +2,7 @@ from tensorflow import keras
 import tensorflow as tf
 from tensorflow.keras import layers
 from typing import List, Union
+import pandas as pd
 
 
 LayerType = Union[str, layers.Layer]
@@ -123,3 +124,71 @@ def get_categorical_features_cardinalities(dataframe,
     for feature in categorical_features:
         cardinalities.append(dataframe[feature].nunique())
     return cardinalities
+
+
+
+
+def get_categorical_features_vocab(dataframe: pd.DataFrame,
+                                   categorical_features):
+    """
+    Utility function that creates vocabulary for the categorical feature values
+    which is required by the CategoricalFeaturesEmbedding layer and other of that sort.
+    It is a preprocessing function and is called by the user.
+    Args:
+        dataframe: Input dataframe
+        categorical_features: List of names of categorical features in the input dataset
+
+    Returns:
+        Categorical feature vocabulary that is of the format:
+            {<feature index in the dataset>: (<feature_name>, <unique values in the feature>)}
+    """
+    categorical_features_vocab = {}
+    for idx, col in enumerate(dataframe.columns):
+        if col in categorical_features:
+            unique_values = sorted(list(dataframe[col].unique()))
+            categorical_features_vocab.update({idx: (col, unique_values)})
+    # for cat_feat in categorical_features:
+    #     categorical_features_vocab[cat_feat] = tf.constant(sorted(list(inputs[cat_feat].unique())))
+    return categorical_features_vocab
+
+
+def dataframe_to_tf_dataset(
+                    dataframe: pd.DataFrame,
+                    target: str = None,
+                    shuffle: bool = True,
+                    batch_size: int = 1024,
+                    as_dict: bool = False,
+                    ):
+    """
+    Builds a tf.data.Dataset from a given pandas dataframe
+
+    Args:
+        dataframe: A pandas dataframe
+        target: Name of the target column
+        shuffle: Whether to shuffle the dataset
+        batch_size: Batch size
+        as_dict: Whether to make a tensorflow dataset in a dictionary format
+            where each record is a mapping of features names against their values.
+
+    Returns:
+         A tf.data.Dataset dataset
+    """
+    df = dataframe.copy()
+    if target:
+        labels = df.pop(target)
+        if as_dict:
+            dataset = tf.data.Dataset.from_tensor_slices((dict(df), labels))
+        else:
+            df = df.values
+            labels = labels.values
+            dataset = tf.data.Dataset.from_tensor_slices((df, labels))
+    else:
+        if as_dict:
+            dataset = tf.data.Dataset.from_tensor_slices(dict(df))
+        else:
+            dataset = tf.data.Dataset.from_tensor_slices(df.values)
+    if shuffle:
+        dataset = dataset.shuffle(buffer_size=len(dataframe))
+    dataset = dataset.batch(batch_size)
+    dataset = dataset.prefetch(batch_size)
+    return dataset
