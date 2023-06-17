@@ -483,6 +483,14 @@ class Decoder(layers.Layer):
         self.features_transformers_per_step = []
         self.dense_layers_per_step = []
 
+        # OKAY LISTEN: To be able to share the `shared_layers` across instances, we introduced
+        # a class attribute called `shared_layers` in the FeatureTransformer class BUT here's the problem,
+        # even though we now want to create shared layers separately for our Decoder, it won't ... unless...
+        # we do this
+        FeatureTransformer.shared_layers = None
+        # Why? Because each time we create FeatureTransformer instance, it first checks if `shared_layers`
+        # attribute is None or not, if it's None it will create new shared layers, otherwise it won't.
+
         for i in range(self.num_decision_steps):
             self.features_transformers_per_step.append(FeatureTransformer(
                                                         units=self.feature_transformer_dim,
