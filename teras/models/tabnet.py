@@ -148,7 +148,6 @@ class TabNet(keras.Model):
         self.is_pretrained = True
         self.encoder = pretrainer.get_encoder()
 
-
     def call(self, inputs):
         embedded_inputs = self.categorical_features_embedding(inputs)
         outputs = self.encoder(embedded_inputs)
@@ -484,7 +483,7 @@ class TabNetPretrainer(keras.Model):
 
     def compile(self,
                 loss=reconstruction_loss,
-                optimizer=keras.optimizers.Adam(),
+                optimizer=keras.optimizers.Adam(learning_rate=0.01),
                 **kwargs):
         super().compile(**kwargs)
         self.reconstruction_loss = loss
@@ -507,11 +506,11 @@ class TabNetPretrainer(keras.Model):
     def train_step(self, data):
         if isinstance(data, tuple):
             data = data[0]
-        embedded_inputs = self.categorical_features_embedding(data)
-        batch_size = tf.shape(embedded_inputs)[0]
-        # Generate mask to create missing samples
-        mask = self.binary_mask_generator.sample(sample_shape=(batch_size, self.data_dim))
         with tf.GradientTape() as tape:
+            embedded_inputs = self.categorical_features_embedding(data)
+            batch_size = tf.shape(embedded_inputs)[0]
+            # Generate mask to create missing samples
+            mask = self.binary_mask_generator.sample(sample_shape=(batch_size, self.data_dim))
             tape.watch(mask)
             # Reconstruct samples
             reconstructed_samples = self(embedded_inputs, mask=mask)
