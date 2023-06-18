@@ -24,6 +24,7 @@ class TabNet(keras.Model):
         https://arxiv.org/abs/1908.07442
 
     Args:
+        categorical_features_vocabulary: `dict`, --- TODO ----
         feature_transformer_dim: `int`, default 32, the dimensionality of the hidden
             representation in feature transformation block.
             Each layer first maps the representation to a `2 * feature_transformer_dim`
@@ -159,6 +160,7 @@ class TabNet(keras.Model):
                                       residual_normalization_factor=self.residual_normalization_factor,
                                       )
         pretrainer.compile()
+        print("passing params", self.pretrainer_fit_config.to_dict())
         pretrainer.fit(pretraining_dataset, **self.pretrainer_fit_config.to_dict())
         self.categorical_features_embedding = pretrainer.categorical_features_embedding
         self.encoder = pretrainer.get_encoder()
@@ -335,9 +337,10 @@ class TabNetRegressor(TabNet):
         self.head = layers.Dense(self.num_outputs, name="tabnet_regressor_head")
 
     def call(self, inputs):
-        encoded_features = super().__call__(inputs)
-        predictions = self.head(encoded_features)
-        return predictions
+        outputs = self.categorical_features_embedding(inputs)
+        outputs = self.encoder(outputs)
+        outputs = self.head(outputs)
+        return outputs
 
 
 class TabNetPretrainer(keras.Model):
