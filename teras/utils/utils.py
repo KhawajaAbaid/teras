@@ -128,7 +128,7 @@ def get_categorical_features_cardinalities(dataframe,
 
 
 
-def get_categorical_features_vocab(dataframe: pd.DataFrame,
+def get_categorical_features_vocabulary(dataframe: pd.DataFrame,
                                    categorical_features,
                                    key: str = "name"):
     """
@@ -153,17 +153,17 @@ def get_categorical_features_vocab(dataframe: pd.DataFrame,
     if key not in ("idx", "name"):
         raise ValueError(f"`key` must be one of ['idx', 'name'] but {key} was passed.")
 
-    categorical_features_vocab = {}
+    categorical_features_vocabulary = {}
     for idx, col in enumerate(dataframe.columns):
         if col in categorical_features:
             unique_values = sorted(list(dataframe[col].unique()))
             if key == "idx":
-                categorical_features_vocab.update({idx: (col, unique_values)})
+                categorical_features_vocabulary.update({idx: (col, unique_values)})
             else:
-                categorical_features_vocab.update({col: (idx, unique_values)})
+                categorical_features_vocabulary.update({col: (idx, unique_values)})
     # for cat_feat in categorical_features:
     #     categorical_features_vocab[cat_feat] = tf.constant(sorted(list(inputs[cat_feat].unique())))
-    return categorical_features_vocab
+    return categorical_features_vocabulary
 
 
 def dataframe_to_tf_dataset(
