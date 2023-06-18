@@ -9,7 +9,7 @@ class BaseConfig:
         current_class = cls
         while current_class:
             attrs_temp = vars(cls)
-            attrs_temp = {name: value for name, value in attrs.items() if not name.startswith("__")}
+            attrs_temp = {name: value for name, value in attrs_temp.items() if not name.startswith("__")}
             attrs.update(attrs_temp)
             if current_class.__base__.__name__ == "BaseConfig":
                 current_class = None
