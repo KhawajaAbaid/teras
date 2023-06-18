@@ -104,7 +104,7 @@ class TabNet(keras.Model):
                                      residual_normalization_factor=self.residual_normalization_factor,
                                      epsilon=self.epsilon)
 
-        self.is_pretrained = False
+        self._pretrained = False
         self.pretrainer = None
 
     def pretrain(self,
@@ -113,7 +113,7 @@ class TabNet(keras.Model):
                  missing_feature_probability: float = 0.3,
                  pretraining_epochs: int = 10):
         """
-
+        Helper function to pretrain the encoder and
         Args:
             pretraining_dataset: Dataset used for pretraining. It doesn't have to be labeled.
             missing_feature_probability: Missing features are introduced in the pretraining
@@ -145,8 +145,9 @@ class TabNet(keras.Model):
                                            residual_normalization_factor=self.residual_normalization_factor)
         pretrainer.compile()
         pretrainer.fit(pretraining_dataset, epochs=pretraining_epochs)
-        self.is_pretrained = True
+        self.categorical_features_embedding = pretrainer.categorical_features_embedding
         self.encoder = pretrainer.get_encoder()
+        self._pretrained = True
 
     def call(self, inputs):
         embedded_inputs = self.categorical_features_embedding(inputs)
