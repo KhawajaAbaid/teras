@@ -343,10 +343,15 @@ class TabNetRegressor(TabNet):
         return outputs
 
 
-class TabNetPretrainer(keras.Model):
+class TabNetPretrainer(TabNet):
     """
-    TabNet model as proposed by Sercan et al. in TabNet paper.
-    This purpose will serve as the parent class for the TabNetRegressor and TabNetClassifier.
+    TabNetPretrainer model based on the architecture
+    proposed by Sercan et al. in TabNet paper.
+
+    TabNetPretrainer subclasses the TabNet class since TabNet itself is just an encoder
+    model while the TabNet decoder is an encoder-decoder model, so instead of instantiating
+    everything encoder part specific here, we can just utilize the parent class i.e. TabNet
+    which already implements it all and will serve as a useful abstraction to keep things clean.
 
     Reference(s):
         https://arxiv.org/abs/1908.07442
@@ -431,16 +436,24 @@ class TabNetPretrainer(keras.Model):
                  residual_normalization_factor: float = 0.5,
                  epsilon=1e-5,
                  **kwargs):
-        super().__init__(**kwargs)
+        # Since the base TabNet model is basically an Encoder only model
+        # so instead of defining encoder specific things here,
+        # we just subclass the TabNet class
+        super().__init__(categorical_features_vocabulary=categorical_features_vocabulary,
+                         feature_transformer_dim=encoder_feature_transformer_dim,
+                         decision_step_output_dim=encoder_decision_step_output_dim,
+                         num_decision_steps=encoder_num_decision_steps,
+                         num_shared_layers=encoder_num_shared_layers,
+                         num_decision_dependent_layers=encoder_num_decision_dependent_layers,
+                         relaxation_factor=relaxation_factor,
+                         batch_momentum=batch_momentum,
+                         virtual_batch_size=virtual_batch_size,
+                         residual_normalization_factor=residual_normalization_factor,
+                         epsilon=epsilon,
+                         **kwargs)
+
         self.data_dim = data_dim
         self.missing_feature_probability = missing_feature_probability
-        self.categorical_features_vocabulary = categorical_features_vocabulary
-
-        self.encoder_feature_transformer_dim = encoder_feature_transformer_dim
-        self.encoder_decision_step_output_dim = encoder_decision_step_output_dim
-        self.encoder_num_decision_steps = encoder_num_decision_steps
-        self.encoder_num_shared_layers = encoder_num_shared_layers
-        self.encoder_num_decision_dependent_layers = encoder_num_decision_dependent_layers
 
         self.decoder_feature_transformer_dim = decoder_feature_transformer_dim
         self.decoder_decision_step_output_dim = decoder_decision_step_output_dim
@@ -448,29 +461,9 @@ class TabNetPretrainer(keras.Model):
         self.decoder_num_shared_layers = decoder_num_shared_layers
         self.decoder_num_decision_dependent_layers = decoder_num_decision_dependent_layers
 
-        self.relaxation_factor = relaxation_factor
-        self.batch_momentum = batch_momentum
-        self.virtual_batch_size = virtual_batch_size
-        self.residual_normalization_factor = residual_normalization_factor
-        self.epsilon = epsilon
-
         self.binary_mask_generator = tfp.distributions.Binomial(total_count=1,
                                                                 probs=self.missing_feature_probability,
                                                                 name="binary_mask_generator")
-
-        self.categorical_features_embedding = CategoricalFeaturesEmbedding(categorical_features_vocabulary,
-                                                                           embedding_dim=1)
-
-        self.encoder = TabNetEncoder(feature_transformer_dim=self.encoder_feature_transformer_dim,
-                                     decision_step_output_dim=self.encoder_decision_step_output_dim,
-                                     num_decision_steps=self.encoder_num_decision_steps,
-                                     num_shared_layers=self.encoder_num_shared_layers,
-                                     num_decision_dependent_layers=self.encoder_num_decision_dependent_layers,
-                                     relaxation_factor=self.relaxation_factor,
-                                     batch_momentum=self.batch_momentum,
-                                     virtual_batch_size=self.virtual_batch_size,
-                                     residual_normalization_factor=self.residual_normalization_factor,
-                                     epsilon=self.epsilon)
 
         self.decoder = Decoder(data_dim=self.data_dim,
                                feature_transformer_dim=self.decoder_feature_transformer_dim,
@@ -487,6 +480,9 @@ class TabNetPretrainer(keras.Model):
 
     def get_encoder(self):
         return self.encoder
+
+    def get_decoder(self):
+        return self.decoder
 
     def compile(self,
                 loss=reconstruction_loss,
