@@ -68,7 +68,7 @@ def get_normalization_layer(normalization: LayerType) -> layers.Layer:
 
 
 def get_activation(activation: LayerType,
-                            units=None):
+                   units=None):
     """
     Retrieves and returns a keras activation function if not already.
 
@@ -129,8 +129,8 @@ def get_categorical_features_cardinalities(dataframe,
 
 
 def get_categorical_features_vocabulary(dataframe: pd.DataFrame,
-                                   categorical_features,
-                                   key: str = "name"):
+                                        categorical_features,
+                                        key: str = "name"):
     """
     Utility function that creates vocabulary for the categorical feature values
     which is required by the CategoricalFeaturesEmbedding layer and other of that sort.
@@ -167,12 +167,12 @@ def get_categorical_features_vocabulary(dataframe: pd.DataFrame,
 
 
 def dataframe_to_tf_dataset(
-                    dataframe: pd.DataFrame,
-                    target: str = None,
-                    shuffle: bool = True,
-                    batch_size: int = 1024,
-                    as_dict: bool = False,
-                    ):
+        dataframe: pd.DataFrame,
+        target: str = None,
+        shuffle: bool = True,
+        batch_size: int = 1024,
+        as_dict: bool = False,
+):
     """
     Builds a tf.data.Dataset from a given pandas dataframe
 
