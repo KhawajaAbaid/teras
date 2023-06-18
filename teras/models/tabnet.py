@@ -7,7 +7,9 @@ from typing import Union, List
 import tensorflow_probability as tfp
 from teras.losses.tabnet import reconstruction_loss
 from teras.layers import CategoricalFeaturesEmbedding
-from teras.config.tabnet import TabNetConfig, TabNetClassifierConfig, TabNetRegressorConfig, TabNetPreTrainerConfig
+from teras.config.tabnet import TabNetConfig
+from teras.config.base import FitConfig
+
 
 LAYER_OR_MODEL = Union[keras.layers.Layer, keras.Model]
 LIST_OF_STR = List[str]
@@ -104,6 +106,8 @@ class TabNet(keras.Model):
                                      residual_normalization_factor=self.residual_normalization_factor,
                                      epsilon=self.epsilon)
 
+        self.pretrainer_fit_config = FitConfig()
+
         self._pretrained = False
         self.pretrainer = None
 
@@ -111,40 +115,51 @@ class TabNet(keras.Model):
                  pretraining_dataset,
                  num_features: int = None,
                  missing_feature_probability: float = 0.3,
-                 pretraining_epochs: int = 10):
+                 decoder_feature_transformer_dim: int = 32,
+                 decoder_decision_step_output_dim: int = 32,
+                 decoder_num_decision_steps: int = 5,
+                 decoder_num_shared_layers: int = 2,
+                 decoder_num_decision_dependent_layers: int = 2,
+                 ):
         """
         Helper function to pretrain the encoder and
         Args:
             pretraining_dataset: Dataset used for pretraining. It doesn't have to be labeled.
+            num_features: `int`, Number of feature in the dataset.
             missing_feature_probability: Missing features are introduced in the pretraining
                 dataset and the probability of missing features is controlled by the parameter.
                 The pretraining objective is to predict values for these missing features,
                 (pre)training the encoder in process.
-            pretraining_epochs: `int`, default 10, Number of epochs to pretrain the model for.
-            fit_kwargs: Any other keyword arguments taken by the `fit` method of a Keras model.
+            decoder_feature_transformer_dim: `int`, default 32, Feature transformer dimensions for decoder.
+            decoder_decision_step_output_dim: `int`, default 32, Decision step output dimensions for decoder.
+            decoder_num_decision_steps: `int`, default 5, Number of decision steps to use in decoder.
+            decoder_num_shared_layers: `int`, default 2, Number of shared layers in feature transformer in decoder.
+            decoder_num_decision_dependent_layers: `int`, default 2, Number of decision dependent layers
+                in feature transformer in decoder.
         """
         dim = num_features
-        # dim = tf.shape(pretraining_dataset)[1]
         pretrainer = TabNetPretrainer(data_dim=dim,
                                       missing_feature_probability=missing_feature_probability,
                                       categorical_features_vocabulary=self.categorical_features_vocabulary,
+
                                       encoder_feature_transformer_dim=self.feature_transformer_dim,
                                       encoder_decision_step_output_dim=self.decision_step_output_dim,
                                       encoder_num_decision_steps=self.num_decision_steps,
                                       encoder_num_shared_layers=self.num_shared_layers,
                                       encoder_num_decision_dependent_layers=self.num_decision_dependent_layers,
 
-                                      decoder_feature_transformer_dim=self.feature_transformer_dim,
-                                      decoder_decision_step_output_dim=self.decision_step_output_dim,
-                                      decoder_num_decision_steps=self.num_decision_steps,
-                                      decoder_num_shared_layers=self.num_shared_layers,
-                                      decoder_num_decision_dependent_layers= self.num_decision_dependent_layers,
+                                      decoder_feature_transformer_dim=decoder_feature_transformer_dim,
+                                      decoder_decision_step_output_dim=decoder_decision_step_output_dim,
+                                      decoder_num_decision_steps=decoder_num_decision_steps,
+                                      decoder_num_shared_layers=decoder_num_shared_layers,
+                                      decoder_num_decision_dependent_layers=decoder_num_decision_dependent_layers,
 
                                       virtual_batch_size=self.virtual_batch_size,
                                       batch_momentum=self.batch_momentum,
-                                      residual_normalization_factor=self.residual_normalization_factor)
+                                      residual_normalization_factor=self.residual_normalization_factor,
+                                      )
         pretrainer.compile()
-        pretrainer.fit(pretraining_dataset, epochs=pretraining_epochs)
+        pretrainer.fit(pretraining_dataset, **self.pretrainer_fit_config.to_dict())
         self.categorical_features_embedding = pretrainer.categorical_features_embedding
         self.encoder = pretrainer.get_encoder()
         self._pretrained = True
@@ -335,6 +350,12 @@ class TabNetPretrainer(keras.Model):
 
     Args:
         data_dim: `int`, Dimensionality of the input dataset.
+        missing_feature_probability: `float`, default 3, Fraction of features to randomly mask
+            -- i.e. make them missing.
+            Missing features are introduced in the pretraining dataset and
+            the probability of missing features is controlled by the parameter.
+            The pretraining objective is to predict values for these missing features,
+            (pre)training the TabNet model in the process.
         encoder_feature_transformer_dim: `int`, default 32, the dimensionality of the hidden
             representation in feature transformation block.
             Each layer first maps the representation to a `2 * feature_transformer_dim`
