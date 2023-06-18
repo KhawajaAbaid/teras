@@ -315,26 +315,8 @@ class TabNetRegressor(TabNet):
                          residual_normalization_factor=residual_normalization_factor,
                          epsilon=epsilon,
                          **kwargs)
-        # self.body = TabNet(categorical_features_vocabulary=categorical_features_vocabulary,
-        #                    feature_transformer_dim=feature_transformer_dim,
-        #                    decision_step_output_dim=decision_step_output_dim,
-        #                    num_decision_steps=num_decision_steps,
-        #                    num_shared_layers=num_shared_layers,
-        #                    num_decision_dependent_layers=num_decision_dependent_layers,
-        #                    relaxation_factor=relaxation_factor,
-        #                    batch_momentum=batch_momentum,
-        #                    virtual_batch_size=virtual_batch_size,
-        #                    residual_normalization_factor=residual_normalization_factor,
-        #                    epsilon=epsilon,
-        #                    name="tabnet_regressor_body")
         self.num_outputs = num_outputs
         self.head = layers.Dense(self.num_outputs, name="tabnet_regressor_head")
-
-    # def get_body(self):
-    #     return self.body
-
-    # def get_head(self):
-    #     return self.head
 
     def call(self, inputs):
         encoded_features = super().__call__(inputs)
@@ -521,7 +503,11 @@ class TabNetPretrainer(keras.Model):
         gradients = tape.gradient(loss, self.trainable_weights)
         self.optimizer.apply_gradients(zip(gradients, self.trainable_weights))
         self._reconstruction_loss_tracker.update_state(loss)
-        self.compiled_metrics.update_state(embedded_inputs, reconstructed_samples)
-        self.compiled_loss(embedded_inputs, reconstructed_samples)
+        # If user has passed any additional metrics to compile, we should update their states
+        if len(self.compiled_metrics.metrics) > 0:
+            self.compiled_metrics.update_state(embedded_inputs, reconstructed_samples)
+        # If user has passed any additional losses to compile, we should call them
+        if self.compiled_loss._losses is not None:
+            self.compiled_loss(embedded_inputs, reconstructed_samples)
         results = {m.name: m.result() for m in self.metrics}
         return results
