@@ -129,7 +129,8 @@ def get_categorical_features_cardinalities(dataframe,
 
 
 def get_categorical_features_vocab(dataframe: pd.DataFrame,
-                                   categorical_features):
+                                   categorical_features,
+                                   key: str = "name"):
     """
     Utility function that creates vocabulary for the categorical feature values
     which is required by the CategoricalFeaturesEmbedding layer and other of that sort.
@@ -137,16 +138,29 @@ def get_categorical_features_vocab(dataframe: pd.DataFrame,
     Args:
         dataframe: Input dataframe
         categorical_features: List of names of categorical features in the input dataset
+        key: `str`, one of ["idx", "name"]
+            "idx": Dictionary of the form {feature_idx: (feature_name, list_of_unique_values)}
+                For each categorical feature, its id is mapped against a tuple containing its name
+                and the list of unique values in it.
+            "name": Dictionary is of the form {feature_name: (feature_idx, list of unqiue_values)}
+                For each categorical feature, its name is mapped against a tuple containing its idx
+                and the list of unique values in it.
 
     Returns:
-        Categorical feature vocabulary that is of the format:
-            {<feature index in the dataset>: (<feature_name>, <unique values in the feature>)}
+        Categorical feature vocabulary of the specified format.
     """
+    key = key.lower()
+    if key not in ("idx", "name"):
+        raise ValueError(f"`key` must be one of ['idx', 'name'] but {key} was passed.")
+
     categorical_features_vocab = {}
     for idx, col in enumerate(dataframe.columns):
         if col in categorical_features:
             unique_values = sorted(list(dataframe[col].unique()))
-            categorical_features_vocab.update({idx: (col, unique_values)})
+            if key == "idx":
+                categorical_features_vocab.update({idx: (col, unique_values)})
+            else:
+                categorical_features_vocab.update({col: (idx, unique_values)})
     # for cat_feat in categorical_features:
     #     categorical_features_vocab[cat_feat] = tf.constant(sorted(list(inputs[cat_feat].unique())))
     return categorical_features_vocab
