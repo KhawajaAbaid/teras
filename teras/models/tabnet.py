@@ -90,8 +90,8 @@ class TabNet(keras.Model):
         self.epsilon = epsilon
 
         self.categorical_features_embedding = CategoricalFeaturesEmbedding(
-                                                                self.categorical_features_vocabulary,
-                                                                embedding_dim=1)
+            self.categorical_features_vocabulary,
+            embedding_dim=1)
 
         self.encoder = TabNetEncoder(feature_transformer_dim=self.feature_transformer_dim,
                                      decision_step_output_dim=self.decision_step_output_dim,
@@ -126,23 +126,23 @@ class TabNet(keras.Model):
         dim = num_features
         # dim = tf.shape(pretraining_dataset)[1]
         pretrainer = TabNetPretrainer(data_dim=dim,
-                                           missing_feature_probability=missing_feature_probability,
-                                           categorical_features_vocabulary=self.categorical_features_vocabulary,
-                                           encoder_feature_transformer_dim=self.feature_transformer_dim,
-                                           encoder_decision_step_output_dim=self.decision_step_output_dim,
-                                           encoder_num_decision_steps=self.num_decision_steps,
-                                           encoder_num_shared_layers=self.num_shared_layers,
-                                           encoder_num_decision_dependent_layers=self.num_decision_dependent_layers,
+                                      missing_feature_probability=missing_feature_probability,
+                                      categorical_features_vocabulary=self.categorical_features_vocabulary,
+                                      encoder_feature_transformer_dim=self.feature_transformer_dim,
+                                      encoder_decision_step_output_dim=self.decision_step_output_dim,
+                                      encoder_num_decision_steps=self.num_decision_steps,
+                                      encoder_num_shared_layers=self.num_shared_layers,
+                                      encoder_num_decision_dependent_layers=self.num_decision_dependent_layers,
 
-                                           decoder_feature_transformer_dim=self.feature_transformer_dim,
-                                           decoder_decision_step_output_dim=self.decision_step_output_dim,
-                                           decoder_num_decision_steps=self.num_decision_steps,
-                                           decoder_num_shared_layers=self.num_shared_layers,
-                                           decoder_num_decision_dependent_layers= self.num_decision_dependent_layers,
+                                      decoder_feature_transformer_dim=self.feature_transformer_dim,
+                                      decoder_decision_step_output_dim=self.decision_step_output_dim,
+                                      decoder_num_decision_steps=self.num_decision_steps,
+                                      decoder_num_shared_layers=self.num_shared_layers,
+                                      decoder_num_decision_dependent_layers= self.num_decision_dependent_layers,
 
-                                           virtual_batch_size=self.virtual_batch_size,
-                                           batch_momentum=self.batch_momentum,
-                                           residual_normalization_factor=self.residual_normalization_factor)
+                                      virtual_batch_size=self.virtual_batch_size,
+                                      batch_momentum=self.batch_momentum,
+                                      residual_normalization_factor=self.residual_normalization_factor)
         pretrainer.compile()
         pretrainer.fit(pretraining_dataset, epochs=pretraining_epochs)
         self.categorical_features_embedding = pretrainer.categorical_features_embedding
