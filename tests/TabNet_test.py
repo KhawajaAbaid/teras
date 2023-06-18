@@ -32,4 +32,10 @@ X_ds = dataframe_to_tf_dataset(training_df, 'price', batch_size=1024, as_dict=Fa
 pretrain_ds = dataframe_to_tf_dataset(pretrain_df, batch_size=1024, as_dict=False)
 
 tabnet_regressor = TabNetRegressor(categorical_features_vocabulary=cat_feat_vocab)
+
+# Configure Pretrainer's fit() method arguments
+tabnet_regressor.pretrainer_fit_config.epochs = 2
+# Call pretrain
 tabnet_regressor.pretrain(pretrain_ds, num_features=gem_df.shape[1])
+# Train the regressor for our main task
+tabnet_regressor.fit(X_ds, epochs=3)
