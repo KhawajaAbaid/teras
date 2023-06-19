@@ -26,9 +26,11 @@ from .embedding import CategoricalFeaturesEmbedding
 from .node import ObliviousDecisionTree
 
 # TabNet layers
-from .tabnet import (FeatureTransformerBlock as TabNetFeatureTransformerBlock,
+from .tabnet import (AttentiveTransformer as TabNetAttentiveTransformer,
+                     FeatureTransformerBlock as TabNetFeatureTransformerBlock,
                      FeatureTransformer as TabNetFeatureTransformer,
-                     Encoder as TabNetEncoder)
+                     Encoder as TabNetEncoder,
+                     Decoder as TabNeDecoder)
 
 # TabTransformer layers
 from .tabtransformer import (CategoricalFeatureEmbedding as TabTransformerCategoricalFeatureEmbedding,
