@@ -73,9 +73,12 @@ class ColumnEmbedding(layers.Layer):
 
     Reference(s):
         https://arxiv.org/abs/2012.06678
+
+    Args:
+        TODO
     """
     def __init__(self,
-                 embedding_dim=None,
+                 embedding_dim=16,
                  num_categorical_features=None,
                  **kwargs):
         super().__init__(**kwargs)
@@ -96,7 +99,6 @@ class ColumnEmbedding(layers.Layer):
         return inputs + self.column_embedding(self.column_indices)
 
 
-
 class FeedForward(layers.Layer):
     """
     FeedForward layer as proposed by Xin Huang et al. in the paper
@@ -109,7 +111,7 @@ class FeedForward(layers.Layer):
         https://arxiv.org/abs/2012.06678
 
     Args:
-        input_dim: Number of heads to use in the MultiHeadAttention layer
+        embedding_dim: Embedding dimensions
         multiplier: Multiplier to expand the output dimensions of MultiHeadAttention using a dense layer.
             The authors propose a multiplier of 4, which is default.
         dropout: Dropout rate.
@@ -118,18 +120,22 @@ class FeedForward(layers.Layer):
             You can import it using teras.layers.GEGLU for your own use.
     """
     def __init__(self,
-                 input_dim,
+                 embedding_dim=16,
                  multiplier=4,
                  dropout=0.,
                  activation="geglu",
                  **kwargs):
         super().__init__(**kwargs)
-        self.input_dim = input_dim
+        self.embedding_dim = embedding_dim
         self.multiplier = multiplier
         self.dropout = dropout
         self.activation = GEGLU() if activation.lower() == "geglu" else activation
 
-        self.dense_1 = keras.layers.Dense(self.input_dim * 4,
+
+        # TODO Input dim or embedding dim? and why output dimensions are equal to input dim
+        #       Find out on the next episode of Developing Teras!
+
+        self.dense_1 = keras.layers.Dense(self.input_dim * self.multiplier,
                                           activation=self.activation)
         self.dropout = keras.layers.Dropout(self.dropout)
         self.dense_2 = keras.layers.Dense(self.input_dim)
@@ -150,34 +156,33 @@ class Transformer(layers.Layer):
         https://arxiv.org/abs/2012.06678
 
     Args:
+        TODO
         num_heads: Number of heads to use in the MultiHeadAttention layer
         embedding_dim: Embedding dimensions in the MultiHeadAttention layer
-        attention_dropout: Dropout rate to use in the MultiHeadAttention layer
-        feedforward_dropout: Dropout rate to use in the FeedForward layer
         norm_epsilon: Value for epsilon parameter of the LayerNormalization layer
     """
     def __init__(self,
-                 num_heads,
-                 embedding_dim,
-                 attention_dropout,
-                 feedforward_dropout,
+                 embedding_dim=16,
+                 multi_head_attention: keras.layers.Layer = None,
+                 feed_forward: keras.layers.Layer = None,
                  norm_epsilon=1e-6,
                  **kwagrs):
         super().__init__(**kwagrs)
-        self.num_heads = num_heads
+        self.multi_head_attention = multi_head_attention
+        self.feed_forward = feed_forward
         self.embedding_dim = embedding_dim
-        self.attention_dropout = attention_dropout
-        self.feedforward_dropout = feedforward_dropout
         self.norm_epsilon = norm_epsilon
 
-        self.multi_head_attention = keras.layers.MultiHeadAttention(
-            num_heads=self.num_heads,
-            key_dim=self.embedding_dim,
-            dropout=self.attention_dropout
-        )
+        if self.multi_head_attention is None:
+            self.multi_head_attention = keras.layers.MultiHeadAttention(
+                num_heads=self.num_heads,
+                key_dim=self.embedding_dim,
+                dropout=self.attention_dropout
+            )
         self.skip_1 = keras.layers.Add()
         self.layer_norm_1 = keras.layers.LayerNormalization(epsilon=self.norm_epsilon)
-        self.feed_forward = FeedForward(self.embedding_dim)
+        if self.feed_forward is None:
+            self.feed_forward = FeedForward(self.embedding_dim)
         self.skip_2 = keras.layers.Add()
         self.layer_norm_2 = keras.layers.LayerNormalization(epsilon=self.norm_epsilon)
 
@@ -185,8 +190,8 @@ class Transformer(layers.Layer):
         attention_out = self.multi_head_attention(inputs, inputs)
         x = self.skip_1([attention_out, inputs])
         x = self.layer_norm_1(x)
-        feedforward_out = self.feed_forward(x)
-        x = self.skip_2([feedforward_out, x])
+        feed_forward_out = self.feed_forward(x)
+        x = self.skip_2([feed_forward_out, x])
         x = self.layer_norm_2(x)
         return x
 
@@ -202,39 +207,33 @@ class Encoder(layers.Layer):
         https://arxiv.org/abs/2012.06678
 
     Args:
-        num_transformer_layer: Number of transformer layers to use in the encoder
-        num_heads: Number of heads to use in the MultiHeadAttention layer
         embedding_dim: Embedding dimensions in the MultiHeadAttention layer
-        attention_dropout: Dropout rate to use in the MultiHeadAttention layer
-        feedforward_dropout: Dropout rate to use in the FeedForward layer
-        norm_epsilon: Value for epsilon parameter of the LayerNormalization layer
+        transformer_layer: TODO
+        num_transformer_layer: Number of transformer layers to use in the encoder
     """
     def __init__(self,
-                 num_transformer_layers,
-                 num_heads,
-                 embedding_dim,
-                 attention_dropout,
-                 feedforward_dropout,
+                 embedding_dim: int = 16,
+                 num_transformer_layers=1,
+                 multi_head_attention: keras.layers.Layer = None,
+                 feed_forward: keras.layers.Layer = None,
                  norm_epsilon=1e-6,
                  **kwargs):
         super().__init__(**kwargs)
-        self.num_transformer_layers = num_transformer_layers
-        self.num_heads = num_heads
         self.embedding_dim = embedding_dim
-        self.attention_dropout = attention_dropout
-        self.feedforward_dropout = feedforward_dropout
-        self.norm_epsilon = norm_epsilon
-        self.transformer_layers = [Transformer(num_heads=self.num_heads,
-                                               embedding_dim=self.embedding_dim,
-                                               attention_dropout=self.attention_dropout,
-                                               feedforward_dropout=self.feedforward_dropout,
-                                               norm_epsilon=self.norm_epsilon)]
+        self.num_transformer_layers = num_transformer_layers
+
+        self.encoder_block = keras.models.Sequential(name="encoder_block")
+        # This won't work. We're using the SAME instance N times.
+        # we need a new instance each time!!
+        for _ in range(self.num_transformer_layers):
+            self.encoder_block.add(Transformer(embedding_dim=self.embedding_dim,
+                                               multi_head_attention=multi_head_attention,
+                                               feed_forward=feed_forward,
+                                               norm_epsilon=norm_epsilon))
 
     def call(self, inputs):
-        x = inputs
-        for layer in self.transformer_layers:
-            x = layer(x)
-        return x
+        outputs = self.encoder_block(inputs)
+        return outputs
 
 
 class RegressionHead(layers.Layer):
@@ -256,13 +255,13 @@ class RegressionHead(layers.Layer):
     def __init__(self,
                  units_hidden:list,
                  activation_hidden="relu",
-                 units_out=1,
+                 num_outputs=1,
                  use_batch_normalization=True,
                  **kwargs):
         super().__init__(**kwargs)
         self.units_hidden = units_hidden
         self.activation_hidden = activation_hidden
-        self.units_out = units_out
+        self.num_outputs = num_outputs
         self.use_batch_normalization = use_batch_normalization
         self.layers = []
         for units in units_hidden:
@@ -271,7 +270,7 @@ class RegressionHead(layers.Layer):
                 self.layers.append(norm)
             dense = keras.layers.Dense(units)
             self.layers.append(dense)
-        dense_out = keras.layers.Dense(self.units_out)
+        dense_out = keras.layers.Dense(self.num_outputs)
         self.layers.append(dense_out)
 
     def call(self, inputs):
