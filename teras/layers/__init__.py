@@ -30,7 +30,7 @@ from .tabnet import (AttentiveTransformer as TabNetAttentiveTransformer,
                      FeatureTransformerBlock as TabNetFeatureTransformerBlock,
                      FeatureTransformer as TabNetFeatureTransformer,
                      Encoder as TabNetEncoder,
-                     Decoder as TabNeDecoder)
+                     Decoder as TabNetDecoder)
 
 # TabTransformer layers
 from .tabtransformer import (CategoricalFeatureEmbedding as TabTransformerCategoricalFeatureEmbedding,
