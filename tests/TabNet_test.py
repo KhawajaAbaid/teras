@@ -1,3 +1,5 @@
+import keras.losses
+
 from teras.models.tabnet import TabNetClassifier, TabNetRegressor
 import tensorflow as tf
 from sklearn import datasets as sklearn_datasets
@@ -5,7 +7,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, OrdinalEncoder
 import pandas as pd
 import numpy as np
-from teras.utils.utils import get_categorical_features_vocab, dataframe_to_tf_dataset
+from teras.utils.utils import get_categorical_features_vocabulary, dataframe_to_tf_dataset
 tf.config.run_functions_eagerly(True)
 
 
@@ -24,7 +26,7 @@ num_cols = ["carat", "depth", "table", "x", "y", "z"]
 oe = OrdinalEncoder()
 gem_df[cat_cols] = oe.fit_transform(gem_df[cat_cols])
 
-cat_feat_vocab = get_categorical_features_vocab(gem_df, cat_cols)
+cat_feat_vocab = get_categorical_features_vocabulary(gem_df, cat_cols, key="idx")
 
 training_df, pretrain_df = train_test_split(gem_df, test_size=0.25, shuffle=True, random_state=1337)
 
@@ -38,4 +40,5 @@ tabnet_regressor.pretrainer_fit_config.epochs = 2
 # Call pretrain
 tabnet_regressor.pretrain(pretrain_ds, num_features=gem_df.shape[1])
 # Train the regressor for our main task
+tabnet_regressor.compile(loss="mse", metrics=["mae"])
 tabnet_regressor.fit(X_ds, epochs=3)
