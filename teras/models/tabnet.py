@@ -9,6 +9,7 @@ from teras.losses.tabnet import reconstruction_loss
 from teras.layers import CategoricalFeaturesEmbedding
 from teras.config.tabnet import TabNetConfig
 from teras.config.base import FitConfig
+from warnings import warn
 
 
 LAYER_OR_MODEL = Union[keras.layers.Layer, keras.Model]
@@ -24,7 +25,6 @@ class TabNet(keras.Model):
         https://arxiv.org/abs/1908.07442
 
     Args:
-        categorical_features_vocabulary: `dict`, --- TODO ----
         feature_transformer_dim: `int`, default 32, the dimensionality of the hidden
             representation in feature transformation block.
             Each layer first maps the representation to a `2 * feature_transformer_dim`
@@ -65,9 +65,21 @@ class TabNet(keras.Model):
             determines the scale of normalization.
         epsilon: `float`, default 0.00001, Epsilon is a small number for numerical stability
             during the computation of entropy loss.
+        categorical_features_vocabulary: `dict`, Vocabulary of categorical feature.
+            Vocabulary is simply a dictionary where feature name maps
+            to a tuple of feature index and a list of unique values in the feature.
+            You can get this vocabulary by calling
+            `teras.utils.get_categorical_features_vocabulary(dataset, categorical_features)`
+            If None, dataset will be assumed to contain no categorical features and
+            hence CategoricalFeaturesEmbedding layer won't be applied.
+        encode_categorical_values: `bool`, default True, whether to (label) encode categorical values,
+            If you've already encoded the categorical values using for instance
+            Label/Ordinal encoding, you should set this to False,
+            otherwise leave it as True.
+            In the case of True, categorical values will be mapped to integer indices
+            using keras's string lookup layer.
     """
     def __init__(self,
-                 categorical_features_vocabulary: dict = TabNetConfig.categorical_features_vocabulary,
                  feature_transformer_dim: int = TabNetConfig.feature_transformer_dim,
                  decision_step_output_dim: int = TabNetConfig.decision_step_output_dim,
                  num_decision_steps: int = TabNetConfig.num_decision_steps,
@@ -78,9 +90,26 @@ class TabNet(keras.Model):
                  virtual_batch_size: int = TabNetConfig.virtual_batch_size,
                  residual_normalization_factor: float = TabNetConfig.residual_normalization_factor,
                  epsilon: float = TabNetConfig.epsilon,
+                 categorical_features_vocabulary: dict = TabNetConfig.categorical_features_vocabulary,
+                 encode_categorical_values: bool = TabNetConfig.encode_categorical_features,
                  **kwargs):
         super().__init__(**kwargs)
-        self.categorical_features_vocabulary = categorical_features_vocabulary
+
+        if categorical_features_vocabulary is None:
+            warn("""
+            No value for `categorical_features_vocabulary` was passed. 
+            It is assumed that the dataset doesn't contain any categorical features,
+            hence CategoricalFeaturesEmbedding won't be applied. "
+            If your dataset does contain categorical features and you must pass the
+            `categorical_features_vocabulary` for better performance and to avoid unexpected results.
+            You can get this vocabulary by calling
+            `teras.utils.get_categorical_features_vocabulary(dataset, categorical_features)`
+                 """)
+
+        if not encode_categorical_values:
+            warn("`encode_categorical_values` is set to False. Categorical values are assumed to be encoded "
+                 "and hence no encoding will be applied before embedding generation.")
+
         self.feature_transformer_dim = feature_transformer_dim
         self.decision_step_output_dim = decision_step_output_dim
         self.num_decision_steps = num_decision_steps
@@ -91,10 +120,13 @@ class TabNet(keras.Model):
         self.virtual_batch_size = virtual_batch_size
         self.residual_normalization_factor = residual_normalization_factor
         self.epsilon = epsilon
+        self.categorical_features_vocabulary = categorical_features_vocabulary
+        self.encode_categorical_values = encode_categorical_values
 
         self.categorical_features_embedding = CategoricalFeaturesEmbedding(
             self.categorical_features_vocabulary,
-            embedding_dim=1)
+            embedding_dim=1,
+            encode=self.encode_categorical_values)
 
         self.encoder = TabNetEncoder(feature_transformer_dim=self.feature_transformer_dim,
                                      decision_step_output_dim=self.decision_step_output_dim,
@@ -141,24 +173,24 @@ class TabNet(keras.Model):
         dim = num_features
         pretrainer = TabNetPretrainer(data_dim=dim,
                                       missing_feature_probability=missing_feature_probability,
-                                      categorical_features_vocabulary=self.categorical_features_vocabulary,
 
                                       encoder_feature_transformer_dim=self.feature_transformer_dim,
                                       encoder_decision_step_output_dim=self.decision_step_output_dim,
                                       encoder_num_decision_steps=self.num_decision_steps,
                                       encoder_num_shared_layers=self.num_shared_layers,
                                       encoder_num_decision_dependent_layers=self.num_decision_dependent_layers,
-
                                       decoder_feature_transformer_dim=decoder_feature_transformer_dim,
                                       decoder_decision_step_output_dim=decoder_decision_step_output_dim,
                                       decoder_num_decision_steps=decoder_num_decision_steps,
                                       decoder_num_shared_layers=decoder_num_shared_layers,
                                       decoder_num_decision_dependent_layers=decoder_num_decision_dependent_layers,
-
                                       virtual_batch_size=self.virtual_batch_size,
                                       batch_momentum=self.batch_momentum,
                                       residual_normalization_factor=self.residual_normalization_factor,
-                                      )
+
+                                      categorical_features_vocabulary=self.categorical_features_vocabulary,
+                                      encode_categorical_values=self.encode_categorical_values,
+                                    )
         pretrainer.compile()
         print("passing params", self.pretrainer_fit_config.to_dict())
         pretrainer.fit(pretraining_dataset, **self.pretrainer_fit_config.to_dict())
@@ -221,19 +253,34 @@ class TabNetClassifier(TabNet):
             determines the scale of normalization.
         epsilon: `float`, default 0.00001, Epsilon is a small number for numerical stability
             during the computation of entropy loss.
+        categorical_features_vocabulary: `dict`, Vocabulary of categorical feature.
+            Vocabulary is simply a dictionary where feature name maps
+            to a tuple of feature index and a list of unique values in the feature.
+            You can get this vocabulary by calling
+            `teras.utils.get_categorical_features_vocabulary(dataset, categorical_features)`
+            If None, dataset will be assumed to contain no categorical features and
+            hence CategoricalFeaturesEmbedding layer won't be applied.
+        encode_categorical_values: `bool`, default True, whether to (label) encode categorical values,
+            If you've already encoded the categorical values using for instance
+            Label/Ordinal encoding, you should set this to False,
+            otherwise leave it as True.
+            In the case of True, categorical values will be mapped to integer indices
+            using keras's string lookup layer.
     """
     def __init__(self,
-                 num_classes=2,
-                 feature_transformer_dim: int = 32,
-                 decision_step_output_dim: int = 32,
-                 num_decision_steps: int = 5,
-                 num_shared_layers: int = 2,
-                 num_decision_dependent_layers: int = 2,
-                 relaxation_factor: float = 1.5,
-                 batch_momentum: float = 0.9,
-                 virtual_batch_size: int = 64,
-                 residual_normalization_factor: float = 0.5,
-                 epsilon=1e-5,
+                 num_classes=1,
+                 feature_transformer_dim: int = TabNetConfig.feature_transformer_dim,
+                 decision_step_output_dim: int = TabNetConfig.decision_step_output_dim,
+                 num_decision_steps: int = TabNetConfig.num_decision_steps,
+                 num_shared_layers: int = TabNetConfig.num_shared_layers,
+                 num_decision_dependent_layers: int = TabNetConfig.num_decision_dependent_layers,
+                 relaxation_factor: float = TabNetConfig.relaxation_factor,
+                 batch_momentum: float = TabNetConfig.batch_momentum,
+                 virtual_batch_size: int = TabNetConfig.virtual_batch_size,
+                 residual_normalization_factor: float = TabNetConfig.residual_normalization_factor,
+                 epsilon: float = TabNetConfig.epsilon,
+                 categorical_features_vocabulary: dict = TabNetConfig.encode_categorical_features,
+                 encode_categorical_values: bool = TabNetConfig.encode_categorical_features,
                  **kwargs):
         super().__init__(feature_transformer_dim=feature_transformer_dim,
                          decision_step_output_dim=decision_step_output_dim,
@@ -245,6 +292,8 @@ class TabNetClassifier(TabNet):
                          virtual_batch_size=virtual_batch_size,
                          residual_normalization_factor=residual_normalization_factor,
                          epsilon=epsilon,
+                         categorical_features_vocabulary=categorical_features_vocabulary,
+                         encode_categorical_values=encode_categorical_values,
                          **kwargs)
         self.num_classes = 1 if num_classes <= 2 else num_classes
 
@@ -252,8 +301,11 @@ class TabNetClassifier(TabNet):
         self.output_layer = layers.Dense(self.num_classes, activation=activation)
 
     def call(self, inputs):
-        outputs = self.encoder(inputs)
-        predictions = self.output_layer(outputs)
+        x = inputs
+        if self.categorical_features_vocabulary is not None:
+            x = self.categorical_features_embedding(x)
+        x = self.encoder(x)
+        predictions = self.output_layer(x)
         return predictions
 
 
@@ -306,23 +358,36 @@ class TabNetRegressor(TabNet):
             determines the scale of normalization.
         epsilon: `float`, default 0.00001, Epsilon is a small number for numerical stability
             during the computation of entropy loss.
+        categorical_features_vocabulary: `dict`, Vocabulary of categorical feature.
+            Vocabulary is simply a dictionary where feature name maps
+            to a tuple of feature index and a list of unique values in the feature.
+            You can get this vocabulary by calling
+            `teras.utils.get_categorical_features_vocabulary(dataset, categorical_features)`
+            If None, dataset will be assumed to contain no categorical features and
+            hence CategoricalFeaturesEmbedding layer won't be applied.
+        encode_categorical_values: `bool`, default True, whether to (label) encode categorical values,
+            If you've already encoded the categorical values using for instance
+            Label/Ordinal encoding, you should set this to False,
+            otherwise leave it as True.
+            In the case of True, categorical values will be mapped to integer indices
+            using keras's string lookup layer.
     """
     def __init__(self,
                  num_outputs=1,
-                 categorical_features_vocabulary: dict = None,
-                 feature_transformer_dim: int = 32,
-                 decision_step_output_dim: int = 32,
-                 num_decision_steps: int = 5,
-                 num_shared_layers: int = 2,
-                 num_decision_dependent_layers: int = 2,
-                 relaxation_factor: float = 1.5,
-                 batch_momentum: float = 0.9,
-                 virtual_batch_size: int = 64,
-                 residual_normalization_factor: float = 0.5,
-                 epsilon=1e-5,
+                 feature_transformer_dim: int = TabNetConfig.feature_transformer_dim,
+                 decision_step_output_dim: int = TabNetConfig.decision_step_output_dim,
+                 num_decision_steps: int = TabNetConfig.num_decision_steps,
+                 num_shared_layers: int = TabNetConfig.num_shared_layers,
+                 num_decision_dependent_layers: int = TabNetConfig.num_decision_dependent_layers,
+                 relaxation_factor: float = TabNetConfig.relaxation_factor,
+                 batch_momentum: float = TabNetConfig.batch_momentum,
+                 virtual_batch_size: int = TabNetConfig.virtual_batch_size,
+                 residual_normalization_factor: float = TabNetConfig.residual_normalization_factor,
+                 epsilon: float = TabNetConfig.epsilon,
+                 categorical_features_vocabulary: dict = TabNetConfig.encode_categorical_features,
+                 encode_categorical_values: bool = TabNetConfig.encode_categorical_features,
                  **kwargs):
-        super().__init__(categorical_features_vocabulary,
-                         feature_transformer_dim=feature_transformer_dim,
+        super().__init__(feature_transformer_dim=feature_transformer_dim,
                          decision_step_output_dim=decision_step_output_dim,
                          num_decision_steps=num_decision_steps,
                          num_shared_layers=num_shared_layers,
@@ -332,15 +397,19 @@ class TabNetRegressor(TabNet):
                          virtual_batch_size=virtual_batch_size,
                          residual_normalization_factor=residual_normalization_factor,
                          epsilon=epsilon,
+                         categorical_features_vocabulary=categorical_features_vocabulary,
+                         encode_categorical_values=encode_categorical_values,
                          **kwargs)
         self.num_outputs = num_outputs
         self.head = layers.Dense(self.num_outputs, name="tabnet_regressor_head")
 
     def call(self, inputs):
-        outputs = self.categorical_features_embedding(inputs)
-        outputs = self.encoder(outputs)
-        outputs = self.head(outputs)
-        return outputs
+        x = inputs
+        if self.categorical_features_vocabulary is not None:
+            x = self.categorical_features_embedding(x)
+        x = self.encoder(x)
+        predictions = self.head(x)
+        return predictions
 
 
 class TabNetPretrainer(TabNet):
@@ -411,36 +480,49 @@ class TabNetPretrainer(TabNet):
             Typically, a larger value for `num_decision_steps` favors for a larger `relaxation_factor`.
         epsilon: `float`, default 0.00001, Epsilon is a small number for numerical stability
             during the computation of entropy loss.
+        categorical_features_vocabulary: `dict`, Vocabulary of categorical feature.
+            Vocabulary is simply a dictionary where feature name maps
+            to a tuple of feature index and a list of unique values in the feature.
+            You can get this vocabulary by calling
+            `teras.utils.get_categorical_features_vocabulary(dataset, categorical_features)`
+            If None, dataset will be assumed to contain no categorical features and
+            hence CategoricalFeaturesEmbedding layer won't be applied.
+        encode_categorical_values: `bool`, default True, whether to (label) encode categorical values,
+            If you've already encoded the categorical values using for instance
+            Label/Ordinal encoding, you should set this to False,
+            otherwise leave it as True.
+            In the case of True, categorical values will be mapped to integer indices
+            using keras's string lookup layer.
     """
 
     def __init__(self,
                  data_dim: int,
                  missing_feature_probability: float = 0.3,
-                 categorical_features_vocabulary: dict = None,
 
-                 encoder_feature_transformer_dim: int = 32,
-                 encoder_decision_step_output_dim: int = 32,
-                 encoder_num_decision_steps: int = 5,
-                 encoder_num_shared_layers: int = 2,
-                 encoder_num_decision_dependent_layers: int = 2,
+                 encoder_feature_transformer_dim: int = TabNetConfig.feature_transformer_dim,
+                 encoder_decision_step_output_dim: int = TabNetConfig.decision_step_output_dim,
+                 encoder_num_decision_steps: int = TabNetConfig.num_decision_steps,
+                 encoder_num_shared_layers: int = TabNetConfig.num_shared_layers,
+                 encoder_num_decision_dependent_layers: int = TabNetConfig.num_decision_dependent_layers,
 
-                 decoder_feature_transformer_dim: int = 32,
-                 decoder_decision_step_output_dim: int = 32,
-                 decoder_num_decision_steps: int = 5,
-                 decoder_num_shared_layers: int = 2,
-                 decoder_num_decision_dependent_layers: int = 2,
+                 decoder_feature_transformer_dim: int = TabNetConfig.feature_transformer_dim,
+                 decoder_decision_step_output_dim: int = TabNetConfig.decision_step_output_dim,
+                 decoder_num_decision_steps: int = TabNetConfig.num_decision_steps,
+                 decoder_num_shared_layers: int = TabNetConfig.num_shared_layers,
+                 decoder_num_decision_dependent_layers: int = TabNetConfig.num_decision_dependent_layers,
 
-                 relaxation_factor: float = 1.5,
-                 batch_momentum: float = 0.9,
-                 virtual_batch_size: int = 64,
-                 residual_normalization_factor: float = 0.5,
-                 epsilon=1e-5,
+                 relaxation_factor: float = TabNetConfig.relaxation_factor,
+                 batch_momentum: float = TabNetConfig.batch_momentum,
+                 virtual_batch_size: int = TabNetConfig.virtual_batch_size,
+                 residual_normalization_factor: float = TabNetConfig.residual_normalization_factor,
+                 epsilon: float = TabNetConfig.epsilon,
+                 categorical_features_vocabulary: dict = TabNetConfig.categorical_features_vocabulary,
+                 encode_categorical_values: bool = TabNetConfig.encode_categorical_features,
                  **kwargs):
         # Since the base TabNet model is basically an Encoder only model
         # so instead of defining encoder specific things here,
         # we just subclass the TabNet class
-        super().__init__(categorical_features_vocabulary=categorical_features_vocabulary,
-                         feature_transformer_dim=encoder_feature_transformer_dim,
+        super().__init__(feature_transformer_dim=encoder_feature_transformer_dim,
                          decision_step_output_dim=encoder_decision_step_output_dim,
                          num_decision_steps=encoder_num_decision_steps,
                          num_shared_layers=encoder_num_shared_layers,
@@ -450,6 +532,8 @@ class TabNetPretrainer(TabNet):
                          virtual_batch_size=virtual_batch_size,
                          residual_normalization_factor=residual_normalization_factor,
                          epsilon=epsilon,
+                         categorical_features_vocabulary=categorical_features_vocabulary,
+                         encode_categorical_values=encode_categorical_values,
                          **kwargs)
 
         self.data_dim = data_dim
