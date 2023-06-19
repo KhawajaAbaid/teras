@@ -75,10 +75,12 @@ class CategoricalFeaturesEmbedding(layers.Layer):
         if self._is_first_batch:
             if isinstance(inputs, dict):
                 self._is_data_in_dict_format = True
+                dim = len(inputs)
+            else:
+                dim = tf.shape(inputs)[1]
             self._is_first_batch = False
 
         # Encode and embedd categorical features
-        dim = tf.shape(inputs)[1]
         categorical_feature_embeddings = tf.TensorArray(size=dim, dtype=tf.float32)
         # feature_idx is the overall index of feature in the dataset
         # so it can't be used to retrieve lookup table and embedding layer from list
