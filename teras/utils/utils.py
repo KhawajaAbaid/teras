@@ -138,36 +138,17 @@ def get_categorical_features_vocabulary(dataframe: pd.DataFrame,
     Args:
         dataframe: Input dataframe
         categorical_features: List of names of categorical features in the input dataset
-        key: `str`, one of ["idx", "name"]
-            "idx": Dictionary of the form {feature_idx: (feature_name, list_of_unique_values)}
-                For each categorical feature, its index is mapped against a tuple containing its name
-                and the list of unique values in it.
-            "name": Dictionary is of the form {feature_name: (feature_idx, list of unqiue_values)}
-                For each categorical feature, its name is mapped against a tuple containing its index
-                and the list of unique values in it.
-
-            SOME GUIDELINES to decide which format your categorical_features_vocabulary
-            should be in:
-                    1. If your tensorflow dataset is going to be in dictionary format,
-                        then you must pass "name" for the `key` parameter.
-                    2. If your tensorflow dataset is going to be in numpy arrays format,
-                        then you can pass either "name" or "idx" for the `key` parameter.
 
     Returns:
-        Categorical feature vocabulary of the specified format.
+        A dictionary mapping categorical feature names to a tuple of feature indices
+        and the lists of unique values in them.
+        {feature_name: (feature_idx, list_of_unique_values)} for feature in categorical features.
     """
-    key = key.lower()
-    if key not in ("idx", "name"):
-        raise ValueError(f"`key` must be one of ['idx', 'name'] but {key} was passed.")
-
     categorical_features_vocabulary = {}
     for idx, col in enumerate(dataframe.columns):
         if col in categorical_features:
             unique_values = sorted(list(dataframe[col].unique()))
-            if key == "idx":
-                categorical_features_vocabulary.update({idx: (col, unique_values)})
-            else:
-                categorical_features_vocabulary.update({col: (idx, unique_values)})
+            categorical_features_vocabulary.update({col: (idx, unique_values)})
     return categorical_features_vocabulary
 
 
