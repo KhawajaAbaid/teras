@@ -191,7 +191,7 @@ class TabNet(keras.Model):
                                       encode_categorical_values=self.encode_categorical_values,
                                     )
         pretrainer.compile()
-        print("passing params", self.pretrainer_fit_config.to_dict())
+        # print("passing params", self.pretrainer_fit_config.to_dict())
         pretrainer.fit(pretraining_dataset, **self.pretrainer_fit_config.to_dict())
         self.categorical_features_embedding = pretrainer.categorical_features_embedding
         self.encoder = pretrainer.get_encoder()
