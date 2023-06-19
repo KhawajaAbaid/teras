@@ -37,11 +37,8 @@ class CategoricalFeaturesEmbedding(layers.Layer):
         self.embedding_dim = embedding_dim
         self.encode = encode
 
-        self.categorical_features = list(self.categorical_features_vocabulary.keys())
-
         self.lookup_tables, self.embedding_layers = self._get_lookup_tables_and_embedding_layers()
         self.concat = layers.Concatenate(axis=1)
-        self.categorical_feature_indicator = None
         self._is_data_in_dict_format = False
         self._is_first_batch = True
 
