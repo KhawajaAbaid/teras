@@ -140,11 +140,18 @@ def get_categorical_features_vocabulary(dataframe: pd.DataFrame,
         categorical_features: List of names of categorical features in the input dataset
         key: `str`, one of ["idx", "name"]
             "idx": Dictionary of the form {feature_idx: (feature_name, list_of_unique_values)}
-                For each categorical feature, its id is mapped against a tuple containing its name
+                For each categorical feature, its index is mapped against a tuple containing its name
                 and the list of unique values in it.
             "name": Dictionary is of the form {feature_name: (feature_idx, list of unqiue_values)}
-                For each categorical feature, its name is mapped against a tuple containing its idx
+                For each categorical feature, its name is mapped against a tuple containing its index
                 and the list of unique values in it.
+
+            SOME GUIDELINES to decide which format your categorical_features_vocabulary
+            should be in:
+                    1. If your tensorflow dataset is going to be in dictionary format,
+                        then you must pass "name" for the `key` parameter.
+                    2. If your tensorflow dataset is going to be in numpy arrays format,
+                        then you can pass either "name" or "idx" for the `key` parameter.
 
     Returns:
         Categorical feature vocabulary of the specified format.
@@ -161,8 +168,6 @@ def get_categorical_features_vocabulary(dataframe: pd.DataFrame,
                 categorical_features_vocabulary.update({idx: (col, unique_values)})
             else:
                 categorical_features_vocabulary.update({col: (idx, unique_values)})
-    # for cat_feat in categorical_features:
-    #     categorical_features_vocab[cat_feat] = tf.constant(sorted(list(inputs[cat_feat].unique())))
     return categorical_features_vocabulary
 
 
@@ -183,6 +188,14 @@ def dataframe_to_tf_dataset(
         batch_size: Batch size
         as_dict: Whether to make a tensorflow dataset in a dictionary format
             where each record is a mapping of features names against their values.
+
+            SOME GUIDELINES on when to create dataset in dictionary format and when not:
+            1. If your dataset is composed of heterogeneous data formats, i.e. it contains
+                features where some features contain integers/floats AND others contain strings,
+                and you don't want to manually encode the string values into integers/floats,
+                then your dataset must be in dictionary format, which you can get by setting
+                the `as_dict` parameter to `True`.
+
 
     Returns:
          A tf.data.Dataset dataset
