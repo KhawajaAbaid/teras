@@ -20,12 +20,12 @@ class CategoricalFeaturesEmbedding(layers.Layer):
             `teras.utils.get_categorical_features_vocabulary(dataset, categorical_features)`
         embedding_dim: `int`, default 32, Dimensionality of the embeddings
             to which categorical features should be mapped.
-        encode: `bool`, default True, whether to encode categorical values into integers.
-            If you've already encoded the categorical values to integers,
-            using Label/Ordinal encoding, you should set this to False,
+        encode: `bool`, default True, whether to (label) encode categorical values,
+            If you've already encoded the categorical values using for instance
+            Label/Ordinal encoding, you should set this to False,
             otherwise leave it as True.
-            In the case of True, categorical values will be mapped to integers using
-            keras's string lookup layer.
+            In the case of True, categorical values will be mapped to integer indices
+            using keras's string lookup layer.
     """
     def __init__(self,
                  categorical_features_vocabulary: dict,
