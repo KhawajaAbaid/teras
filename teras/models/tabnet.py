@@ -1,8 +1,7 @@
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
-from teras.layers import TabNetEncoder
-from teras.layers.tabnet import Decoder
+from teras.layers import TabNetEncoder, TabNetDecoder
 from typing import Union, List
 import tensorflow_probability as tfp
 from teras.losses.tabnet import reconstruction_loss
@@ -549,16 +548,16 @@ class TabNetPretrainer(TabNet):
                                                                 probs=self.missing_feature_probability,
                                                                 name="binary_mask_generator")
 
-        self.decoder = Decoder(data_dim=self.data_dim,
-                               feature_transformer_dim=self.decoder_feature_transformer_dim,
-                               decision_step_output_dim=self.decoder_decision_step_output_dim,
-                               num_decision_steps=self.decoder_num_decision_steps,
-                               num_shared_layers=self.decoder_num_shared_layers,
-                               num_decision_dependent_layers=self.decoder_num_decision_dependent_layers,
-                               batch_momentum=self.batch_momentum,
-                               virtual_batch_size=self.virtual_batch_size,
-                               residual_normalization_factor=self.residual_normalization_factor,
-                               )
+        self.decoder = TabNetDecoder(data_dim=self.data_dim,
+                                     feature_transformer_dim=self.decoder_feature_transformer_dim,
+                                     decision_step_output_dim=self.decoder_decision_step_output_dim,
+                                     num_decision_steps=self.decoder_num_decision_steps,
+                                     num_shared_layers=self.decoder_num_shared_layers,
+                                     num_decision_dependent_layers=self.decoder_num_decision_dependent_layers,
+                                     batch_momentum=self.batch_momentum,
+                                     virtual_batch_size=self.virtual_batch_size,
+                                     residual_normalization_factor=self.residual_normalization_factor,
+                                     )
 
         self._reconstruction_loss_tracker = keras.metrics.Mean(name="reconstruction_loss")
 
