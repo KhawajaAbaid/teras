@@ -142,6 +142,7 @@ class TabNet(keras.Model):
 
         self._pretrained = False
         self.pretrainer = None
+        self.head = None
 
     def pretrain(self,
                  pretraining_dataset,
@@ -200,6 +201,8 @@ class TabNet(keras.Model):
     def call(self, inputs):
         embedded_inputs = self.categorical_features_embedding(inputs)
         outputs = self.encoder(embedded_inputs)
+        if self.head is not None:
+            outputs = self.head(outputs)
         return outputs
 
 
@@ -297,15 +300,15 @@ class TabNetClassifier(TabNet):
         self.num_classes = 1 if num_classes <= 2 else num_classes
 
         activation = "sigmoid" if self.num_classes == 1 else "softmax"
-        self.output_layer = layers.Dense(self.num_classes, activation=activation)
+        self.head = layers.Dense(self.num_classes, activation=activation)
 
-    def call(self, inputs):
-        x = inputs
-        if self.categorical_features_vocabulary is not None:
-            x = self.categorical_features_embedding(x)
-        x = self.encoder(x)
-        predictions = self.output_layer(x)
-        return predictions
+    # def call(self, inputs):
+    #     x = inputs
+    #     if self.categorical_features_vocabulary is not None:
+    #         x = self.categorical_features_embedding(x)
+    #     x = self.encoder(x)
+    #     predictions = self.output_layer(x)
+    #     return predictions
 
 
 class TabNetRegressor(TabNet):
@@ -402,13 +405,13 @@ class TabNetRegressor(TabNet):
         self.num_outputs = num_outputs
         self.head = layers.Dense(self.num_outputs, name="tabnet_regressor_head")
 
-    def call(self, inputs):
-        x = inputs
-        if self.categorical_features_vocabulary is not None:
-            x = self.categorical_features_embedding(x)
-        x = self.encoder(x)
-        predictions = self.head(x)
-        return predictions
+    # def call(self, inputs):
+    #     x = inputs
+    #     if self.categorical_features_vocabulary is not None:
+    #         x = self.categorical_features_embedding(x)
+    #     x = self.encoder(x)
+    #     predictions = self.head(x)
+    #     return predictions
 
 
 class TabNetPretrainer(TabNet):
