@@ -21,17 +21,24 @@ cat_cols = ["cut", "color", "clarity"]
 num_cols = ["carat", "depth", "table", "x", "y", "z"]
 # gem_df = gem_df.drop(cat_cols, axis=1)
 
-# TODO: WE NEEEEEED TO CONVERT CATEGORICAL VALUES TO INTEGERS (ORDINALLY ENCODE THEM)
+# The architecture can handle both encoded and not encoded (even string) values
 
-oe = OrdinalEncoder()
-gem_df[cat_cols] = oe.fit_transform(gem_df[cat_cols])
+# If some categorical features contain string values, then create the tensorflow dataset by passing as_dict True.
+# Otherwise, it's up to you to create a dictionary format dataset or regular array format one.
+
+# If categorical values have been encoded, set the encode_categorical_values to False, otherwise set it to True.
+
+# Let's try it out!
+
+# oe = OrdinalEncoder()
+# gem_df[cat_cols] = oe.fit_transform(gem_df[cat_cols])
 
 cat_feat_vocab = get_categorical_features_vocabulary(gem_df, cat_cols, key="idx")
 
 training_df, pretrain_df = train_test_split(gem_df, test_size=0.25, shuffle=True, random_state=1337)
 
-X_ds = dataframe_to_tf_dataset(training_df, 'price', batch_size=1024, as_dict=False)
-pretrain_ds = dataframe_to_tf_dataset(pretrain_df, batch_size=1024, as_dict=False)
+X_ds = dataframe_to_tf_dataset(training_df, 'price', batch_size=1024, as_dict=True)
+pretrain_ds = dataframe_to_tf_dataset(pretrain_df, batch_size=1024, as_dict=True)
 
 tabnet_regressor = TabNetRegressor(categorical_features_vocabulary=cat_feat_vocab)
 
