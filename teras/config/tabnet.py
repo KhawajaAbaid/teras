@@ -2,7 +2,6 @@ from teras.config.base import BaseConfig
 
 
 class TabNetConfig(BaseConfig):
-    categorical_features_vocabulary: dict = None
     feature_transformer_dim: int = 32
     decision_step_output_dim: int = 32
     num_decision_steps: int = 5
@@ -13,3 +12,6 @@ class TabNetConfig(BaseConfig):
     virtual_batch_size: int = 64
     residual_normalization_factor: float = 0.5
     epsilon = 1e-5
+    categorical_features_vocabulary: dict = None
+    encode_categorical_features: bool = True
+
