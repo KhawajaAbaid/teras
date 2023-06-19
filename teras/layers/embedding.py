@@ -76,7 +76,7 @@ class CategoricalFeaturesEmbedding(layers.Layer):
         # If it's element_spec is an instance of dict, it's in dictionary format
         # If it's element_spec is an instance of tuple, it's in array format
         if self._is_first_batch:
-            if isinstance(inputs.element_spec, dict):
+            if isinstance(inputs, dict):
                 self._is_data_in_dict_format = True
             self._is_first_batch = False
 
