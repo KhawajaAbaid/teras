@@ -19,7 +19,7 @@ from .activations import (GLU,
                           GumbelSoftmax)
 
 # Embedding layers
-from .embedding import CategoricalFeaturesEmbedding
+from .embedding import CategoricalFeatureEmbedding
 
 
 # NODE layers

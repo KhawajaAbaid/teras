@@ -5,7 +5,7 @@ from teras.layers import TabNetEncoder, TabNetDecoder
 from typing import Union, List
 import tensorflow_probability as tfp
 from teras.losses.tabnet import reconstruction_loss
-from teras.layers import CategoricalFeaturesEmbedding
+from teras.layers import CategoricalFeatureEmbedding
 from teras.config.tabnet import TabNetConfig
 from teras.config.base import FitConfig
 from warnings import warn
@@ -70,7 +70,7 @@ class TabNet(keras.Model):
             You can get this vocabulary by calling
             `teras.utils.get_categorical_features_vocabulary(dataset, categorical_features)`
             If None, dataset will be assumed to contain no categorical features and
-            hence CategoricalFeaturesEmbedding layer won't be applied.
+            hence CategoricalFeatureEmbedding layer won't be applied.
         encode_categorical_values: `bool`, default True, whether to (label) encode categorical values,
             If you've already encoded the categorical values using for instance
             Label/Ordinal encoding, you should set this to False,
@@ -98,7 +98,7 @@ class TabNet(keras.Model):
             warn("""
             No value for `categorical_features_vocabulary` was passed. 
             It is assumed that the dataset doesn't contain any categorical features,
-            hence CategoricalFeaturesEmbedding won't be applied. "
+            hence CategoricalFeatureEmbedding won't be applied. "
             If your dataset does contain categorical features and you must pass the
             `categorical_features_vocabulary` for better performance and to avoid unexpected results.
             You can get this vocabulary by calling
@@ -122,7 +122,7 @@ class TabNet(keras.Model):
         self.categorical_features_vocabulary = categorical_features_vocabulary
         self.encode_categorical_values = encode_categorical_values
 
-        self.categorical_features_embedding = CategoricalFeaturesEmbedding(
+        self.categorical_features_embedding = CategoricalFeatureEmbedding(
             self.categorical_features_vocabulary,
             embedding_dim=1,
             encode=self.encode_categorical_values)
@@ -258,7 +258,7 @@ class TabNetClassifier(TabNet):
             You can get this vocabulary by calling
             `teras.utils.get_categorical_features_vocabulary(dataset, categorical_features)`
             If None, dataset will be assumed to contain no categorical features and
-            hence CategoricalFeaturesEmbedding layer won't be applied.
+            hence CategoricalFeatureEmbedding layer won't be applied.
         encode_categorical_values: `bool`, default True, whether to (label) encode categorical values,
             If you've already encoded the categorical values using for instance
             Label/Ordinal encoding, you should set this to False,
@@ -363,7 +363,7 @@ class TabNetRegressor(TabNet):
             You can get this vocabulary by calling
             `teras.utils.get_categorical_features_vocabulary(dataset, categorical_features)`
             If None, dataset will be assumed to contain no categorical features and
-            hence CategoricalFeaturesEmbedding layer won't be applied.
+            hence CategoricalFeatureEmbedding layer won't be applied.
         encode_categorical_values: `bool`, default True, whether to (label) encode categorical values,
             If you've already encoded the categorical values using for instance
             Label/Ordinal encoding, you should set this to False,
@@ -485,7 +485,7 @@ class TabNetPretrainer(TabNet):
             You can get this vocabulary by calling
             `teras.utils.get_categorical_features_vocabulary(dataset, categorical_features)`
             If None, dataset will be assumed to contain no categorical features and
-            hence CategoricalFeaturesEmbedding layer won't be applied.
+            hence CategoricalFeatureEmbedding layer won't be applied.
         encode_categorical_values: `bool`, default True, whether to (label) encode categorical values,
             If you've already encoded the categorical values using for instance
             Label/Ordinal encoding, you should set this to False,

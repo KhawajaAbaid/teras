@@ -7,9 +7,9 @@ from typing import List
 LIST_OF_STR = List[str]
 
 
-class CategoricalFeaturesEmbedding(layers.Layer):
+class CategoricalFeatureEmbedding(layers.Layer):
     """
-    CategoricalFeaturesEmbedding layer that encodes categorical features into
+    CategoricalFeatureEmbedding layer that encodes categorical features into
     categorical feature embeddings.
 
     Args:
