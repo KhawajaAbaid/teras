@@ -129,8 +129,7 @@ def get_categorical_features_cardinalities(dataframe,
 
 
 def get_categorical_features_vocabulary(dataframe: pd.DataFrame,
-                                        categorical_features,
-                                        key: str = "name"):
+                                        categorical_features):
     """
     Utility function that creates vocabulary for the categorical feature values
     which is required by the CategoricalFeaturesEmbedding layer and other of that sort.
