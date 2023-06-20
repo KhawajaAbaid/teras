@@ -5,7 +5,8 @@ from sklearn import datasets as sklearn_datasets
 from sklearn.preprocessing import LabelEncoder
 import pandas as pd
 import numpy as np
-from teras.utils import get_categorical_features_vocab, dataframe_to_tf_dataset
+from teras.utils import get_categorical_features_vocabulary, dataframe_to_tf_dataset
+tf.config.run_functions_eagerly(True)
 
 #  <<<<<<<<<<<<<<<<<<<<< REGRESSION Test >>>>>>>>>>>>>>>>>>>>>
 print(f"{'-'*15}  REGRESSION TEST {'-'*15}")
@@ -21,18 +22,16 @@ num_cols = ["carat", "depth", "table", "x", "y", "z"]
 
 # For FTTransformer, TabTranformer and SAINT, we need to pass a vacobulary of dict type
 # for the categorical features. You can get this vocab by calling the utility function as below
-cat_feat_vocab = get_categorical_features_vocab(gem_df, cat_cols)
+cat_feat_vocab = get_categorical_features_vocabulary(gem_df, cat_cols)
 # print(cat_feat_vocab)
 
 # For FTTransformer, TabTransfomer and SAINT, we need to convert our dataframe to tensorflow
 # dataset that support retrieving features by indexing column names like X_train["age"] in the model's call method
 # And, for that, I have a utility function in teras.utils which is used below.
-X_ds = dataframe_to_tf_dataset(gem_df, 'price', batch_size=1024)
+X_ds = dataframe_to_tf_dataset(gem_df, 'price', batch_size=1024, as_dict=True)
 
-tab_transformer_regressor = TabTransformerRegressor(units_out=1,
-                                                  numerical_features=num_cols,
-                                                  categorical_features=cat_cols,
-                                                  categorical_features_vocab=cat_feat_vocab
+tab_transformer_regressor = TabTransformerRegressor(num_outputs=1,
+                                                    categorical_features_vocabulary=cat_feat_vocab
                                                     )
 tab_transformer_regressor.compile(loss="MSE",
                                   optimizer=keras.optimizers.AdamW(learning_rate=0.05),
@@ -60,17 +59,15 @@ X[num_cols] = X[num_cols].values.astype(np.float32)
 
 # For FTTransformer, TabTranformer and SAINT, we need to pass a vacobulary of dict type
 # for the categorical features. You can get this vocab by calling the utility function as below
-cat_feat_vocab = get_categorical_features_vocab(X, cat_cols)
+cat_feat_vocab = get_categorical_features_vocabulary(X, cat_cols)
 
 # For FTTransformer, TabTransfomer and SAINT, we need to convert our dataframe to tensorflow
 # dataset that support retrieving features by indexing column names like X_train["age"] in the model's call method
 # And, for that, I have a utility function in teras.utils which is used below.
-X_ds = dataframe_to_tf_dataset(X, 'income', batch_size=1024)
+X_ds = dataframe_to_tf_dataset(X, 'income', batch_size=1024, as_dict=True)
 
 
-tabtransformer_classifier = TabTransformerClassifier(categorical_features_vocab=cat_feat_vocab,
-                                                     categorical_features=cat_cols,
-                                                     numerical_features=num_cols)
+tabtransformer_classifier = TabTransformerClassifier(categorical_features_vocabulary=cat_feat_vocab)
 tabtransformer_classifier.compile(loss=keras.losses.BinaryCrossentropy(),
                                   optimizer=keras.optimizers.AdamW(learning_rate=0.05),
                                   metrics=["accuracy"])
