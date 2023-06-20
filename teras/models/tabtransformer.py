@@ -1,12 +1,11 @@
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
-from teras.layers.tabtransformer import (ColumnEmbedding,
-                                         Encoder,
-                                         ClassificationHead,
-                                         RegressionHead
-                                         )
 from teras.layers.embedding import CategoricalFeatureEmbedding
+from teras.layers.tabtransformer import ColumnEmbedding
+from teras.layers.base.transformer import (Encoder,
+                                           RegressionHead,
+                                           ClassificationHead)
 from typing import List, Union, Tuple
 from warnings import warn
 from teras.config.tabtransformer import TabTransformerConfig
@@ -279,7 +278,7 @@ class TabTransformerClassifier(TabTransformer):
                  ):
         super().__init__(embedding_dim=embedding_dim,
                          num_transformer_layers=num_transformer_layers,
-                         num_attention_heads=num_attention_heads,
+                         numgirl_attention_heads=num_attention_heads,
                          attention_dropout=attention_dropout,
                          feedforward_dropout=feedforward_dropout,
                          norm_epsilon=norm_epsilon,
@@ -375,4 +374,4 @@ class TabTransformerRegressor(TabTransformer):
         self.num_outputs = num_outputs
         self.head_hidden_units = head_hidden_units
         self.head = RegressionHead(num_outputs=self.num_outputs,
-                                   units_hidden=self.head_hidden_units)
+                                   units_values_hidden=self.head_hidden_units)
