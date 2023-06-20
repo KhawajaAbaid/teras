@@ -30,7 +30,7 @@ class CategoricalFeatureEmbedding(layers.Layer):
     def __init__(self,
                  categorical_features_vocabulary: dict,
                  embedding_dim: int = 32,
-                 encode: bool = False,
+                 encode: bool = True,
                  **kwargs):
         super().__init__(**kwargs)
         self.categorical_features_vocabulary = categorical_features_vocabulary
@@ -41,7 +41,7 @@ class CategoricalFeatureEmbedding(layers.Layer):
         self.concat = layers.Concatenate(axis=1)
         self._is_data_in_dict_format = False
         self._is_first_batch = True
-        self._data_dim = None
+        self._num_categorical_features = len(categorical_features_vocabulary)
 
     def _get_lookup_tables_and_embedding_layers(self):
         """Lookup tables and embedding layers for each categorical feature"""
@@ -71,18 +71,16 @@ class CategoricalFeatureEmbedding(layers.Layer):
 
     def call(self, inputs):
         # Find the dataset's format - is it either in dictionary format.
-        # If it's element_spec is an instance of dict, it's in dictionary format
-        # If it's element_spec is an instance of tuple, it's in array format
+        # If inputs is an instance of dict, it's in dictionary format
+        # If inputs is an instance of tuple, it's in array format
         if self._is_first_batch:
             if isinstance(inputs, dict):
                 self._is_data_in_dict_format = True
-                self._data_dim = len(inputs)
-            else:
-                self._data_dim = tf.shape(inputs)[1]
             self._is_first_batch = False
 
         # Encode and embedd categorical features
-        categorical_feature_embeddings = tf.TensorArray(size=self._data_dim, dtype=tf.float32)
+        categorical_feature_embeddings = tf.TensorArray(size=self._num_categorical_features,
+                                                        dtype=tf.float32)
         # feature_idx is the overall index of feature in the dataset
         # so it can't be used to retrieve lookup table and embedding layer from list
         # which are both of length equal to number of categorical features - not input dimensions
@@ -101,7 +99,8 @@ class CategoricalFeatureEmbedding(layers.Layer):
             # Convert index values to embedding representations
             embedding = self.embedding_layers[current_idx]
             feature = embedding(feature)
-            feature = tf.squeeze(feature, axis=-1)
+            # if tf.rank(feature) == 3:
+            #     feature = tf.squeeze(feature, axis=1)
             categorical_feature_embeddings = categorical_feature_embeddings.write(current_idx, feature)
             current_idx += 1
 
