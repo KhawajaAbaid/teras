@@ -2,6 +2,12 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers, models
 from teras.layers.activations import GEGLU
+from teras.utils import get_normalization_layer
+from typing import List, Tuple, Union
+
+
+LIST_OR_TUPLE = Union[List[int], Tuple[int]]
+LAYER_OR_STR = Union[keras.layers.Layer, str]
 
 
 class FeedForward(layers.Layer):
@@ -159,4 +165,46 @@ class Encoder(layers.Layer):
 
     def call(self, inputs):
         outputs = self.transformer_layers(inputs)
+        return outputs
+
+
+class RegressionHead(layers.Layer):
+    """
+    Regression head to use on top of the transformer based
+    architectures for regression.
+
+    Args:
+        num_outputs: `int`, default 1, Number of regression outputs to predict.
+        units_values: `List[int] | Tuple[int]`, default (64, 32), for each value in the sequence
+            a hidden layer of that dimension followed by a normalization layer (if specified) is
+            added to the RegressionHead.
+            Number of hidden dense layers will be equal to the length of units_hidden list.
+        activation_hidden: default "relu", Activation function to use in hidden dense layers.
+        normalization: `Layer | str`, default "batch", Normalization layer to use.
+            If specified a normalization layer is applied after each hidden layer.
+            If None, no normalization layer is applied.
+            You can either pass a keras normalization layer or name for a layer implemented by keras.
+    """
+    def __init__(self,
+                 num_outputs: int = 1,
+                 units_values: LIST_OR_TUPLE = (64, 32),
+                 activation_hidden="relu",
+                 normalization: LAYER_OR_STR = "batch",
+                 **kwargs):
+        super().__init__(**kwargs)
+        self.num_outputs = num_outputs
+        self.units_values = units_values
+        self.activation_hidden = activation_hidden
+        self.normalization = normalization
+
+        self.inner_head = keras.models.Sequential(name="inner_head")
+        for units in self.units_values:
+            if self.normalization is not None:
+                self.inner_head.add(get_normalization_layer(self.normalization))
+            self.inner_head.add(layers.Dense(units))
+        dense_out = layers.Dense(self.num_outputs)
+        self.inner_head.add(dense_out)
+
+    def call(self, inputs):
+        outputs = self.inner_head(inputs)
         return outputs
