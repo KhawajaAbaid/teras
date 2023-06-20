@@ -16,11 +16,6 @@ class FeedForward(layers.Layer):
     MultiHeadAttention layer's outputs as inputs, expands them to input dimensions
     times the multiplier and then projects them back to the input dimensions.
 
-    Reference(s):
-        TabTransformer: https://arxiv.org/abs/2012.06678
-        SAINT: https://arxiv.org/abs/2106.01342
-        FT-Transformer: https://arxiv.org/abs/2106.11959
-
     Args:
         embedding_dim: `int`, default 16, Embedding dimensions used in the given
             architecture to usually embedded the numerical features but at times
