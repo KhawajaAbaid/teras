@@ -291,8 +291,10 @@ class TabTransformerClassifier(TabTransformer):
         self.head_hidden_units = head_hidden_units
         self.activation_out = activation_out
         self.head = ClassificationHead(num_classes=self.num_classes,
-                                       units_hidden=self.head_hidden_units,
-                                       activation_out=self.activation_out)
+                                       units_values_hidden=self.head_hidden_units,
+                                       activation_hidden="relu",
+                                       activation_out=self.activation_out,
+                                       normalization="batch")
 
 
 class TabTransformerRegressor(TabTransformer):
@@ -374,4 +376,6 @@ class TabTransformerRegressor(TabTransformer):
         self.num_outputs = num_outputs
         self.head_hidden_units = head_hidden_units
         self.head = RegressionHead(num_outputs=self.num_outputs,
-                                   units_values_hidden=self.head_hidden_units)
+                                   units_values_hidden=self.head_hidden_units,
+                                   activation_hidden="relu",
+                                   normalization="batch")
