@@ -9,6 +9,7 @@ from teras.layers.tabtransformer import (ColumnEmbedding,
 from teras.layers.embedding import CategoricalFeatureEmbedding
 from typing import List, Union, Tuple
 from warnings import warn
+from teras.config.tabtransformer import TabTransformerConfig
 
 
 LIST_OR_TUPLE_OF_INT = Union[List[int], Tuple[int]]
@@ -64,15 +65,15 @@ class TabTransformer(keras.Model):
             using keras's string lookup layer.
 """
     def __init__(self,
-                 embedding_dim: int = 32,
-                 num_transformer_layers: int = 6,
-                 num_attention_heads: int = 8,
-                 attention_dropout: float = 0.,
-                 feedforward_dropout: float = 0.,
-                 norm_epsilon: float = 1e-6,
-                 use_column_embedding: bool = True,
-                 categorical_features_vocabulary: dict = None,
-                 encode_categorical_values: bool = True,
+                 embedding_dim: int = TabTransformerConfig.embedding_dim,
+                 num_transformer_layers: int = TabTransformerConfig.num_transformer_layers,
+                 num_attention_heads: int = TabTransformerConfig.num_attention_heads,
+                 attention_dropout: float = TabTransformerConfig.attention_dropout,
+                 feedforward_dropout: float = TabTransformerConfig.feedforward_dropout,
+                 norm_epsilon: float = TabTransformerConfig.norm_epsilon,
+                 use_column_embedding: bool = TabTransformerConfig.use_column_embedding,
+                 categorical_features_vocabulary: dict = TabTransformerConfig.categorical_features_vocabulary,
+                 encode_categorical_values: bool = TabTransformerConfig.encode_categorical_values,
                  **kwargs
                  ):
         super().__init__(**kwargs)
@@ -265,24 +266,24 @@ class TabTransformerClassifier(TabTransformer):
                  num_classes: int = 2,
                  head_hidden_units: LIST_OR_TUPLE_OF_INT = (64, 32),
                  activation_out=None,
-                 embedding_dim: int = 32,
-                 num_transformer_layers: int = 6,
-                 num_attention_heads: int = 8,
-                 use_column_embedding: bool = True,
-                 attention_dropout: float = 0.,
-                 feedforward_dropout: float = 0.,
-                 norm_epsilon=1e-6,
-                 categorical_features_vocabulary: dict = None,
-                 encode_categorical_values: bool = True,
+                 embedding_dim: int = TabTransformerConfig.embedding_dim,
+                 num_transformer_layers: int = TabTransformerConfig.num_transformer_layers,
+                 num_attention_heads: int = TabTransformerConfig.num_attention_heads,
+                 attention_dropout: float = TabTransformerConfig.attention_dropout,
+                 feedforward_dropout: float = TabTransformerConfig.feedforward_dropout,
+                 norm_epsilon: float = TabTransformerConfig.norm_epsilon,
+                 use_column_embedding: bool = TabTransformerConfig.use_column_embedding,
+                 categorical_features_vocabulary: dict = TabTransformerConfig.categorical_features_vocabulary,
+                 encode_categorical_values: bool = TabTransformerConfig.encode_categorical_values,
                  **kwargs
                  ):
         super().__init__(embedding_dim=embedding_dim,
                          num_transformer_layers=num_transformer_layers,
                          num_attention_heads=num_attention_heads,
-                         use_column_embedding=use_column_embedding,
                          attention_dropout=attention_dropout,
                          feedforward_dropout=feedforward_dropout,
                          norm_epsilon=norm_epsilon,
+                         use_column_embedding=use_column_embedding,
                          categorical_features_vocabulary=categorical_features_vocabulary,
                          encode_categorical_values=encode_categorical_values,
                          **kwargs)
@@ -350,24 +351,24 @@ class TabTransformerRegressor(TabTransformer):
     def __init__(self,
                  num_outputs: int = 1,
                  head_hidden_units: LIST_OR_TUPLE_OF_INT = (64, 32),
-                 embedding_dim: int = 32,
-                 num_transformer_layers: int = 6,
-                 num_attention_heads: int = 8,
-                 use_column_embedding: bool = True,
-                 attention_dropout: float = 0.,
-                 feedforward_dropout: float = 0.,
-                 norm_epsilon=1e-6,
-                 categorical_features_vocabulary: dict = None,
-                 encode_categorical_values: bool = True,
+                 embedding_dim: int = TabTransformerConfig.embedding_dim,
+                 num_transformer_layers: int = TabTransformerConfig.num_transformer_layers,
+                 num_attention_heads: int = TabTransformerConfig.num_attention_heads,
+                 attention_dropout: float = TabTransformerConfig.attention_dropout,
+                 feedforward_dropout: float = TabTransformerConfig.feedforward_dropout,
+                 norm_epsilon: float = TabTransformerConfig.norm_epsilon,
+                 use_column_embedding: bool = TabTransformerConfig.use_column_embedding,
+                 categorical_features_vocabulary: dict = TabTransformerConfig.categorical_features_vocabulary,
+                 encode_categorical_values: bool = TabTransformerConfig.encode_categorical_values,
                  **kwargs
                  ):
         super().__init__(embedding_dim=embedding_dim,
                          num_transformer_layers=num_transformer_layers,
                          num_attention_heads=num_attention_heads,
-                         use_column_embedding=use_column_embedding,
                          attention_dropout=attention_dropout,
                          feedforward_dropout=feedforward_dropout,
                          norm_epsilon=norm_epsilon,
+                         use_column_embedding=use_column_embedding,
                          categorical_features_vocabulary=categorical_features_vocabulary,
                          encode_categorical_values=encode_categorical_values,
                          **kwargs)
