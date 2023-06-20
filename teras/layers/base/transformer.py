@@ -50,3 +50,61 @@ class FeedForward(layers.Layer):
         x = self.dropout(x)
         x = self.dense_2(x)
         return x
+
+
+class Transformer(layers.Layer):
+    """
+    Transformer layer that is used as a building block for
+    constructing the Encoder block of transformer based architectures.
+    It applies the MultiHeadAttention followed by the FeedForward layer
+    and also employs residual connections.
+
+    Args:
+        num_heads: `int`, default 8, Number of heads to use in the
+            MultiHeadAttention layer.
+        embedding_dim: `int`, default 32, emebdding dimensions being
+            used in the overall architecture.
+            These serve as the `key dimensions` in the
+            `MultiHeadAttention` layer and are multiplied by the
+            `mutliplier` in the `FeedForward` layer to compute the
+            hidden dimensions to project the inputs into.
+        attention_dropout: `float`, default 0., Dropout rate for
+            the MultiHeadAttention layer.
+        feedforward_dropout: `float`, default 0., Dropout rate to use
+            in for the dropout layer in the FeedForward layer.
+        norm_epsilon: `float`, default 1e-6, Normalization value to
+            use for LayerNormalization layer.
+    """
+    def __init__(self,
+                 num_heads: int = 8,
+                 embedding_dim: int = 32,
+                 attention_dropout: float = 0.,
+                 feedforward_dropout: float = 0.,
+                 norm_epsilon: float = 1e-6,
+                 **kwagrs):
+        super().__init__(**kwagrs)
+        self.num_heads = num_heads
+        self.embedding_dim = embedding_dim
+        self.attention_dropout = attention_dropout
+        self.feedforward_dropout = feedforward_dropout
+        self.norm_epsilon = norm_epsilon
+
+        self.multi_head_attention = layers.MultiHeadAttention(
+            num_heads=self.num_heads,
+            key_dim=self.embedding_dim,
+            dropout=self.attention_dropout
+        )
+        self.skip_1 = layers.Add()
+        self.layer_norm_1 = layers.LayerNormalization(epsilon=self.norm_epsilon)
+        self.feed_forward = FeedForward(self.embedding_dim)
+        self.skip_2 = layers.Add()
+        self.layer_norm_2 = layers.LayerNormalization(epsilon=self.norm_epsilon)
+
+    def call(self, inputs):
+        attention_out = self.multi_head_attention(inputs, inputs)
+        x = self.skip_1([attention_out, inputs])
+        x = self.layer_norm_1(x)
+        feedforward_out = self.feed_forward(x)
+        x = self.skip_2([feedforward_out, x])
+        x = self.layer_norm_2(x)
+        return x
