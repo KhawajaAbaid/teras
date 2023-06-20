@@ -99,10 +99,12 @@ class CategoricalFeatureEmbedding(layers.Layer):
             # Convert index values to embedding representations
             embedding = self.embedding_layers[current_idx]
             feature = embedding(feature)
-            # if tf.rank(feature) == 3:
-            #     feature = tf.squeeze(feature, axis=1)
             categorical_feature_embeddings = categorical_feature_embeddings.write(current_idx, feature)
             current_idx += 1
-
-        categorical_feature_embeddings = tf.transpose(tf.squeeze(categorical_feature_embeddings.stack()))
+        categorical_feature_embeddings = categorical_feature_embeddings.stack()
+        categorical_feature_embeddings = tf.squeeze(categorical_feature_embeddings)
+        if tf.rank(categorical_feature_embeddings) == 3:
+            categorical_feature_embeddings = tf.transpose(categorical_feature_embeddings, perm=[1, 0, 2])
+        else:
+            categorical_feature_embeddings = tf.transpose(categorical_feature_embeddings)
         return categorical_feature_embeddings
