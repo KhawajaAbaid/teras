@@ -144,6 +144,22 @@ class TabNet(keras.Model):
         self.pretrainer = None
         self.head = None
 
+        self._numerical_features_exist = True
+        self._categorical_features_exist = True
+
+        self._categorical_features_names = None
+        self._categorical_features_idx = None
+        if self.categorical_features_vocabulary is not None:
+            self._categorical_features_idx = set(map(lambda x: x[0], categorical_features_vocabulary.values()))
+            self._categorical_features_names = set(categorical_features_vocabulary.keys())
+        else:
+            self._categorical_features_exist = False
+        self._numerical_features_names = None
+        self._numerical_features_idx = None
+
+        self._is_first_batch = True
+        self._is_data_in_dict_format = False
+
     def pretrain(self,
                  pretraining_dataset,
                  num_features: int = None,
@@ -199,8 +215,56 @@ class TabNet(keras.Model):
         self._pretrained = True
 
     def call(self, inputs):
-        embedded_inputs = self.categorical_features_embedding(inputs)
-        outputs = self.encoder(embedded_inputs)
+        if self._is_first_batch:
+            if isinstance(inputs, dict):
+                self._is_data_in_dict_format = True
+                all_features_names = set(inputs.keys())
+                if self._categorical_features_names is None:
+                    # Then there are only numerical features in the dataset
+                    self._numerical_features_names = all_features_names
+                else:
+                    # Otherwise there are definitely categorical features but may or may not be
+                    # numerical features
+                    self._numerical_features_names = all_features_names - self._categorical_features_names
+                    if len(self._numerical_features_names) == 0:
+                        # There are no numerical features
+                        self._numerical_features_exist = False
+            else:
+                # otherwise the inputs must be in regular arrays format
+                all_features_idx = set(range(tf.shape(inputs)[1]))
+                if self._categorical_features_idx is None:
+                    self._numerical_features_idx = all_features_idx
+                else:
+                    self._numerical_features_idx = all_features_idx - self._categorical_features_idx
+                if len(self._numerical_features_idx) == 0:
+                    self._numerical_features_exist = False
+            self._is_first_batch = False
+
+        categorical_features = None
+        if self._categorical_features_exist:
+            categorical_features = self.categorical_features_embedding(inputs)
+
+        numerical_features = None
+        if self._numerical_features_exist:
+            # In TabNet we pass raw numerical feature to the encoder -- no embeddings are applied.
+            if self._is_data_in_dict_format:
+                numerical_features = tf.concat([tf.expand_dims(inputs[feature_name], axis=1)
+                                                for feature_name in self._numerical_features_names],
+                                               axis=1)
+            else:
+                numerical_features = tf.concat([tf.expand_dims(inputs[:, feature_idx], axis=1)
+                                                for feature_idx in self._numerical_features_idx],
+                                               axis=1)
+
+        features = []
+        if categorical_features is None:
+            features = numerical_features
+        elif numerical_features is None:
+            features = categorical_features
+        else:
+            features = tf.concat([categorical_features, numerical_features], axis=1)
+
+        outputs = self.encoder(features)
         if self.head is not None:
             outputs = self.head(outputs)
         return outputs
