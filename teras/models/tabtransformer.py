@@ -101,9 +101,10 @@ class TabTransformer(keras.Model):
         self.num_categorical_features = len(self.categorical_features_vocabulary)
 
         self.categorical_feature_embedding = CategoricalFeatureEmbedding(
-            categorical_features_vocabulary=self.categorical_features_vocabulary,
-            embedding_dim=self.embedding_dim
-        )
+                                                categorical_features_vocabulary=self.categorical_features_vocabulary,
+                                                embedding_dim=self.embedding_dim,
+                                                encode=self.encode_categorical_values
+                                            )
 
         self.column_embedding = ColumnEmbedding(embedding_dim=self.embedding_dim,
                                                 num_categorical_features=self.num_categorical_features)
@@ -112,7 +113,8 @@ class TabTransformer(keras.Model):
                                num_heads=self.num_attention_heads,
                                embedding_dim=self.embedding_dim,
                                attention_dropout=self.attention_dropout,
-                               feedforward_dropout=self.feedforward_dropout)
+                               feedforward_dropout=self.feedforward_dropout,
+                               norm_epsilon=self.norm_epsilon)
         self.flatten = layers.Flatten()
         self.norm = layers.LayerNormalization(epsilon=self.norm_epsilon)
         self.head = None
