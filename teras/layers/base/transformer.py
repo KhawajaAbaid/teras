@@ -175,7 +175,7 @@ class RegressionHead(layers.Layer):
 
     Args:
         num_outputs: `int`, default 1, Number of regression outputs to predict.
-        units_values: `List[int] | Tuple[int]`, default (64, 32), for each value in the sequence
+        units_values_hidden: `List[int] | Tuple[int]`, default (64, 32), for each value in the sequence
             a hidden layer of that dimension preceded by a normalization layer (if specified) is
             added to the RegressionHead.
         activation_hidden: default "relu", Activation function to use in hidden dense layers.
@@ -186,26 +186,31 @@ class RegressionHead(layers.Layer):
     """
     def __init__(self,
                  num_outputs: int = 1,
-                 units_values: LIST_OR_TUPLE = (64, 32),
+                 units_values_hidden: LIST_OR_TUPLE = (64, 32),
                  activation_hidden="relu",
                  normalization: LAYER_OR_STR = "batch",
                  **kwargs):
         super().__init__(**kwargs)
         self.num_outputs = num_outputs
-        self.units_values = units_values
+        self.units_values_hidden = units_values_hidden
         self.activation_hidden = activation_hidden
         self.normalization = normalization
 
-        self.inner_head = keras.models.Sequential(name="inner_head")
-        for units in self.units_values:
-            if self.normalization is not None:
-                self.inner_head.add(get_normalization_layer(self.normalization))
-            self.inner_head.add(layers.Dense(units))
-        dense_out = layers.Dense(self.num_outputs)
-        self.inner_head.add(dense_out)
+        self.hidden_block = None
+        if self.units_values_hidden is not None:
+            self.hidden_block = keras.models.Sequential(name="inner_head")
+            for units in self.units_values_hidden:
+                if self.normalization is not None:
+                    self.hidden_block.add(get_normalization_layer(self.normalization))
+                self.hidden_block.add(layers.Dense(units,
+                                                   activation=self.activation_hidden))
+        self.dense_out = layers.Dense(self.num_outputs)
 
     def call(self, inputs):
-        outputs = self.inner_head(inputs)
+        x = inputs
+        if self.hidden_block is not None:
+            x = self.hidden_block(x)
+        outputs = self.dense_out(x)
         return outputs
 
 
@@ -216,7 +221,7 @@ class ClassificationHead(layers.Layer):
 
     Args:
         num_classes: `int`, default 2, Number of classes to predict.
-        units_values: `List[int] | Tuple[int]`, default (64, 32), for each value in the sequence
+        units_values_hidden: `List[int] | Tuple[int]`, default (64, 32), for each value in the sequence
             a hidden layer of that dimension preceded by a normalization layer (if specified) is
             added to the ClassificationHead.
         activation_hidden: default "relu", Activation function to use in hidden dense layers.
@@ -230,29 +235,34 @@ class ClassificationHead(layers.Layer):
     """
     def __init__(self,
                  num_classes: int = 2,
-                 units_values: LIST_OR_TUPLE = (64, 32),
+                 units_values_hidden: LIST_OR_TUPLE = (64, 32),
                  activation_hidden="relu",
                  activation_out=None,
                  normalization: LAYER_OR_STR = "batch",
                  **kwargs):
         super().__init__(**kwargs)
         self.num_classes = 1 if num_classes <= 2 else num_classes
-        self.units_values = units_values
+        self.units_values_hidden = units_values_hidden
         self.activation_hidden = activation_hidden
         self.activation_out = activation_out
         if self.activation_out is None:
             self.activation_out = "sigmoid" if self.num_classes == 1 else "softmax"
         self.normalization = normalization
 
-        self.inner_head = keras.models.Sequential(name="inner_head")
-        for units in self.units_values:
-            if self.normalization is not None:
-                self.inner_head.add(get_normalization_layer(self.normalization))
-            self.inner_head.add(layers.Dense(units))
-
-        dense_out = layers.Dense(self.num_classes, activation=self.activation_out)
-        self.inner_head.add(dense_out)
+        self.hidden_block = None
+        if self.units_values_hidden is not None:
+            self.hidden_block = keras.models.Sequential(name="inner_head")
+            for units in self.units_values_hidden:
+                if self.normalization is not None:
+                    self.hidden_block.add(get_normalization_layer(self.normalization))
+                self.hidden_block.add(layers.Dense(units,
+                                                   activation=self.activation_hidden))
+        self.dense_out = layers.Dense(self.num_classes,
+                                 activation=self.activation_out)
 
     def call(self, inputs):
-        outputs = self.inner_head(inputs)
+        x = inputs
+        if self.hidden_block is not None:
+            x = self.hidden_block(x)
+        outputs = self.dense_out(x)
         return outputs
