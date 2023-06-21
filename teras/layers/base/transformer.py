@@ -86,6 +86,7 @@ class Transformer(layers.Layer):
                  num_attention_heads: int = 8,
                  attention_dropout: float = 0.,
                  feedforward_dropout: float = 0.,
+                 feedforward_multiplier: int = 4,
                  norm_epsilon: float = 1e-6,
                  **kwagrs):
         super().__init__(**kwagrs)
@@ -93,6 +94,7 @@ class Transformer(layers.Layer):
         self.num_attention_heads = num_attention_heads
         self.attention_dropout = attention_dropout
         self.feedforward_dropout = feedforward_dropout
+        self.feedforward_multiplier = feedforward_multiplier
         self.norm_epsilon = norm_epsilon
 
         self.multi_head_attention = layers.MultiHeadAttention(
@@ -102,7 +104,9 @@ class Transformer(layers.Layer):
         )
         self.skip_1 = layers.Add()
         self.layer_norm_1 = layers.LayerNormalization(epsilon=self.norm_epsilon)
-        self.feed_forward = FeedForward(self.embedding_dim)
+        self.feed_forward = FeedForward(self.embedding_dim,
+                                        multiplier=self.feedforward_multiplier,
+                                        dropout=self.feedforward_dropout)
         self.skip_2 = layers.Add()
         self.layer_norm_2 = layers.LayerNormalization(epsilon=self.norm_epsilon)
 
@@ -143,6 +147,7 @@ class Encoder(layers.Layer):
                  embedding_dim: int = 32,
                  attention_dropout: float = 0.,
                  feedforward_dropout: float = 0.,
+                 feedforward_multiplier: int = 4,
                  norm_epsilon: float = 1e-6,
                  **kwargs):
         super().__init__(**kwargs)
@@ -151,6 +156,7 @@ class Encoder(layers.Layer):
         self.embedding_dim = embedding_dim
         self.attention_dropout = attention_dropout
         self.feedforward_dropout = feedforward_dropout
+        self.feedforward_multiplier = feedforward_multiplier
         self.norm_epsilon = norm_epsilon
 
         self.transformer_layers = models.Sequential(name="transformer_layers")
@@ -160,6 +166,7 @@ class Encoder(layers.Layer):
                             embedding_dim=self.embedding_dim,
                             attention_dropout=self.attention_dropout,
                             feedforward_dropout=self.feedforward_dropout,
+                            feedforward_multiplier=self.feedforward_multiplier,
                             norm_epsilon=self.norm_epsilon,
                             name=f"transformer_layer_{i+1}"))
 
