@@ -224,7 +224,7 @@ class TabTransformerClassifier(TabTransformer):
         https://arxiv.org/abs/2012.06678
 
     Args:
-        num_classes: `int`, default 1, Number of classes to predict.
+        num_classes: `int`, default 2, Number of classes to predict.
         head_hidden_units: `List[int]`, default [64, 32], Hidden units to
             use in the Classification head. For each value in the list/tuple,
             a hidden layer of that dimensionality is added to the head.
