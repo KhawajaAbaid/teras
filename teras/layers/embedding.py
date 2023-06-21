@@ -13,11 +13,16 @@ class CategoricalFeatureEmbedding(layers.Layer):
     categorical feature embeddings.
 
     Args:
-        categorical_features_vocabulary: `dict`, Vocabulary of categorical feature.
-            Vocabulary is simply a dictionary where feature name maps
-            to a tuple of feature index and a list of unique values in the feature.
-            You can get this vocabulary by calling
-            `teras.utils.get_categorical_features_vocabulary(dataset, categorical_features)`
+        categorical_features_metadata: `dict`, A dictionary of metadata of categorical features.
+            It is simply a mapping where for each categorical feature, the feature name maps
+            to a tuple of feature index and a list of unique values (a.k.a. Vocabulary) in the feature.
+            You can get this metadata dictionary by calling
+                >>> from teras.utils import get_features_metadata_for_embedding
+                >>> features_metadata = get_features_metadata_for_embedding(dataset,
+                                                                            categorical_features,
+                                                                            numerical_features)
+            and then accessing its `categorical` key as follows:
+                >>> categorical_features_metadata = features_metadata["categorical"]
         embedding_dim: `int`, default 32, Dimensionality of the embeddings
             to which categorical features should be mapped.
         encode: `bool`, default True, whether to (label) encode categorical values,
@@ -28,12 +33,12 @@ class CategoricalFeatureEmbedding(layers.Layer):
             using keras's string lookup layer.
     """
     def __init__(self,
-                 categorical_features_vocabulary: dict,
+                 categorical_features_metadata: dict,
                  embedding_dim: int = 32,
                  encode: bool = True,
                  **kwargs):
         super().__init__(**kwargs)
-        self.categorical_features_vocabulary = categorical_features_vocabulary
+        self.categorical_features_metadata = categorical_features_metadata
         self.embedding_dim = embedding_dim
         self.encode = encode
 
@@ -41,19 +46,19 @@ class CategoricalFeatureEmbedding(layers.Layer):
         self.concat = layers.Concatenate(axis=1)
         self._is_data_in_dict_format = False
         self._is_first_batch = True
-        self._num_categorical_features = len(categorical_features_vocabulary)
+        self._num_categorical_features = len(categorical_features_metadata)
 
     def _get_lookup_tables_and_embedding_layers(self):
         """Lookup tables and embedding layers for each categorical feature"""
         lookup_tables = []
         embedding_layers = []
-        for feature_name, (feature_idx, unique_values) in self.categorical_features_vocabulary.items():
+        for feature_name, (feature_idx, vocabulary) in self.categorical_features_metadata.items():
             # If the categorical values in the dataset haven't been encoded in preprocessing step
             # then encode them first. The `encode` parameter lets user specify if we need to encode
             # the categorical values or not.
             if self.encode:
                 # Lookup Table to convert string values to integer indices
-                lookup = layers.StringLookup(vocabulary=unique_values,
+                lookup = layers.StringLookup(vocabulary=vocabulary,
                                              mask_token=None,
                                              num_oov_indices=0,
                                              output_mode="int"
@@ -63,7 +68,7 @@ class CategoricalFeatureEmbedding(layers.Layer):
             # Embedding layers map the integer representations of categorical values
             # to dense vectors of `embedding_dim` dimensionality,
             # which in fancier lingo are called `embeddings`.
-            embedding = layers.Embedding(input_dim=len(unique_values),
+            embedding = layers.Embedding(input_dim=len(vocabulary),
                                          output_dim=self.embedding_dim)
             embedding_layers.append(embedding)
 
@@ -87,7 +92,7 @@ class CategoricalFeatureEmbedding(layers.Layer):
         # hence the need for current_idx
         current_idx = 0
         # We only embedd the categorical features
-        for feature_name, (feature_idx, _) in self.categorical_features_vocabulary.items():
+        for feature_name, (feature_idx, _) in self.categorical_features_metadata.items():
             if self._is_data_in_dict_format:
                 feature = tf.expand_dims(inputs[feature_name], 1)
             else:
