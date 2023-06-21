@@ -1,11 +1,12 @@
 from tensorflow import keras
 import tensorflow as tf
 from tensorflow.keras import layers
-from typing import List, Union
+from typing import List, Union, Tuple
 import pandas as pd
 
 
 LayerType = Union[str, layers.Layer]
+FEATURE_NAMES_TYPE = Union[List[str], Tuple[str]]
 
 
 def tf_random_choice(inputs,
@@ -128,27 +129,53 @@ def get_categorical_features_cardinalities(dataframe,
 
 
 
-def get_categorical_features_vocabulary(dataframe: pd.DataFrame,
-                                        categorical_features):
+def get_features_metadata_for_embedding(dataframe: pd.DataFrame,
+                                        categorical_features=None,
+                                        numerical_features=None):
     """
-    Utility function that creates vocabulary for the categorical feature values
-    which is required by the CategoricalFeaturesEmbedding layer and other of that sort.
-    It is a preprocessing function and is called by the user.
+    Utility function that create metadata for features in a given dataframe
+    required by the Categorical and Numerical embedding layers in Teras.
+    For numerical features, it maps each feature name to feature index.
+    For categorical features, it maps each feature name to a tuple of
+    feature index and vocabulary of words in that categorical feature.
+    This metadata is usually required by the architectures that create embeddings
+    of Numerical or Categorical features,
+    such as TabTransformer, TabNet, FT-Transformer, etc.
+
     Args:
         dataframe: Input dataframe
         categorical_features: List of names of categorical features in the input dataset
+        numerical_features: List of names of categorical features in the input dataset
 
     Returns:
-        A dictionary mapping categorical feature names to a tuple of feature indices
-        and the lists of unique values in them.
-        {feature_name: (feature_idx, list_of_unique_values)} for feature in categorical features.
+        A dictionary which contains sub-dictionaries for categorical and numerical features
+        where categorical dictionary is a mapping of categorical feature names to a tuple of
+        feature indices and the lists of unique values (vocabulary) in them,
+        while numerical dictionary is a mapping of numerical feature names to their indices.
+        {feature_name: (feature_idx, vocabulary)} for feature in categorical features.
+        {feature_name: feature_idx} for feature in numerical features.
     """
-    categorical_features_vocabulary = {}
+    if categorical_features is None and numerical_features is None:
+        raise ValueError("Both `categorical_features` and `numerical_features` cannot be None at the same time. "
+                         "You must pass value for at least one of them. If your dataset contains both types of "
+                         "features then it is strongly recommended to pass features names for both types. "
+                         f"Received, `categorical_features`: {categorical_features}, "
+                         f"`numerical_features`: {numerical_features}")
+    features_meta_data = {}
+    categorical_features_metadata = {}
+    numerical_features_metadata = {}
     for idx, col in enumerate(dataframe.columns):
-        if col in categorical_features:
-            unique_values = sorted(list(dataframe[col].unique()))
-            categorical_features_vocabulary.update({col: (idx, unique_values)})
-    return categorical_features_vocabulary
+        if categorical_features is not None:
+            if col in categorical_features:
+                vocabulary = sorted(list(dataframe[col].unique()))
+                categorical_features_metadata.update({col: (idx, vocabulary)})
+        if numerical_features is not None:
+            if col in numerical_features:
+                numerical_features_metadata.update({col: idx})
+
+    features_meta_data["categorical"] = categorical_features_metadata
+    features_meta_data["numerical"] = numerical_features_metadata
+    return features_meta_data
 
 
 def dataframe_to_tf_dataset(
