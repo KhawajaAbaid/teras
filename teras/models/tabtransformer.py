@@ -225,8 +225,9 @@ class TabTransformerClassifier(TabTransformer):
 
     Args:
         num_classes: `int`, default 2, Number of classes to predict.
-        head_hidden_units: `List[int]`, default [64, 32], Hidden units to
-            use in the Classification head. For each value in the list/tuple,
+        units_values_hidden: `List[int] | Tuple[int]`, default [64, 32],
+            Hidden units to use in the Classification head.
+            For each value in the list/tuple,
             a hidden layer of that dimensionality is added to the head.
         activation_out: Activation to use in the Classification head,
             by default, `sigmoid` is used for binary and `softmax` is used
@@ -265,7 +266,7 @@ class TabTransformerClassifier(TabTransformer):
     """
     def __init__(self,
                  num_classes: int = 2,
-                 head_hidden_units: LIST_OR_TUPLE_OF_INT = (64, 32),
+                 units_values_hidden: LIST_OR_TUPLE_OF_INT = (64, 32),
                  activation_out=None,
                  embedding_dim: int = TabTransformerConfig.embedding_dim,
                  num_transformer_layers: int = TabTransformerConfig.num_transformer_layers,
@@ -289,11 +290,12 @@ class TabTransformerClassifier(TabTransformer):
                          encode_categorical_values=encode_categorical_values,
                          **kwargs)
 
+        # TODO replace head_hidden_units with units_values_hidden
         self.num_classes = num_classes
-        self.head_hidden_units = head_hidden_units
+        self.units_values_hidden = units_values_hidden
         self.activation_out = activation_out
         self.head = ClassificationHead(num_classes=self.num_classes,
-                                       units_values_hidden=self.head_hidden_units,
+                                       units_values_hidden=self.units_values_hidden,
                                        activation_hidden="relu",
                                        activation_out=self.activation_out,
                                        normalization="batch")
@@ -316,8 +318,9 @@ class TabTransformerRegressor(TabTransformer):
 
     Args:
         num_outputs: `int`, default 1, Number of regression outputs to predict.
-        head_hidden_units: `List[int]`, default [64, 32], Hidden units to
-            use in the Regression head. For each value in the list/tuple,
+        head_hidden_units: `List[int] | Tuple[int]`, default [64, 32],
+            Hidden units to use in the Regression head.
+            For each value in the list/tuple,
             a hidden layer of that dimensionality is added to the head.
         embedding_dim: `int`, default 32, Dimensionality of the learnable
             feature embeddings for categorical features.
@@ -353,7 +356,7 @@ class TabTransformerRegressor(TabTransformer):
     """
     def __init__(self,
                  num_outputs: int = 1,
-                 head_hidden_units: LIST_OR_TUPLE_OF_INT = (64, 32),
+                 units_values_hidden: LIST_OR_TUPLE_OF_INT = (64, 32),
                  embedding_dim: int = TabTransformerConfig.embedding_dim,
                  num_transformer_layers: int = TabTransformerConfig.num_transformer_layers,
                  num_attention_heads: int = TabTransformerConfig.num_attention_heads,
@@ -376,8 +379,8 @@ class TabTransformerRegressor(TabTransformer):
                          encode_categorical_values=encode_categorical_values,
                          **kwargs)
         self.num_outputs = num_outputs
-        self.head_hidden_units = head_hidden_units
+        self.units_values_hidden = units_values_hidden
         self.head = RegressionHead(num_outputs=self.num_outputs,
-                                   units_values_hidden=self.head_hidden_units,
+                                   units_values_hidden=self.units_values_hidden,
                                    activation_hidden="relu",
                                    normalization="batch")
