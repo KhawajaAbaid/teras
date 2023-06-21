@@ -130,7 +130,7 @@ class TabTransformer(keras.Model):
         # If inputs are dict, we can simply extract the keys and delete out the
         # categorical features names to get numerical features names
         # And if inputs are arrays, we can construct a input_dim array, in the
-        # range 0 - input_dim and delete out numbers that correspond to catgorical
+        # range 0 - input_dim and delete out numbers that correspond to categorical
         # feature indices to get the indices for the numerical features.
         self._categorical_features_names = None
         self._categorical_features_idx = None
