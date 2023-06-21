@@ -290,7 +290,6 @@ class TabTransformerClassifier(TabTransformer):
                          encode_categorical_values=encode_categorical_values,
                          **kwargs)
 
-        # TODO replace head_hidden_units with units_values_hidden
         self.num_classes = num_classes
         self.units_values_hidden = units_values_hidden
         self.activation_out = activation_out
