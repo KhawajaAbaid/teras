@@ -66,8 +66,8 @@ class Transformer(layers.Layer):
     and also employs residual connections.
 
     Args:
-        num_heads: `int`, default 8, Number of heads to use in the
-            MultiHeadAttention layer.
+        num_attention_heads: `int`, default 8, Number of heads to use
+            in the MultiHeadAttention layer.
         embedding_dim: `int`, default 32, emebdding dimensions being
             used in the overall architecture.
             These serve as the `key dimensions` in the
@@ -82,21 +82,21 @@ class Transformer(layers.Layer):
             use for LayerNormalization layer.
     """
     def __init__(self,
-                 num_heads: int = 8,
+                 num_attention_heads: int = 8,
                  embedding_dim: int = 32,
                  attention_dropout: float = 0.,
                  feedforward_dropout: float = 0.,
                  norm_epsilon: float = 1e-6,
                  **kwagrs):
         super().__init__(**kwagrs)
-        self.num_heads = num_heads
+        self.num_attention_heads = num_attention_heads
         self.embedding_dim = embedding_dim
         self.attention_dropout = attention_dropout
         self.feedforward_dropout = feedforward_dropout
         self.norm_epsilon = norm_epsilon
 
         self.multi_head_attention = layers.MultiHeadAttention(
-            num_heads=self.num_heads,
+            num_heads=self.num_attention_heads,
             key_dim=self.embedding_dim,
             dropout=self.attention_dropout
         )
