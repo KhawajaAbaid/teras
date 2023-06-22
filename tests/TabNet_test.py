@@ -30,22 +30,26 @@ num_cols = ["carat", "depth", "table", "x", "y", "z"]
 
 # Let's try it out!
 
-# oe = OrdinalEncoder()
-# gem_df[cat_cols] = oe.fit_transform(gem_df[cat_cols])
+oe = OrdinalEncoder()
+gem_df[cat_cols] = oe.fit_transform(gem_df[cat_cols])
 
-cat_feat_vocab = get_categorical_features_vocabulary(gem_df, cat_cols, key="idx")
+cat_feat_vocab = get_categorical_features_vocabulary(gem_df, cat_cols)
 
 training_df, pretrain_df = train_test_split(gem_df, test_size=0.25, shuffle=True, random_state=1337)
 
-X_ds = dataframe_to_tf_dataset(training_df, 'price', batch_size=1024, as_dict=True)
-pretrain_ds = dataframe_to_tf_dataset(pretrain_df, batch_size=1024, as_dict=True)
+X_ds = dataframe_to_tf_dataset(training_df, 'price', batch_size=1024, as_dict=False)
+pretrain_ds = dataframe_to_tf_dataset(pretrain_df, batch_size=1024, as_dict=False)
 
-tabnet_regressor = TabNetRegressor(categorical_features_vocabulary=cat_feat_vocab)
+# NEW DISCOVERY: If the categorical values have been encoded, you MUST set the encode_categorical_values param to False
+# other otherwise it the string lookup layer will throw an error.
+
+tabnet_regressor = TabNetRegressor(categorical_features_vocabulary=cat_feat_vocab,
+                                   encode_categorical_values=False)
 
 # Configure Pretrainer's fit() method arguments
 tabnet_regressor.pretrainer_fit_config.epochs = 2
 # Call pretrain
-tabnet_regressor.pretrain(pretrain_ds, num_features=gem_df.shape[1])
+# tabnet_regressor.pretrain(pretrain_ds, num_features=gem_df.shape[1])
 # Train the regressor for our main task
 tabnet_regressor.compile(loss="mse", metrics=["mae"])
 tabnet_regressor.fit(X_ds, epochs=3)
