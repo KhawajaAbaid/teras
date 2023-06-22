@@ -7,7 +7,8 @@ from sklearn.preprocessing import LabelEncoder
 import pandas as pd
 import numpy as np
 from teras.utils import (dataframe_to_tf_dataset,
-                         get_categorical_features_vocab)
+                         get_features_metadata_for_embedding)
+# tf.config.run_functions_eagerly(True)
 
 # There are separate sections for classification and regression tests.
 
@@ -16,41 +17,32 @@ from teras.utils import (dataframe_to_tf_dataset,
 print("Running Regression Test...")
 # Gemstone dataset from Kaggle's Playground Season 3 Episode 8
 # https://www.kaggle.com/competitions/playground-series-s3e8/data?select=train.csv
-gem_df = pd.read_csv("gemstone_data/train.csv").drop(["id"], axis=1)
+gem_df = pd.read_csv("gemstone_data/train.csv").drop(["id"], axis=1)[:10000]
 cat_cols = ["cut", "color", "clarity"]
 num_cols = ["carat", "depth", "table", "x", "y", "z"]
 
-# print(cat_cols)
-# print(num_cols)
+# For FTTransformer, TabTranformer and SAINT, we need to pass a dict of features metadata.
+# You can get this dict by calling the utility function as below
+feature_metadata = get_features_metadata_for_embedding(gem_df,
+                                                       categorical_features=cat_cols,
+                                                       numerical_features=num_cols)
 
-# For FTTransformer, TabTranformer and SAINT, we need to pass a vacobulary of dict type
-# for the categorical features. You can get this vocab by calling the utility function as below
-cat_feat_vocab = get_categorical_features_vocab(gem_df, cat_cols)
-# print(cat_feat_vocab)
-
-# For FTTransformer, TabTransfomer and SAINT, we need to convert our dataframe to tensorflow
-# dataset that support retrieving features by indexing column names like X_train["age"] in the model's call method
-# And, for that, I have a utility function in teras.utils which is used below.
-X_ds = dataframe_to_tf_dataset(gem_df, 'price', batch_size=1024)
+# If your dataset is heterogenous in that it contains features of numeric and string types,
+# then you need the tensorflow dataset in the dict format, otherwise either dict or regular array one works!
+X_ds = dataframe_to_tf_dataset(gem_df, 'price', batch_size=1024, as_dict=True)
 
 
-ft_transformer_regressor = FTTransformerRegressor(units_out=1,
-                                                  numerical_features=num_cols,
-                                                  categorical_features=cat_cols,
-                                                  categorical_features_vocab=cat_feat_vocab
-                                                    )
+ft_transformer_regressor = FTTransformerRegressor(features_metadata=feature_metadata)
 
 ft_transformer_regressor.compile(loss="MSE",
                                  optimizer=keras.optimizers.Adam(learning_rate=0.05),
                                  metrics=["MAE"])
-ft_transformer_regressor.fit(X_ds, epochs=10)
-
-
+ft_transformer_regressor.fit(X_ds, epochs=3)
 
 
 #  <<<<<<<<<<<<<<<<<<<<< CLASSIFICATION Test >>>>>>>>>>>>>>>>>>>>>
 print("\n\nRunning Classification Test...")
-adult_df = pd.read_csv("adult_2.csv")
+adult_df = pd.read_csv("adult_2.csv")[:10000]
 X = adult_df
 # some preprocessing
 X['income'] = LabelEncoder().fit_transform(X['income'])
@@ -63,24 +55,21 @@ X.loc[:, num_cols].fillna(0, inplace=True)
 X[num_cols] = X[num_cols].values.astype(np.float32)
 
 
-# For FTTransformer, TabTranformer and SAINT, we need to pass a vacobulary of dict type
-# for the categorical features. You can get this vocab by calling the utility function as below
-cat_feat_vocab = get_categorical_features_vocab(X, cat_cols)
-
-# print(cat_feat_vocab)
+# We need this metadata dictionary
+features_metadata = get_features_metadata_for_embedding(X,
+                                                        categorical_features=cat_cols,
+                                                        numerical_features=num_cols)
 
 
 # Again, for FTTransformer, TabTransfomer and SAINT, we need to convert our dataframe to tensorflow
 # dataset that support retrieving features by indexing column names like X_train["age"] in the model's call method
 # And, for that, I have a utility function in teras.utils which is used below.
-X_ds = dataframe_to_tf_dataset(X, 'income', batch_size=1024)
+X_ds = dataframe_to_tf_dataset(X, 'income', batch_size=1024, as_dict=True)
 
 ft_transformer_classifier = FTTransformerClassifier(num_classes=2,
-                                                    numerical_features=num_cols,
-                                                    categorical_features=cat_cols,
-                                                    categorical_features_vocab=cat_feat_vocab
+                                                    features_metadata=features_metadata
                                                     )
 ft_transformer_classifier.compile(loss=keras.losses.BinaryCrossentropy(),
                                   optimizer=keras.optimizers.Adam(learning_rate=0.05),
                                   metrics=["accuracy"])
-ft_transformer_classifier.fit(X_ds, epochs=10)
+ft_transformer_classifier.fit(X_ds, epochs=3)
