@@ -637,6 +637,16 @@ class TabNetPretrainer(TabNet):
     def get_decoder(self):
         return self.decoder
 
+    @property
+    def feature_importances_per_sample(self):
+        """Returns feature importances per sample computed during training."""
+        return tf.concat(self.encoder.feature_importances_per_sample, axis=0)
+
+    @property
+    def feature_importances(self):
+        """Returns average feature importanes across samples computed during training."""
+        return tf.reduce_mean(self.feature_importances_per_sample, axis=0)
+
     def compile(self,
                 loss=reconstruction_loss,
                 optimizer=keras.optimizers.Adam(learning_rate=0.01),
