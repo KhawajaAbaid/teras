@@ -159,7 +159,7 @@ class FTTransformer(keras.Model):
             # we feed raw numerical features to the encoder
             numerical_features = tf.TensorArray(size=self._num_numerical_features,
                                                 dtype=tf.float32)
-            for i, (feature_name, feature_idx) in self._numerical_features_metadata:
+            for i, (feature_name, feature_idx) in enumerate(self._numerical_features_metadata.items()):
                 if self._is_data_in_dict_format:
                     feature = tf.expand_dims(inputs[feature_name], axis=1)
                 else:
