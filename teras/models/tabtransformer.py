@@ -225,8 +225,8 @@ class TabTransformerClassifier(TabTransformer):
 
     Args:
         num_classes: `int`, default 2, Number of classes to predict.
-        units_values_hidden: `List[int] | Tuple[int]`, default [64, 32],
-            Hidden units to use in the Classification head.
+        head_units_values: `List[int] | Tuple[int]`, default [64, 32],
+            Units values to use in the hidden layers in the Classification head.
             For each value in the list/tuple,
             a hidden layer of that dimensionality is added to the head.
         activation_out: Activation to use in the Classification head,
@@ -266,7 +266,7 @@ class TabTransformerClassifier(TabTransformer):
     """
     def __init__(self,
                  num_classes: int = 2,
-                 units_values_hidden: LIST_OR_TUPLE_OF_INT = (64, 32),
+                 head_units_values: LIST_OR_TUPLE_OF_INT = (64, 32),
                  activation_out=None,
                  embedding_dim: int = TabTransformerConfig.embedding_dim,
                  num_transformer_layers: int = TabTransformerConfig.num_transformer_layers,
@@ -291,10 +291,10 @@ class TabTransformerClassifier(TabTransformer):
                          **kwargs)
 
         self.num_classes = num_classes
-        self.units_values_hidden = units_values_hidden
+        self.head_units_values = head_units_values
         self.activation_out = activation_out
         self.head = ClassificationHead(num_classes=self.num_classes,
-                                       units_values_hidden=self.units_values_hidden,
+                                       units_values=self.head_units_values,
                                        activation_hidden="relu",
                                        activation_out=self.activation_out,
                                        normalization="batch")
@@ -317,8 +317,8 @@ class TabTransformerRegressor(TabTransformer):
 
     Args:
         num_outputs: `int`, default 1, Number of regression outputs to predict.
-        head_hidden_units: `List[int] | Tuple[int]`, default [64, 32],
-            Hidden units to use in the Regression head.
+        head_units_values: `List[int] | Tuple[int]`, default [64, 32],
+            Units values to use in the hidden layers in the Regression head.
             For each value in the list/tuple,
             a hidden layer of that dimensionality is added to the head.
         embedding_dim: `int`, default 32, Dimensionality of the learnable
@@ -355,7 +355,7 @@ class TabTransformerRegressor(TabTransformer):
     """
     def __init__(self,
                  num_outputs: int = 1,
-                 units_values_hidden: LIST_OR_TUPLE_OF_INT = (64, 32),
+                 head_units_values: LIST_OR_TUPLE_OF_INT = (64, 32),
                  embedding_dim: int = TabTransformerConfig.embedding_dim,
                  num_transformer_layers: int = TabTransformerConfig.num_transformer_layers,
                  num_attention_heads: int = TabTransformerConfig.num_attention_heads,
@@ -378,8 +378,8 @@ class TabTransformerRegressor(TabTransformer):
                          encode_categorical_values=encode_categorical_values,
                          **kwargs)
         self.num_outputs = num_outputs
-        self.units_values_hidden = units_values_hidden
+        self.head_units_values = head_units_values
         self.head = RegressionHead(num_outputs=self.num_outputs,
-                                   units_values_hidden=self.units_values_hidden,
+                                   units_values=self.head_units_values,
                                    activation_hidden="relu",
                                    normalization="batch")
