@@ -36,8 +36,8 @@ from .saint import (SAINTClassifier,
 
 
 # RTDL ResNet models
-from .rtdl.resnet import (ResNetClassifier as RTDLResNetClassifier,
-                          ResNetRegressor as RTDLResNetRegressor)
+from .rtdl.rtdl_resnet import (ResNetClassifier as RTDLResNetClassifier,
+                               ResNetRegressor as RTDLResNetRegressor)
 
 # RTDL FTTransformer models
 from .rtdl.ft_transformer import (FTTransformerClassifier,

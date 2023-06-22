@@ -52,9 +52,9 @@ from .saint import (NumericalFeatureEmbedding as SAINTNumericalFeatureEmbedding,
 
 
 # RTDL ResNet layers
-from .rtdl.resnet import (ResNetBlock as RTDLResNetBlock,
-                          ClassificationHead as RTDLResNetClassificationHead,
-                          RegressionHead as RTDLResNetRegressionHead)
+from .rtdl.rtdl_resnet import (ResNetBlock as RTDLResNetBlock,
+                               ClassificationHead as RTDLResNetClassificationHead,
+                               RegressionHead as RTDLResNetRegressionHead)
 
 
 # RTDL FTTransformer layers
