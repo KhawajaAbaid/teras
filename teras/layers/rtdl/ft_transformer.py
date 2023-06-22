@@ -16,7 +16,7 @@ class NumericalFeatureEmbedding(layers.Layer):
         https://arxiv.org/abs/2106.11959
 
     Args:
-        numerical_feature_metadata: `dict`,
+        numerical_features_metadata: `dict`,
             a dictionary of metadata for numerical features
             that maps each feature name to its index in the dataset.
         embedding_dim: `int`, default 32,
@@ -24,14 +24,14 @@ class NumericalFeatureEmbedding(layers.Layer):
             used for embedding categorical features.
     """
     def __init__(self,
-                 numerical_feature_metadata: dict,
+                 numerical_features_metadata: dict,
                  embedding_dim: int = 32,
                  **kwargs):
         super().__init__(**kwargs)
-        self.numerical_feature_metadata = numerical_feature_metadata
+        self.numerical_features_metadata = numerical_features_metadata
         self.embedding_dim = embedding_dim
 
-        self._num_numerical_features = len(self.numerical_feature_metadata)
+        self._num_numerical_features = len(self.numerical_features_metadata)
         self.embedding = layers.Dense(units=self.embedding_dim)
 
         self._is_first_batch = True
@@ -48,7 +48,7 @@ class NumericalFeatureEmbedding(layers.Layer):
 
         numerical_features = tf.TensorArray(size=self._num_numerical_features,
                                             dtype=tf.float32)
-        for i, (feature_name, feature_idx) in enumerate(self.numerical_feature_metadata):
+        for i, (feature_name, feature_idx) in enumerate(self.numerical_features_metadata):
             if self._is_data_in_dict_format:
                 feature = tf.expand_dims(inputs[feature_name], axis=1)
             else:
