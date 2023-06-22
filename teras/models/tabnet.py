@@ -24,6 +24,18 @@ class TabNet(keras.Model):
         https://arxiv.org/abs/1908.07442
 
     Args:
+        features_metadata: `dict`,
+            a nested dictionary of metadata for features where
+            categorical sub-dictionary is a mapping of categorical feature names to a tuple of
+            feature indices and the lists of unique values (vocabulary) in them,
+            while numerical dictionary is a mapping of numerical feature names to their indices.
+            `{feature_name: (feature_idx, vocabulary)}` for feature in categorical features.
+            `{feature_name: feature_idx}` for feature in numerical features.
+            You can get this dictionary from
+                >>> from teras.utils import get_features_metadata_for_embedding
+                >>> metadata_dict = get_features_metadata_for_embedding(dataframe,
+                                                                        numerical_features,
+                                                                        categorical_features)
         feature_transformer_dim: `int`, default 32, the dimensionality of the hidden
             representation in feature transformation block.
             Each layer first maps the representation to a `2 * feature_transformer_dim`
@@ -64,13 +76,6 @@ class TabNet(keras.Model):
             determines the scale of normalization.
         epsilon: `float`, default 0.00001, Epsilon is a small number for numerical stability
             during the computation of entropy loss.
-        categorical_features_vocabulary: `dict`, Vocabulary of categorical feature.
-            Vocabulary is simply a dictionary where feature name maps
-            to a tuple of feature index and a list of unique values in the feature.
-            You can get this vocabulary by calling
-            `teras.utils.get_categorical_features_vocabulary(dataset, categorical_features)`
-            If None, dataset will be assumed to contain no categorical features and
-            hence CategoricalFeatureEmbedding layer won't be applied.
         encode_categorical_values: `bool`, default True, whether to (label) encode categorical values,
             If you've already encoded the categorical values using for instance
             Label/Ordinal encoding, you should set this to False,
@@ -79,6 +84,7 @@ class TabNet(keras.Model):
             using keras's string lookup layer.
     """
     def __init__(self,
+                 features_metadata: dict,
                  feature_transformer_dim: int = TabNetConfig.feature_transformer_dim,
                  decision_step_output_dim: int = TabNetConfig.decision_step_output_dim,
                  num_decision_steps: int = TabNetConfig.num_decision_steps,
@@ -89,26 +95,23 @@ class TabNet(keras.Model):
                  virtual_batch_size: int = TabNetConfig.virtual_batch_size,
                  residual_normalization_factor: float = TabNetConfig.residual_normalization_factor,
                  epsilon: float = TabNetConfig.epsilon,
-                 categorical_features_vocabulary: dict = TabNetConfig.categorical_features_vocabulary,
                  encode_categorical_values: bool = TabNetConfig.encode_categorical_features,
                  **kwargs):
         super().__init__(**kwargs)
 
-        if categorical_features_vocabulary is None:
-            warn("""
-            No value for `categorical_features_vocabulary` was passed. 
-            It is assumed that the dataset doesn't contain any categorical features,
-            hence CategoricalFeatureEmbedding won't be applied. "
-            If your dataset does contain categorical features and you must pass the
-            `categorical_features_vocabulary` for better performance and to avoid unexpected results.
-            You can get this vocabulary by calling
-            `teras.utils.get_categorical_features_vocabulary(dataset, categorical_features)`
+        if features_metadata is None:
+            raise ValueError(f"""
+            `features_metadata` is required for embedding features and hence cannot be None.            
+            You can get this features_metadata dictionary by calling
+            `teras.utils.get_categorical_features_vocabulary(dataset, categorical_features, numerical_features)`
+            Received, `features_metadata`: {features_metadata}
                  """)
 
         if not encode_categorical_values:
             warn("`encode_categorical_values` is set to False. Categorical values are assumed to be encoded "
                  "and hence no encoding will be applied before embedding generation.")
 
+        self.features_metadata = features_metadata
         self.feature_transformer_dim = feature_transformer_dim
         self.decision_step_output_dim = decision_step_output_dim
         self.num_decision_steps = num_decision_steps
@@ -119,11 +122,19 @@ class TabNet(keras.Model):
         self.virtual_batch_size = virtual_batch_size
         self.residual_normalization_factor = residual_normalization_factor
         self.epsilon = epsilon
-        self.categorical_features_vocabulary = categorical_features_vocabulary
         self.encode_categorical_values = encode_categorical_values
 
+        self._categorical_features_metadata = features_metadata["categorical"]
+        self._numerical_features_metadata = features_metadata["numerical"]
+        self._num_numerical_features = len(self._numerical_features_metadata)
+        self._num_categorical_features = len(self._categorical_features_metadata)
+        self._num_features = self._num_numerical_features + self._num_categorical_features
+
+        self._numerical_features_exist = self._num_numerical_features > 0
+        self._categorical_features_exist = self._num_categorical_features > 0
+
         self.categorical_features_embedding = CategoricalFeatureEmbedding(
-            self.categorical_features_vocabulary,
+            categorical_features_metadata=self._categorical_features_metadata,
             embedding_dim=1,
             encode=self.encode_categorical_values)
 
@@ -136,7 +147,10 @@ class TabNet(keras.Model):
                                      batch_momentum=self.batch_momentum,
                                      virtual_batch_size=self.virtual_batch_size,
                                      residual_normalization_factor=self.residual_normalization_factor,
-                                     epsilon=self.epsilon)
+                                     epsilon=self.epsilon,
+                                     num_features=self._num_features)
+        # PLEASE WORK!!
+        # self.encoder.build(input_shape=(None, self._num_features))
 
         self.pretrainer_fit_config = FitConfig()
 
@@ -144,16 +158,12 @@ class TabNet(keras.Model):
         self.pretrainer = None
         self.head = None
 
-        self._numerical_features_exist = True
-        self._categorical_features_exist = True
-
         self._categorical_features_names = None
         self._categorical_features_idx = None
-        if self.categorical_features_vocabulary is not None:
-            self._categorical_features_idx = set(map(lambda x: x[0], categorical_features_vocabulary.values()))
-            self._categorical_features_names = set(categorical_features_vocabulary.keys())
-        else:
-            self._categorical_features_exist = False
+        if self._categorical_features_exist:
+            self._categorical_features_idx = set(map(lambda x: x[0], self._categorical_features_metadata.values()))
+            self._categorical_features_names = set(self._categorical_features_metadata.keys())
+
         self._numerical_features_names = None
         self._numerical_features_idx = None
 
@@ -162,7 +172,6 @@ class TabNet(keras.Model):
 
     def pretrain(self,
                  pretraining_dataset,
-                 num_features: int = None,
                  missing_feature_probability: float = 0.3,
                  decoder_feature_transformer_dim: int = 32,
                  decoder_decision_step_output_dim: int = 32,
@@ -174,7 +183,6 @@ class TabNet(keras.Model):
         Helper function to pretrain the encoder and
         Args:
             pretraining_dataset: Dataset used for pretraining. It doesn't have to be labeled.
-            num_features: `int`, Number of feature in the dataset.
             missing_feature_probability: Missing features are introduced in the pretraining
                 dataset and the probability of missing features is controlled by the parameter.
                 The pretraining objective is to predict values for these missing features,
@@ -186,10 +194,10 @@ class TabNet(keras.Model):
             decoder_num_decision_dependent_layers: `int`, default 2, Number of decision dependent layers
                 in feature transformer in decoder.
         """
-        dim = num_features
+        dim = self._num_features
         pretrainer = TabNetPretrainer(data_dim=dim,
                                       missing_feature_probability=missing_feature_probability,
-
+                                      features_metadata=self.features_metadata,
                                       encoder_feature_transformer_dim=self.feature_transformer_dim,
                                       encoder_decision_step_output_dim=self.decision_step_output_dim,
                                       encoder_num_decision_steps=self.num_decision_steps,
@@ -203,8 +211,6 @@ class TabNet(keras.Model):
                                       virtual_batch_size=self.virtual_batch_size,
                                       batch_momentum=self.batch_momentum,
                                       residual_normalization_factor=self.residual_normalization_factor,
-
-                                      categorical_features_vocabulary=self.categorical_features_vocabulary,
                                       encode_categorical_values=self.encode_categorical_values,
                                     )
         pretrainer.compile()
@@ -218,52 +224,32 @@ class TabNet(keras.Model):
         if self._is_first_batch:
             if isinstance(inputs, dict):
                 self._is_data_in_dict_format = True
-                all_features_names = set(inputs.keys())
-                if self._categorical_features_names is None:
-                    # Then there are only numerical features in the dataset
-                    self._numerical_features_names = all_features_names
-                else:
-                    # Otherwise there are definitely categorical features but may or may not be
-                    # numerical features
-                    self._numerical_features_names = all_features_names - self._categorical_features_names
-                    if len(self._numerical_features_names) == 0:
-                        # There are no numerical features
-                        self._numerical_features_exist = False
-            else:
-                # otherwise the inputs must be in regular arrays format
-                all_features_idx = set(range(tf.shape(inputs)[1]))
-                if self._categorical_features_idx is None:
-                    self._numerical_features_idx = all_features_idx
-                else:
-                    self._numerical_features_idx = all_features_idx - self._categorical_features_idx
-                if len(self._numerical_features_idx) == 0:
-                    self._numerical_features_exist = False
             self._is_first_batch = False
 
-        categorical_features = None
+        features = None
         if self._categorical_features_exist:
             categorical_features = self.categorical_features_embedding(inputs)
+            categorical_features = tf.squeeze(categorical_features)
+            features = categorical_features
 
-        numerical_features = None
         if self._numerical_features_exist:
             # In TabNet we pass raw numerical feature to the encoder -- no embeddings are applied.
-            if self._is_data_in_dict_format:
-                numerical_features = tf.concat([tf.expand_dims(inputs[feature_name], axis=1)
-                                                for feature_name in self._numerical_features_names],
-                                               axis=1)
+            numerical_features = tf.TensorArray(size=self._num_numerical_features,
+                                                dtype=tf.float32)
+            for i, (feature_name, feature_idx) in enumerate(self._numerical_features_metadata.items()):
+                if self._is_data_in_dict_format:
+                    feature = tf.expand_dims(inputs[feature_name], axis=1)
+                else:
+                    feature = tf.expand_dims(inputs[:, feature_idx], axis=1)
+                numerical_features = numerical_features.write(i, feature)
+            numerical_features = tf.transpose(tf.squeeze(numerical_features.stack()))
+            if features is not None:
+                features = tf.concat([features, numerical_features],
+                                     axis=1)
             else:
-                numerical_features = tf.concat([tf.expand_dims(inputs[:, feature_idx], axis=1)
-                                                for feature_idx in self._numerical_features_idx],
-                                               axis=1)
+                features = numerical_features
 
-        features = []
-        if categorical_features is None:
-            features = numerical_features
-        elif numerical_features is None:
-            features = categorical_features
-        else:
-            features = tf.concat([categorical_features, numerical_features], axis=1)
-
+        features.set_shape([None, self._num_features])
         outputs = self.encoder(features)
         if self.head is not None:
             outputs = self.head(outputs)
@@ -278,7 +264,11 @@ class TabNetClassifier(TabNet):
         https://arxiv.org/abs/1908.07442
 
     Args:
-        num_classes: Number of classes to predict.
+        num_classes: `int`, default 2,
+            Number of classes to predict.
+        activation_out: Activation to use in the Classification head,
+            by default, `sigmoid` is used for binary and `softmax` is used
+            for multi-class classification.
         feature_transformer_dim: `int`, default 32, the dimensionality of the hidden
             representation in feature transformation block.
             Each layer first maps the representation to a `2 * feature_transformer_dim`
@@ -334,7 +324,8 @@ class TabNetClassifier(TabNet):
             using keras's string lookup layer.
     """
     def __init__(self,
-                 num_classes=1,
+                 num_classes: int = 2,
+                 activation_out=None,
                  feature_transformer_dim: int = TabNetConfig.feature_transformer_dim,
                  decision_step_output_dim: int = TabNetConfig.decision_step_output_dim,
                  num_decision_steps: int = TabNetConfig.num_decision_steps,
@@ -362,9 +353,10 @@ class TabNetClassifier(TabNet):
                          encode_categorical_values=encode_categorical_values,
                          **kwargs)
         self.num_classes = 1 if num_classes <= 2 else num_classes
-
-        activation = "sigmoid" if self.num_classes == 1 else "softmax"
-        self.head = layers.Dense(self.num_classes, activation=activation)
+        self.activation_out = activation_out
+        if self.activation_out is None:
+            self.activation_out = "sigmoid" if self.num_classes == 1 else "softmax"
+        self.head = layers.Dense(self.num_classes, activation=self.activation_out)
 
     # def call(self, inputs):
     #     x = inputs
@@ -384,6 +376,18 @@ class TabNetRegressor(TabNet):
 
     Args:
         num_outputs: Number of regression outputs.
+        features_metadata: `dict`,
+            a nested dictionary of metadata for features where
+            categorical sub-dictionary is a mapping of categorical feature names to a tuple of
+            feature indices and the lists of unique values (vocabulary) in them,
+            while numerical dictionary is a mapping of numerical feature names to their indices.
+            `{feature_name: (feature_idx, vocabulary)}` for feature in categorical features.
+            `{feature_name: feature_idx}` for feature in numerical features.
+            You can get this dictionary from
+                >>> from teras.utils import get_features_metadata_for_embedding
+                >>> metadata_dict = get_features_metadata_for_embedding(dataframe,
+                                                                        numerical_features,
+                                                                        categorical_features)
         feature_transformer_dim: `int`, default 32, the dimensionality of the hidden
             representation in feature transformation block.
             Each layer first maps the representation to a `2 * feature_transformer_dim`
@@ -424,13 +428,6 @@ class TabNetRegressor(TabNet):
             determines the scale of normalization.
         epsilon: `float`, default 0.00001, Epsilon is a small number for numerical stability
             during the computation of entropy loss.
-        categorical_features_vocabulary: `dict`, Vocabulary of categorical feature.
-            Vocabulary is simply a dictionary where feature name maps
-            to a tuple of feature index and a list of unique values in the feature.
-            You can get this vocabulary by calling
-            `teras.utils.get_categorical_features_vocabulary(dataset, categorical_features)`
-            If None, dataset will be assumed to contain no categorical features and
-            hence CategoricalFeatureEmbedding layer won't be applied.
         encode_categorical_values: `bool`, default True, whether to (label) encode categorical values,
             If you've already encoded the categorical values using for instance
             Label/Ordinal encoding, you should set this to False,
@@ -440,6 +437,7 @@ class TabNetRegressor(TabNet):
     """
     def __init__(self,
                  num_outputs=1,
+                 features_metadata: dict = None,
                  feature_transformer_dim: int = TabNetConfig.feature_transformer_dim,
                  decision_step_output_dim: int = TabNetConfig.decision_step_output_dim,
                  num_decision_steps: int = TabNetConfig.num_decision_steps,
@@ -450,10 +448,10 @@ class TabNetRegressor(TabNet):
                  virtual_batch_size: int = TabNetConfig.virtual_batch_size,
                  residual_normalization_factor: float = TabNetConfig.residual_normalization_factor,
                  epsilon: float = TabNetConfig.epsilon,
-                 categorical_features_vocabulary: dict = TabNetConfig.encode_categorical_features,
                  encode_categorical_values: bool = TabNetConfig.encode_categorical_features,
                  **kwargs):
-        super().__init__(feature_transformer_dim=feature_transformer_dim,
+        super().__init__(features_metadata=features_metadata,
+                         feature_transformer_dim=feature_transformer_dim,
                          decision_step_output_dim=decision_step_output_dim,
                          num_decision_steps=num_decision_steps,
                          num_shared_layers=num_shared_layers,
@@ -463,7 +461,6 @@ class TabNetRegressor(TabNet):
                          virtual_batch_size=virtual_batch_size,
                          residual_normalization_factor=residual_normalization_factor,
                          epsilon=epsilon,
-                         categorical_features_vocabulary=categorical_features_vocabulary,
                          encode_categorical_values=encode_categorical_values,
                          **kwargs)
         self.num_outputs = num_outputs
@@ -499,6 +496,18 @@ class TabNetPretrainer(TabNet):
             the probability of missing features is controlled by the parameter.
             The pretraining objective is to predict values for these missing features,
             (pre)training the TabNet model in the process.
+        features_metadata: `dict`,
+            a nested dictionary of metadata for features where
+            categorical sub-dictionary is a mapping of categorical feature names to a tuple of
+            feature indices and the lists of unique values (vocabulary) in them,
+            while numerical dictionary is a mapping of numerical feature names to their indices.
+            `{feature_name: (feature_idx, vocabulary)}` for feature in categorical features.
+            `{feature_name: feature_idx}` for feature in numerical features.
+            You can get this dictionary from
+                >>> from teras.utils import get_features_metadata_for_embedding
+                >>> metadata_dict = get_features_metadata_for_embedding(dataframe,
+                                                                        numerical_features,
+                                                                        categorical_features)
         encoder_feature_transformer_dim: `int`, default 32, the dimensionality of the hidden
             representation in feature transformation block.
             Each layer first maps the representation to a `2 * feature_transformer_dim`
@@ -546,13 +555,6 @@ class TabNetPretrainer(TabNet):
             Typically, a larger value for `num_decision_steps` favors for a larger `relaxation_factor`.
         epsilon: `float`, default 0.00001, Epsilon is a small number for numerical stability
             during the computation of entropy loss.
-        categorical_features_vocabulary: `dict`, Vocabulary of categorical feature.
-            Vocabulary is simply a dictionary where feature name maps
-            to a tuple of feature index and a list of unique values in the feature.
-            You can get this vocabulary by calling
-            `teras.utils.get_categorical_features_vocabulary(dataset, categorical_features)`
-            If None, dataset will be assumed to contain no categorical features and
-            hence CategoricalFeatureEmbedding layer won't be applied.
         encode_categorical_values: `bool`, default True, whether to (label) encode categorical values,
             If you've already encoded the categorical values using for instance
             Label/Ordinal encoding, you should set this to False,
@@ -564,6 +566,7 @@ class TabNetPretrainer(TabNet):
     def __init__(self,
                  data_dim: int,
                  missing_feature_probability: float = 0.3,
+                 features_metadata: dict = None,
 
                  encoder_feature_transformer_dim: int = TabNetConfig.feature_transformer_dim,
                  encoder_decision_step_output_dim: int = TabNetConfig.decision_step_output_dim,
@@ -582,13 +585,14 @@ class TabNetPretrainer(TabNet):
                  virtual_batch_size: int = TabNetConfig.virtual_batch_size,
                  residual_normalization_factor: float = TabNetConfig.residual_normalization_factor,
                  epsilon: float = TabNetConfig.epsilon,
-                 categorical_features_vocabulary: dict = TabNetConfig.categorical_features_vocabulary,
+
                  encode_categorical_values: bool = TabNetConfig.encode_categorical_features,
                  **kwargs):
         # Since the base TabNet model is basically an Encoder only model
         # so instead of defining encoder specific things here,
         # we just subclass the TabNet class
-        super().__init__(feature_transformer_dim=encoder_feature_transformer_dim,
+        super().__init__(features_metadata=features_metadata,
+                         feature_transformer_dim=encoder_feature_transformer_dim,
                          decision_step_output_dim=encoder_decision_step_output_dim,
                          num_decision_steps=encoder_num_decision_steps,
                          num_shared_layers=encoder_num_shared_layers,
@@ -598,7 +602,6 @@ class TabNetPretrainer(TabNet):
                          virtual_batch_size=virtual_batch_size,
                          residual_normalization_factor=residual_normalization_factor,
                          epsilon=epsilon,
-                         categorical_features_vocabulary=categorical_features_vocabulary,
                          encode_categorical_values=encode_categorical_values,
                          **kwargs)
 
