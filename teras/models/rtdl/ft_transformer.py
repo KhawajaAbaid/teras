@@ -1,18 +1,18 @@
 import tensorflow as tf
 from tensorflow import keras
-from teras.layers import (FTEncoder,
-                          FTFeatureTokenizer,
-                          FTCLSToken,
-                          FTClassificationHead,
-                          FTRegressionHead)
+from teras.layers import FTNumericalFeatureEmbedding, FTCLSToken
+from teras.layers.embedding import CategoricalFeatureEmbedding
+from teras.layers.base.transformer import Encoder, ClassificationHead, RegressionHead
 from typing import List, Union
+from warnings import warn
+
 
 LayerType = Union[str, keras.layers.Layer]
 
 
-class FTTransformerClassifier(keras.Model):
+class FTTransformer(keras.Model):
     """
-    FT Transformer Classifier based on the architecture proposed by Yury Gorishniy et al.
+    FT Transformer architecture proposed by Yury Gorishniy et al.
     in the paper Revisiting Deep Learning Models for Tabular Data
     in their FTTransformer architecture.
 
@@ -20,184 +20,329 @@ class FTTransformerClassifier(keras.Model):
         https://arxiv.org/abs/2106.11959
 
     Args:
-        numerical_features: List of names of numerical features
-        categorical_features: List of names of categorical features
-        categorical_features_vocab: Vocabulary (dict type) of values of each categorical feature.
-        embedding_dim: Dimensionality of tokens
-        num_transformer_layer: Number of transformer layers to use in the encoder
-        num_attention_heads: Number of heads to use in the MultiHeadAttention layer
-        attention_dropout: Dropout rate to use in the MultiHeadAttention layer
-        feedforward_dropout: Dropout rate to use in the FeedForward layer
-        norm_epsilon: Value for epsilon parameter of the LayerNormalization layer
-        feedforward_hidden_dim: Hidden dimensions for the feed forward layer.
-        feedforward_activation: Activation function to use in the feed forward layer.
-        feedforward_normalization: Normalization layer to use in the feed forward layer.
-        activation_out: Output activation function to use
-        head_normlaization: Normalization layer to use in the head block
+        features_metadata: `dict`,
+            a nested dictionary of metadata for features where
+            categorical sub-dictionary is a mapping of categorical feature names to a tuple of
+            feature indices and the lists of unique values (vocabulary) in them,
+            while numerical dictionary is a mapping of numerical feature names to their indices.
+            `{feature_name: (feature_idx, vocabulary)}` for feature in categorical features.
+            `{feature_name: feature_idx}` for feature in numerical features.
+            You can get this dictionary from
+                >>> from teras.utils import get_features_metadata_for_embedding
+                >>> metadata_dict = get_features_metadata_for_embedding(dataframe,
+                                                                        numerical_features,
+                                                                        categorical_features)
+        embedding_dim: `int`, default 32,
+            Embedding dimensions used in embedding numerical and categorical features.
+        numerical_embedding_hidden_dim: `int` default 16,
+            Dimensionality of the hidden layer that precedes the output layer in the
+            SAINT NumericalFeatureEmebedding layer.
+        num_transformer_layer: `int`, default 6,
+            Number of (SAINT) transformer layers to use in the Encoder.
+            The encoder is used to contextualize the learned feature embeddings.
+        num_attention_heads: `int`, default 8,
+            Number of attention heads to use in the MultiHeadSelfAttention layer
+            that is part of the `Transformer` layer which in turn is part of the `Encoder`.
+        num_inter_sample_attention_heads: `int`, default 8,
+            Number of heads to use in the MultiHeadInterSampleAttention that applies
+            attention over rows.
+        attention_dropout: `float`, default 0.1, Dropout rate to use in the
+            MultiHeadSelfAttention layer in the transformer layer.
+        inter_sample_attention_dropout: `float`, default 0.1,
+            Dropout rate for MultiHeadInterSampleAttention layer that applies
+            attention over rows.
+        feedforward_dropout: `float`, default 0.1,
+            Dropout rate to use for the dropout layer in the FeedForward block.
+        feedforward_multiplier: `int`, default 4.
+            Multiplier that is multipled with the `embedding_dim`
+            and the resultant value is used as hidden dimensions value for the
+            hidden layer in the feedforward block.
+        encode_categorical_values: `bool`, default True,
+            Whether to (label) encode categorical values.
+            If you've already encoded the categorical values using for instance
+            Label/Ordinal encoding, you should set this to False,
+            otherwise leave it as True.
+            In the case of True, categorical values will be mapped to integer indices
+            using keras's string lookup layer.
+        embed_numerical_features: `bool`, default True,
+            Whether to embed the numerical features.
+            If False, FTTransformer's  `FTNumericalFeatureEmbedding` layer won't be applied to
+            numerical features instead they will just be fed to the encoder in raw form.
     """
     def __init__(self,
-                 num_classes: int = 2,
-                 numerical_features: List[str] = None,
-                 categorical_features: List[str] = None,
-                 categorical_features_vocab: dict = None,
+                 features_metadata: dict,
                  embedding_dim: int = 32,
                  num_transformer_layers: int = 8,
                  num_attention_heads: int = 8,
                  attention_dropout: float = 0.1,
                  feedforward_dropout:  float = 0.05,
-                 feedforward_hidden_dim: int = 32,
-                 feedforward_activation: str ='relu',
-                 feedforward_normalization: LayerType = 'batch',
-                 activation_out: str = None,
-                 head_normalization: LayerType = 'batch',
+                 feedforward_multiplier: int = 4,
+                 encode_categorical_values: bool = True,
+                 embed_numerical_features: bool = True,
                  **kwargs):
         super().__init__(**kwargs)
-        self.num_classes = 1 if num_classes <= 2 else num_classes
-        self.numerical_features = numerical_features
-        self.categorical_features = categorical_features
-        self.categorical_features_vocab = categorical_features_vocab
-        self.num_transformer_layers = num_transformer_layers,
+        self.features_metadata = features_metadata
+        self.num_transformer_layers = num_transformer_layers
         self.embedding_dim = embedding_dim
         self.num_attention_heads = num_attention_heads
         self.attention_dropout = attention_dropout
-        self.feedforward_hidden_dim = feedforward_hidden_dim
-        self.feedforward_dropout =feedforward_dropout
-        self.feedforward_activation = feedforward_activation
-        self.feedforward_normalization = feedforward_normalization
-        self.head_normalization = head_normalization
+        self.feedforward_dropout = feedforward_dropout
+        self.feedforward_multiplier = feedforward_multiplier
+        self.encode_categorical_values = encode_categorical_values
+        self.embed_numerical_features = embed_numerical_features
 
-        self.activation_out = activation_out
-        if self.activation_out is None:
-            self.activation_out = 'sigmoid' if self.num_classes == 1 else 'softmax'
+        self._categorical_features_metadata = self.features_metadata["categorical"]
+        self._numerical_features_metadata = self.features_metadata["numerical"]
+        self._num_categorical_features = len(self._categorical_features_metadata)
+        self._num_numerical_features = len(self._numerical_features_metadata)
 
-        self.num_numerical_features = len(self.numerical_features)
+        self._numerical_features_exists = self._num_numerical_features > 0
+        self._categorical_features_exist = self._num_categorical_features > 0
 
-        self.feature_tokenizer = FTFeatureTokenizer(numerical_features=self.numerical_features,
-                                                    categorical_features=self.categorical_features,
-                                                    categorical_features_vocab=self.categorical_features_vocab,
+        # Numerical/Continuous Features Embedding
+        self.numerical_feature_embedding = None
+        if self.embed_numerical_features:
+            if self._numerical_features_exists:
+                self.numerical_feature_embedding = FTNumericalFeatureEmbedding(
+                                                        numerical_features_metadata=self._numerical_features_metadata,
+                                                        embedding_dim=self.embedding_dim)
+            else:
+                # Numerical features don't exist
+                warn("`embed_numerical_features` is set to True, but no numerical features exist in the "
+                     "`features_metadata` dictionary, hence it is assumed that no numerical features exist "
+                     "in the given dataset. "
+                     "But if numerical features do exist in the dataset, then make sure to pass them when "
+                     "you call the `get_features_metadata_for_embedding` function. And train this this model again. ")
+        else:
+            # embed_numerical_features is set to False by the user.
+            if self._numerical_features_exists:
+                # But numerical features exist, so warn the user
+                warn("`embed_numerical_features` is set to False but numerical features exist in the dataset. "
+                     "It is recommended to embed the numerical features for better performance. ")
+
+        # Categorical Features Embedding
+        self.categorical_feature_embedding = None
+        if self._categorical_features_exist:
+            # If categorical features exist, then they must be embedded
+            self.categorical_feature_embedding = CategoricalFeatureEmbedding(
+                                                    categorical_features_metadata=self._categorical_features_metadata,
                                                     embedding_dim=self.embedding_dim,
-                                                    initialization="normal")
-        self.cls_token = FTCLSToken(self.feature_tokenizer.embedding_dim,
-                                    initialization="normal")
+                                                    encode=self.encode_categorical_values)
 
-        self.encoder = FTEncoder(num_transformer_layers=self.num_transformer_layers,
+        self.cls_token = FTCLSToken(self.embedding_dim,
+                                    initialization="normal")
+        self.encoder = Encoder(num_transformer_layers=self.num_transformer_layers,
                                num_heads=self.num_attention_heads,
                                embedding_dim=self.embedding_dim,
                                attention_dropout=self.attention_dropout,
-                               feedforward_dropout=self.feedforward_dropout)
-        self.head = FTClassificationHead(num_classes=self.num_classes,
-                                         activation_out=self.activation_out,
-                                         normalization=self.head_normalization)
+                               feedforward_dropout=self.feedforward_dropout,
+                               feedforward_multiplier=self.feedforward_multiplier)
+
+        self.head = None
 
     def call(self, inputs):
-        numerical_input_features = None
-        categorical_input_features = None
-        if self.numerical_features is not None:
-            numerical_input_features = tf.TensorArray(size=self.num_numerical_features,
-                                                      dtype=tf.float32)
-            for i, feature in enumerate(self.numerical_features):
-                numerical_input_features = numerical_input_features.write(i, inputs[feature])
-            numerical_input_features = tf.transpose(tf.squeeze(numerical_input_features.stack(), axis=-1))
-            # numerical_input_features = np.asarray([inputs[feat] for feat in self.numerical_features])
-            # numerical_input_features = numerical_input_features.squeeze().transpose()
-        if self.categorical_features is not None:
-            categorical_input_features = {feat: inputs[feat] for feat in self.categorical_features}
-        x = self.feature_tokenizer(numerical_features=numerical_input_features,
-                                   categorical_features=categorical_input_features)
-        x = self.cls_token(x)
-        x = self.encoder(x)
-        x = self.head(x)
-        return x
+        features = None
+        if self.categorical_feature_embedding is not None:
+            categorical_features = self.categorical_feature_embedding(inputs)
+            features = categorical_features
+        if self.numerical_feature_embedding is not None:
+            numerical_features = self.numerical_feature_embedding(inputs)
+            if features is not None:
+                features = tf.concat([features, numerical_features],
+                                     axis=1)
+            else:
+                features = numerical_features
+
+        features_with_cls_token = self.cls_token(features)
+        outputs = self.encoder(features_with_cls_token)
+        if self.head is not None:
+            # Since FTTransformer employs BERT like CLS token.
+            # So, it makes its predictions
+            # using only the CLS token, not the entire dataset.
+            outputs = self.head(outputs[:, -1])
+        return outputs
 
 
-class FTTransformerRegressor(keras.Model):
+class FTTransformerClassifier(FTTransformer):
     """
-    FT Transformer Regressor based on the architecture proposed by Yury Gorishniy et al.
-    in the paper Revisiting Deep Learning Models for Tabular Data
-    in their FTTransformer architecture.
+    FTTransformerClassifier based on the FTTransformer architecture proposed
+    by Yury Gorishniy et al. in the paper,
+    Revisiting Deep Learning Models for Tabular Data.
 
     Reference(s):
         https://arxiv.org/abs/2106.11959
 
     Args:
-        units_out: Number of regression outputs
-        categorical_features: List of names of categorical features
-        categorical_features_vocab: Vocabulary (dict type) of values of each categorical feature.
-        embedding_dim: Dimensionality of tokens
-        num_transformer_layer: Number of transformer layers to use in the encoder
-        num_attention_heads: Number of heads to use in the MultiHeadAttention layer
-        attention_dropout: Dropout rate to use in the MultiHeadAttention layer
-        feedforward_dropout: Dropout rate to use in the FeedForward layer
-        norm_epsilon: Value for epsilon parameter of the LayerNormalization layer
-        feedforward_hidden_dim: Hidden dimensions for the feed forward layer.
-        feedforward_activation: Activation function to use in the feed forward layer.
-        feedforward_normalization: Normalization layer to use in the feed forward layer.
-        head_normlaization: Normalization layer to use in the head block
+        num_classes: `int`, default 2,
+            Number of classes to predict.
+        activation_out: Activation to use in the Classification head,
+            by default, `sigmoid` is used for binary and `softmax` is used
+            for multi-class classification.
+        features_metadata: `dict`,
+            a nested dictionary of metadata for features where
+            categorical sub-dictionary is a mapping of categorical feature names to a tuple of
+            feature indices and the lists of unique values (vocabulary) in them,
+            while numerical dictionary is a mapping of numerical feature names to their indices.
+            `{feature_name: (feature_idx, vocabulary)}` for feature in categorical features.
+            `{feature_name: feature_idx}` for feature in numerical features.
+            You can get this dictionary from
+                >>> from teras.utils import get_features_metadata_for_embedding
+                >>> metadata_dict = get_features_metadata_for_embedding(dataframe,
+                                                                        numerical_features,
+                                                                        categorical_features)
+        embedding_dim: `int`, default 32,
+            Embedding dimensions used in embedding numerical and categorical features.
+        numerical_embedding_hidden_dim: `int` default 16,
+            Dimensionality of the hidden layer that precedes the output layer in the
+            SAINT NumericalFeatureEmebedding layer.
+        num_transformer_layer: `int`, default 6,
+            Number of (SAINT) transformer layers to use in the Encoder.
+            The encoder is used to contextualize the learned feature embeddings.
+        num_attention_heads: `int`, default 8,
+            Number of attention heads to use in the MultiHeadSelfAttention layer
+            that is part of the `Transformer` layer which in turn is part of the `Encoder`.
+        num_inter_sample_attention_heads: `int`, default 8,
+            Number of heads to use in the MultiHeadInterSampleAttention that applies
+            attention over rows.
+        attention_dropout: `float`, default 0.1, Dropout rate to use in the
+            MultiHeadSelfAttention layer in the transformer layer.
+        inter_sample_attention_dropout: `float`, default 0.1,
+            Dropout rate for MultiHeadInterSampleAttention layer that applies
+            attention over rows.
+        feedforward_dropout: `float`, default 0.1,
+            Dropout rate to use for the dropout layer in the FeedForward block.
+        feedforward_multiplier: `int`, default 4.
+            Multiplier that is multipled with the `embedding_dim`
+            and the resultant value is used as hidden dimensions value for the
+            hidden layer in the feedforward block.
+        encode_categorical_values: `bool`, default True,
+            Whether to (label) encode categorical values.
+            If you've already encoded the categorical values using for instance
+            Label/Ordinal encoding, you should set this to False,
+            otherwise leave it as True.
+            In the case of True, categorical values will be mapped to integer indices
+            using keras's string lookup layer.
+        embed_numerical_features: `bool`, default True,
+            Whether to embed the numerical features.
+            If False, FTTransformer's  `FTNumericalFeatureEmbedding` layer won't be applied to
+            numerical features instead they will just be fed to the encoder in raw form.
     """
     def __init__(self,
-                 units_out: int = 1,
-                 numerical_features: List[str] = None,
-                 categorical_features: List[str] = None,
-                 categorical_features_vocab: dict = None,
-                 num_transformer_layers: int = 8,
+                 num_classes: int = 2,
+                 activation_out=None,
+                 features_metadata: dict = None,
                  embedding_dim: int = 32,
+                 num_transformer_layers: int = 8,
                  num_attention_heads: int = 8,
-                 attention_dropout: float = 0.0,
-                 feedforward_hidden_dim: int = 32,
-                 feedforward_dropout: float = 0.05,
-                 feedforward_activation: LayerType = 'relu',
-                 feedforward_normalization: LayerType = 'batch',
-                 head_normlaization: LayerType = 'batch',
+                 attention_dropout: float = 0.1,
+                 feedforward_dropout:  float = 0.05,
+                 feedforward_multiplier: int = 4,
+                 encode_categorical_values: bool = True,
+                 embed_numerical_features: bool = True,
                  **kwargs):
-        super().__init__(**kwargs)
-        self.units_out = units_out
-        self.numerical_features = numerical_features
-        self.categorical_features = categorical_features
-        self.categorical_features_vocab = categorical_features_vocab
-        self.num_transformer_layers = num_transformer_layers,
-        self.embedding_dim = embedding_dim
-        self.num_attention_heads = num_attention_heads
-        self.attention_dropout = attention_dropout
-        self.feedforward_hidden_dim = feedforward_hidden_dim
-        self.feedforward_dropout =feedforward_dropout
-        self.feedforward_activation = feedforward_activation
-        self.feedforward_normalization = feedforward_normalization
-        self.head_normalizaiton = head_normlaization
+        super().__init__(features_metadata=features_metadata,
+                         embedding_dim=embedding_dim,
+                         num_transformer_layers=num_transformer_layers,
+                         num_attention_heads=num_attention_heads,
+                         attention_dropout=attention_dropout,
+                         feedforward_dropout=feedforward_dropout,
+                         feedforward_multiplier=feedforward_multiplier,
+                         encode_categorical_values=encode_categorical_values,
+                         embed_numerical_features=embed_numerical_features,
+                         **kwargs)
+        self.num_classes = num_classes
+        self.activation_out = activation_out
+        self.head = ClassificationHead(num_classes=self.num_classes,
+                                       units_values=None,
+                                       activation_out=self.activation_out,
+                                       normalization="layer")
 
-        self.num_numerical_features = len(self.numerical_features)
 
-        self.feature_tokenizer = FTFeatureTokenizer(numerical_features=self.numerical_features,
-                                                    categorical_features=self.categorical_features,
-                                                    categorical_features_vocab=self.categorical_features_vocab,
-                                                    embedding_dim=self.embedding_dim,
-                                                    initialization="normal")
-        self.cls_token = FTCLSToken(self.feature_tokenizer.embedding_dim,
-                                    initialization="normal")
+class FTTransformerRegressor(FTTransformer):
+    """
+    FTTransformerRegressor based on the FTTransformer architecture proposed
+    by Yury Gorishniy et al. in the paper,
+    Revisiting Deep Learning Models for Tabular Data.
 
-        self.encoder = FTEncoder(num_transformer_layers=self.num_transformer_layers,
-                               num_heads=self.num_attention_heads,
-                               embedding_dim=self.embedding_dim,
-                               attention_dropout=self.attention_dropout,
-                               feedforward_dropout=self.feedforward_dropout)
-        self.head = FTRegressionHead(units_out=units_out,
-                                     normalization=self.head_normalizaiton)
+    Reference(s):
+        https://arxiv.org/abs/2106.11959
 
-    def call(self, inputs):
-        numerical_input_features = None
-        categorical_input_features = None
-        if self.numerical_features is not None:
-            numerical_input_features = tf.TensorArray(size=self.num_numerical_features,
-                                                      dtype=tf.float32)
-            for i, feature in enumerate(self.numerical_features):
-                numerical_input_features = numerical_input_features.write(i, tf.cast(tf.expand_dims(inputs[feature], 1), dtype=tf.float32))
-            numerical_input_features = tf.transpose(tf.squeeze(numerical_input_features.stack(), axis=-1))
-            # numerical_input_features = np.asarray([inputs[feat] for feat in self.numerical_features])
-            # numerical_input_features = numerical_input_features.squeeze().transpose()
-        if self.categorical_features is not None:
-            categorical_input_features = {feat: inputs[feat] for feat in self.categorical_features}
-        x = self.feature_tokenizer(numerical_features=numerical_input_features,
-                                   categorical_features=categorical_input_features)
-        x = self.cls_token(x)
-        x = self.encoder(x)
-        x = self.head(x)
-        return x
+    Args:
+        num_outputs: `int`, default 1,
+            Number of outputs to predict.
+        features_metadata: `dict`,
+            a nested dictionary of metadata for features where
+            categorical sub-dictionary is a mapping of categorical feature names to a tuple of
+            feature indices and the lists of unique values (vocabulary) in them,
+            while numerical dictionary is a mapping of numerical feature names to their indices.
+            `{feature_name: (feature_idx, vocabulary)}` for feature in categorical features.
+            `{feature_name: feature_idx}` for feature in numerical features.
+            You can get this dictionary from
+                >>> from teras.utils import get_features_metadata_for_embedding
+                >>> metadata_dict = get_features_metadata_for_embedding(dataframe,
+                                                                        numerical_features,
+                                                                        categorical_features)
+        embedding_dim: `int`, default 32,
+            Embedding dimensions used in embedding numerical and categorical features.
+        numerical_embedding_hidden_dim: `int` default 16,
+            Dimensionality of the hidden layer that precedes the output layer in the
+            SAINT NumericalFeatureEmebedding layer.
+        num_transformer_layer: `int`, default 6,
+            Number of (SAINT) transformer layers to use in the Encoder.
+            The encoder is used to contextualize the learned feature embeddings.
+        num_attention_heads: `int`, default 8,
+            Number of attention heads to use in the MultiHeadSelfAttention layer
+            that is part of the `Transformer` layer which in turn is part of the `Encoder`.
+        num_inter_sample_attention_heads: `int`, default 8,
+            Number of heads to use in the MultiHeadInterSampleAttention that applies
+            attention over rows.
+        attention_dropout: `float`, default 0.1, Dropout rate to use in the
+            MultiHeadSelfAttention layer in the transformer layer.
+        inter_sample_attention_dropout: `float`, default 0.1,
+            Dropout rate for MultiHeadInterSampleAttention layer that applies
+            attention over rows.
+        feedforward_dropout: `float`, default 0.1,
+            Dropout rate to use for the dropout layer in the FeedForward block.
+        feedforward_multiplier: `int`, default 4.
+            Multiplier that is multipled with the `embedding_dim`
+            and the resultant value is used as hidden dimensions value for the
+            hidden layer in the feedforward block.
+        encode_categorical_values: `bool`, default True,
+            Whether to (label) encode categorical values.
+            If you've already encoded the categorical values using for instance
+            Label/Ordinal encoding, you should set this to False,
+            otherwise leave it as True.
+            In the case of True, categorical values will be mapped to integer indices
+            using keras's string lookup layer.
+        embed_numerical_features: `bool`, default True,
+            Whether to embed the numerical features.
+            If False, FTTransformer's  `FTNumericalFeatureEmbedding` layer won't be applied to
+            numerical features instead they will just be fed to the encoder in raw form.
+    """
+
+    def __init__(self,
+                 num_outputs: int = 1,
+                 features_metadata: dict = None,
+                 embedding_dim: int = 32,
+                 num_transformer_layers: int = 8,
+                 num_attention_heads: int = 8,
+                 attention_dropout: float = 0.1,
+                 feedforward_dropout: float = 0.05,
+                 feedforward_multiplier: int = 4,
+                 encode_categorical_values: bool = True,
+                 embed_numerical_features: bool = True,
+                 **kwargs):
+        super().__init__(features_metadata=features_metadata,
+                         embedding_dim=embedding_dim,
+                         num_transformer_layers=num_transformer_layers,
+                         num_attention_heads=num_attention_heads,
+                         attention_dropout=attention_dropout,
+                         feedforward_dropout=feedforward_dropout,
+                         feedforward_multiplier=feedforward_multiplier,
+                         encode_categorical_values=encode_categorical_values,
+                         embed_numerical_features=embed_numerical_features,
+                         **kwargs)
+        self.num_outputs = num_outputs
+        self.head = RegressionHead(num_outputs=self.num_outputs,
+                                   units_values=None,
+                                   normalization="layer")
