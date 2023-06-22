@@ -36,12 +36,12 @@ from .saint import (SAINTClassifier,
 
 
 # RTDL ResNet models
-from .rtdl.rtdl_resnet import (ResNetClassifier as RTDLResNetClassifier,
-                               ResNetRegressor as RTDLResNetRegressor)
+from teras.models.rtdl_resnet import (ResNetClassifier as RTDLResNetClassifier,
+                                      ResNetRegressor as RTDLResNetRegressor)
 
 # RTDL FTTransformer models
-from .rtdl.ft_transformer import (FTTransformerClassifier,
-                                  FTTransformerRegressor)
+from teras.models.ft_transformer import (FTTransformerClassifier,
+                                         FTTransformerRegressor)
 
 # VIME models
 from .vime import (VimeSelf,

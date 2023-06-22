@@ -52,14 +52,14 @@ from .saint import (NumericalFeatureEmbedding as SAINTNumericalFeatureEmbedding,
 
 
 # RTDL ResNet layers
-from .rtdl.rtdl_resnet import (ResNetBlock as RTDLResNetBlock,
-                               ClassificationHead as RTDLResNetClassificationHead,
-                               RegressionHead as RTDLResNetRegressionHead)
+from teras.layers.rtdl_resnet import (ResNetBlock as RTDLResNetBlock,
+                                      ClassificationHead as RTDLResNetClassificationHead,
+                                      RegressionHead as RTDLResNetRegressionHead)
 
 
 # RTDL FTTransformer layers
-from .rtdl.ft_transformer import (NumericalFeatureEmbedding as FTNumericalFeatureEmbedding,
-                                  CLSToken as FTCLSToken)
+from teras.layers.ft_transformer import (NumericalFeatureEmbedding as FTNumericalFeatureEmbedding,
+                                         CLSToken as FTCLSToken)
 
 
 # VIME layers
