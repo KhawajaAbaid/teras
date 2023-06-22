@@ -162,7 +162,7 @@ class Encoder(layers.Layer):
         self.transformer_layers = models.Sequential(name="transformer_layers")
         for i in range(self.num_transformer_layers):
             self.transformer_layers.add(
-                Transformer(num_heads=self.num_heads,
+                Transformer(num_attention_heads=self.num_heads,
                             embedding_dim=self.embedding_dim,
                             attention_dropout=self.attention_dropout,
                             feedforward_dropout=self.feedforward_dropout,
