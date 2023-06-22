@@ -10,7 +10,10 @@ class NumericalFeatureEmbedding(layers.Layer):
     Revisiting Deep Learning Models for Tabular Data
     in their FTTransformer architecture.
 
-    It simply just projects inputs with  dimensions to
+    It simply just projects inputs with  dimensions to Embedding dimensions.
+    And the only difference between this NumericalFeatureEmbedding
+    and the SAINT's NumericalFeatureEmbedding layer that,
+    this layer doesn't use a hidden layer. That's it.
 
     Reference(s):
         https://arxiv.org/abs/2106.11959
@@ -26,13 +29,18 @@ class NumericalFeatureEmbedding(layers.Layer):
     def __init__(self,
                  numerical_features_metadata: dict,
                  embedding_dim: int = 32,
-                 **kwargs):
-        super().__init__(**kwargs)
+                 ):
+        super().__init__()
         self.numerical_features_metadata = numerical_features_metadata
         self.embedding_dim = embedding_dim
 
         self._num_numerical_features = len(self.numerical_features_metadata)
-        self.embedding = layers.Dense(units=self.embedding_dim)
+        # Need to create as many embedding layers as there are numerical features
+        self.embedding_layers = []
+        for _ in range(self._num_numerical_features):
+            self.embedding_layers.append(
+                    layers.Dense(units=self.embedding_dim)
+                )
 
         self._is_first_batch = True
         self._is_data_in_dict_format = False
@@ -46,16 +54,25 @@ class NumericalFeatureEmbedding(layers.Layer):
                 self._is_data_in_dict_format = True
             self._is_first_batch = False
 
-        numerical_features = tf.TensorArray(size=self._num_numerical_features,
-                                            dtype=tf.float32)
-        for i, (feature_name, feature_idx) in enumerate(self.numerical_features_metadata):
+        numerical_feature_embeddings = tf.TensorArray(size=self._num_numerical_features,
+                                                      dtype=tf.float32)
+
+        for i, (feature_name, feature_idx) in enumerate(self.numerical_features_metadata.items()):
             if self._is_data_in_dict_format:
-                feature = tf.expand_dims(inputs[feature_name], axis=1)
+                feature = tf.expand_dims(inputs[feature_name], 1)
             else:
-                feature = tf.expand_dims(inputs[:, feature_idx], axis=1)
-            numerical_features = numerical_features.write(i, feature)
-            numerical_features = tf.transpose(tf.squeeze(numerical_features.stack()))
-        return self.embedding(numerical_features)
+                feature = tf.expand_dims(inputs[:, feature_idx], 1)
+            embedding = self.embedding_layers[i]
+            feature = embedding(feature)
+            numerical_feature_embeddings = numerical_feature_embeddings.write(i, feature)
+
+        numerical_feature_embeddings = tf.squeeze(numerical_feature_embeddings.stack())
+        if tf.rank(numerical_feature_embeddings) == 3:
+            numerical_feature_embeddings = tf.transpose(numerical_feature_embeddings, perm=[1, 0, 2])
+        else:
+            # else the rank must be 2
+            numerical_feature_embeddings = tf.transpose(numerical_feature_embeddings)
+        return numerical_feature_embeddings
 
 
 # TODO rework this layer -- ideally making it simple!
