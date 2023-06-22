@@ -153,6 +153,25 @@ class FTTransformer(keras.Model):
             else:
                 features = numerical_features
 
+        elif self._numerical_features_exists:
+            # Then it means that the embed numerical features is set to False
+            # but numerical features do exist in the dataset, so,
+            # we feed raw numerical features to the encoder
+            numerical_features = tf.TensorArray(size=self._num_numerical_features,
+                                                dtype=tf.float32)
+            for i, (feature_name, feature_idx) in self._numerical_features_metadata:
+                if self._is_data_in_dict_format:
+                    feature = tf.expand_dims(inputs[feature_name], axis=1)
+                else:
+                    feature = tf.expand_dims(inputs[:, feature_idx], axis=1)
+                numerical_features = numerical_features.write(i, feature)
+            numerical_features = tf.transpose(tf.squeeze(numerical_features.stack()))
+            if features is not None:
+                features = tf.concat([features, numerical_features],
+                                     axis=1)
+            else:
+                features = numerical_features
+
         features_with_cls_token = self.cls_token(features)
         outputs = self.encoder(features_with_cls_token)
         if self.head is not None:
