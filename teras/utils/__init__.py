@@ -19,7 +19,7 @@ from .utils import (tf_random_choice,
                     get_categorical_features_cardinalities,
                     get_activation,
                     get_initializer,
-                    get_categorical_features_vocabulary,
+                    get_features_metadata_for_embedding,
                     dataframe_to_tf_dataset)
 
 
