@@ -64,10 +64,6 @@ class FTTransformer(keras.Model):
             otherwise leave it as True.
             In the case of True, categorical values will be mapped to integer indices
             using keras's string lookup layer.
-        embed_numerical_features: `bool`, default True,
-            Whether to embed the numerical features.
-            If False, FTTransformer's  `FTNumericalFeatureEmbedding` layer won't be applied to
-            numerical features instead they will just be fed to the encoder in raw form.
     """
     def __init__(self,
                  features_metadata: dict,
@@ -78,7 +74,6 @@ class FTTransformer(keras.Model):
                  feedforward_dropout:  float = 0.05,
                  feedforward_multiplier: int = 4,
                  encode_categorical_values: bool = True,
-                 embed_numerical_features: bool = True,
                  **kwargs):
         super().__init__(**kwargs)
         self.features_metadata = features_metadata
@@ -89,7 +84,6 @@ class FTTransformer(keras.Model):
         self.feedforward_dropout = feedforward_dropout
         self.feedforward_multiplier = feedforward_multiplier
         self.encode_categorical_values = encode_categorical_values
-        self.embed_numerical_features = embed_numerical_features
 
         self._categorical_features_metadata = self.features_metadata["categorical"]
         self._numerical_features_metadata = self.features_metadata["numerical"]
@@ -101,24 +95,10 @@ class FTTransformer(keras.Model):
 
         # Numerical/Continuous Features Embedding
         self.numerical_feature_embedding = None
-        if self.embed_numerical_features:
-            if self._numerical_features_exists:
-                self.numerical_feature_embedding = FTNumericalFeatureEmbedding(
-                                                        numerical_features_metadata=self._numerical_features_metadata,
-                                                        embedding_dim=self.embedding_dim)
-            else:
-                # Numerical features don't exist
-                warn("`embed_numerical_features` is set to True, but no numerical features exist in the "
-                     "`features_metadata` dictionary, hence it is assumed that no numerical features exist "
-                     "in the given dataset. "
-                     "But if numerical features do exist in the dataset, then make sure to pass them when "
-                     "you call the `get_features_metadata_for_embedding` function. And train this this model again. ")
-        else:
-            # embed_numerical_features is set to False by the user.
-            if self._numerical_features_exists:
-                # But numerical features exist, so warn the user
-                warn("`embed_numerical_features` is set to False but numerical features exist in the dataset. "
-                     "It is recommended to embed the numerical features for better performance. ")
+        if self._numerical_features_exists:
+            self.numerical_feature_embedding = FTNumericalFeatureEmbedding(
+                                                    numerical_features_metadata=self._numerical_features_metadata,
+                                                    embedding_dim=self.embedding_dim)
 
         # Categorical Features Embedding
         self.categorical_feature_embedding = None
@@ -147,25 +127,6 @@ class FTTransformer(keras.Model):
             features = categorical_features
         if self.numerical_feature_embedding is not None:
             numerical_features = self.numerical_feature_embedding(inputs)
-            if features is not None:
-                features = tf.concat([features, numerical_features],
-                                     axis=1)
-            else:
-                features = numerical_features
-
-        elif self._numerical_features_exists:
-            # Then it means that the embed numerical features is set to False
-            # but numerical features do exist in the dataset, so,
-            # we feed raw numerical features to the encoder
-            numerical_features = tf.TensorArray(size=self._num_numerical_features,
-                                                dtype=tf.float32)
-            for i, (feature_name, feature_idx) in enumerate(self._numerical_features_metadata.items()):
-                if self._is_data_in_dict_format:
-                    feature = tf.expand_dims(inputs[feature_name], axis=1)
-                else:
-                    feature = tf.expand_dims(inputs[:, feature_idx], axis=1)
-                numerical_features = numerical_features.write(i, feature)
-            numerical_features = tf.transpose(tf.squeeze(numerical_features.stack()))
             if features is not None:
                 features = tf.concat([features, numerical_features],
                                      axis=1)
@@ -241,10 +202,6 @@ class FTTransformerClassifier(FTTransformer):
             otherwise leave it as True.
             In the case of True, categorical values will be mapped to integer indices
             using keras's string lookup layer.
-        embed_numerical_features: `bool`, default True,
-            Whether to embed the numerical features.
-            If False, FTTransformer's  `FTNumericalFeatureEmbedding` layer won't be applied to
-            numerical features instead they will just be fed to the encoder in raw form.
     """
     def __init__(self,
                  num_classes: int = 2,
@@ -257,7 +214,6 @@ class FTTransformerClassifier(FTTransformer):
                  feedforward_dropout:  float = 0.05,
                  feedforward_multiplier: int = 4,
                  encode_categorical_values: bool = True,
-                 embed_numerical_features: bool = True,
                  **kwargs):
         super().__init__(features_metadata=features_metadata,
                          embedding_dim=embedding_dim,
@@ -267,7 +223,6 @@ class FTTransformerClassifier(FTTransformer):
                          feedforward_dropout=feedforward_dropout,
                          feedforward_multiplier=feedforward_multiplier,
                          encode_categorical_values=encode_categorical_values,
-                         embed_numerical_features=embed_numerical_features,
                          **kwargs)
         self.num_classes = num_classes
         self.activation_out = activation_out
@@ -333,10 +288,6 @@ class FTTransformerRegressor(FTTransformer):
             otherwise leave it as True.
             In the case of True, categorical values will be mapped to integer indices
             using keras's string lookup layer.
-        embed_numerical_features: `bool`, default True,
-            Whether to embed the numerical features.
-            If False, FTTransformer's  `FTNumericalFeatureEmbedding` layer won't be applied to
-            numerical features instead they will just be fed to the encoder in raw form.
     """
 
     def __init__(self,
@@ -349,7 +300,6 @@ class FTTransformerRegressor(FTTransformer):
                  feedforward_dropout: float = 0.05,
                  feedforward_multiplier: int = 4,
                  encode_categorical_values: bool = True,
-                 embed_numerical_features: bool = True,
                  **kwargs):
         super().__init__(features_metadata=features_metadata,
                          embedding_dim=embedding_dim,
@@ -359,7 +309,6 @@ class FTTransformerRegressor(FTTransformer):
                          feedforward_dropout=feedforward_dropout,
                          feedforward_multiplier=feedforward_multiplier,
                          encode_categorical_values=encode_categorical_values,
-                         embed_numerical_features=embed_numerical_features,
                          **kwargs)
         self.num_outputs = num_outputs
         self.head = RegressionHead(num_outputs=self.num_outputs,
