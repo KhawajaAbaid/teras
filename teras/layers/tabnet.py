@@ -3,6 +3,7 @@ from tensorflow import keras
 from tensorflow.keras import layers, models
 import tensorflow_addons as tfa
 from teras.layers import GLU
+from tensorflow.keras import backend as K
 
 
 class AttentiveTransformer(layers.Layer):
@@ -274,6 +275,7 @@ class Encoder(layers.Layer):
             determines the scale of normalization.
         epsilon: `float`, default 0.00001, Epsilon is a small number for numerical stability
             during the computation of entropy loss.
+        num_features: `int`, Number of features in the dataset.
     """
     def __init__(self,
                  feature_transformer_dim: int = 32,
@@ -286,6 +288,7 @@ class Encoder(layers.Layer):
                  virtual_batch_size: int = 64,
                  residual_normalization_factor: float = 0.5,
                  epsilon=1e-5,
+                 num_features: int = None,
                  **kwargs):
         super().__init__(**kwargs)
         self.feature_transformer_dim = feature_transformer_dim
@@ -298,6 +301,7 @@ class Encoder(layers.Layer):
         self.virtual_batch_size = virtual_batch_size
         self.residual_normalization_factor = residual_normalization_factor
         self.epsilon = epsilon
+        self.num_features = num_features
 
         self.inputs_norm = layers.BatchNormalization(momentum=batch_momentum)
 
@@ -313,23 +317,19 @@ class Encoder(layers.Layer):
             for i in range(self.num_decision_steps)
         ]
 
-        self.feature_importances_per_sample = []
-        self.relu = layers.ReLU()
-
-    def build(self, input_shape):
-        # Number of features or number of columns is equivalent to the input_dimension i.e. the last dimension
-        num_features = input_shape[1]
-
         # Attentive transformer -- used for creating mask
         # We initialize this layer in the build method here
         # since we need to know the num_features for its initialization
-        self.attentive_transformers_per_step = [AttentiveTransformer(num_features=num_features,
+        self.attentive_transformers_per_step = [AttentiveTransformer(num_features=self.num_features,
                                                                      batch_momentum=self.batch_momentum,
                                                                      virtual_batch_size=self.virtual_batch_size,
                                                                      relaxation_factor=self.relaxation_factor,
                                                                      name=f"step_{i}_attentive_transformer")
                                                 for i in range(self.num_decision_steps)
                                                 ]
+
+        self.feature_importances_per_sample = []
+        self.relu = layers.ReLU()
 
     def call(self, inputs, mask=None):
         batch_size = tf.shape(inputs)[0]
@@ -385,7 +385,7 @@ class Encoder(layers.Layer):
                     scale_agg = scale_agg / tf.cast(self.num_decision_steps - 1, tf.float32)
 
                 feature_importances_per_sample += (mask_values * scale_agg)
-                self.feature_importances_per_sample.extend(feature_importances_per_sample)
+                self.feature_importances_per_sample.append(feature_importances_per_sample)
 
             features_for_attentive_transformer = (x[:, self.decision_step_output_dim:])
 
