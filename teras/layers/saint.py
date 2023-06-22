@@ -2,7 +2,7 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras import models
-from teras.layers.base.transformer import FeedForward, Transformer
+from teras.layers.common.transformer import FeedForward, Transformer
 
 
 class NumericalFeatureEmbedding(layers.Layer):

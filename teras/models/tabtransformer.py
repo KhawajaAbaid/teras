@@ -3,9 +3,9 @@ from tensorflow import keras
 from tensorflow.keras import layers
 from teras.layers.embedding import CategoricalFeatureEmbedding
 from teras.layers.tabtransformer import ColumnEmbedding
-from teras.layers.base.transformer import (Encoder,
-                                           RegressionHead,
-                                           ClassificationHead)
+from teras.layers.common.transformer import (Encoder,
+                                             RegressionHead,
+                                             ClassificationHead)
 from typing import List, Union, Tuple
 from warnings import warn
 from teras.config.tabtransformer import TabTransformerConfig

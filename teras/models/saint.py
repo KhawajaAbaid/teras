@@ -5,8 +5,8 @@ from warnings import warn
 from typing import List
 from teras.layers import CategoricalFeatureEmbedding
 from teras.layers import SAINTNumericalFeatureEmbedding, SAINTEncoder
-from teras.layers.base.transformer import (ClassificationHead,
-                                           RegressionHead)
+from teras.layers.common.transformer import (ClassificationHead,
+                                             RegressionHead)
 from teras.config.saint import SAINTConfig
 from typing import Union, List, Tuple
 

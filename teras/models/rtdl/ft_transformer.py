@@ -2,7 +2,7 @@ import tensorflow as tf
 from tensorflow import keras
 from teras.layers import FTNumericalFeatureEmbedding, FTCLSToken
 from teras.layers.embedding import CategoricalFeatureEmbedding
-from teras.layers.base.transformer import Encoder, ClassificationHead, RegressionHead
+from teras.layers.common.transformer import Encoder, ClassificationHead, RegressionHead
 from typing import List, Union
 from warnings import warn
 
