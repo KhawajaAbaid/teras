@@ -107,7 +107,7 @@ class CategoricalFeatureEmbedding(layers.Layer):
             categorical_feature_embeddings = categorical_feature_embeddings.write(current_idx, feature)
             current_idx += 1
         categorical_feature_embeddings = categorical_feature_embeddings.stack()
-        categorical_feature_embeddings = tf.squeeze(categorical_feature_embeddings)
+        categorical_feature_embeddings = tf.squeeze(categorical_feature_embeddings, axis=2)
         if tf.rank(categorical_feature_embeddings) == 3:
             categorical_feature_embeddings = tf.transpose(categorical_feature_embeddings, perm=[1, 0, 2])
         else:
