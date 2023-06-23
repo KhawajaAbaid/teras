@@ -160,10 +160,10 @@ class SAINT(keras.Model):
             self._num_embedded_features += self._num_categorical_features
 
         self.saint_encoder = SAINTEncoder(num_transformer_layers=self.num_transformer_layers,
-                                          embedding_dim=self.num_heads_feature_attention,
+                                          embedding_dim=self.embedding_dim,
                                           num_attention_heads=self.num_attention_heads,
-                                          num_inter_sample_attention_heads=self.num_heads_inter_sample_attention,
-                                          attention_dropout=self.feature_attention_dropout,
+                                          num_inter_sample_attention_heads=self.num_inter_sample_attention_heads,
+                                          attention_dropout=self.attention_dropout,
                                           inter_sample_attention_dropout=self.inter_sample_attention_dropout,
                                           feedforward_dropout=self.feedforward_dropout,
                                           norm_epsilon=self.norm_epsilon,
@@ -246,7 +246,7 @@ class SAINTClassifier(SAINT):
     Args:
         num_classes: `int`, default 2,
             Number of classes to predict.
-        units_values_hidden: `List[int] | Tuple[int]`, default [64, 32],
+        head_units_values: `List[int] | Tuple[int]`, default [64, 32],
             Hidden units to use in the Classification head.
             For each value in the list/tuple,
             a hidden layer of that dimensionality is added to the head.
@@ -310,7 +310,7 @@ class SAINTClassifier(SAINT):
     """
     def __init__(self,
                  num_classes: int = 2,
-                 units_values_hidden: UNITS_VALUES_TYPE = (64, 32),
+                 head_units_values: UNITS_VALUES_TYPE = (64, 32),
                  activation_out=None,
                  features_metadata: dict = None,
                  embedding_dim: int = SAINTConfig.embedding_dim,
@@ -344,11 +344,11 @@ class SAINTClassifier(SAINT):
                          apply_attention_to_rows=apply_attention_to_rows,
                          **kwargs)
         self.num_classes = num_classes
-        self.units_values_hidden = units_values_hidden
+        self.head_units_values = head_units_values
         self.activation_out = activation_out
 
         self.head = ClassificationHead(num_classes=self.num_classes,
-                                       units_values_hidden=self.units_values_hidden,
+                                       units_values=self.head_units_values,
                                        activation_hidden="relu",
                                        activation_out=self.activation_out,
                                        normalization="batch")
@@ -369,7 +369,7 @@ class SAINTRegressor(SAINT):
     Args:
         num_outputs: `int`, default 1,
             Number of regression outputs to predict.
-        units_values_hidden: `List[int] | Tuple[int]`, default [64, 32],
+        head_units_values: `List[int] | Tuple[int]`, default [64, 32],
             Hidden units to use in the Classification head.
             For each value in the list/tuple,
             a hidden layer of that dimensionality is added to the head.
@@ -431,7 +431,7 @@ class SAINTRegressor(SAINT):
 
     def __init__(self,
                  num_outputs: int = 1,
-                 units_values_hidden: UNITS_VALUES_TYPE = (64, 32),
+                 head_units_values: UNITS_VALUES_TYPE = (64, 32),
                  features_metadata: dict = None,
                  embedding_dim: int = SAINTConfig.embedding_dim,
                  numerical_embedding_hidden_dim: int = SAINTConfig.numerical_embedding_hidden_dim,
@@ -464,9 +464,9 @@ class SAINTRegressor(SAINT):
                          apply_attention_to_rows=apply_attention_to_rows,
                          **kwargs)
         self.num_outputs = num_outputs
-        self.units_values_hidden = units_values_hidden
+        self.head_units_values = head_units_values
 
         self.head = RegressionHead(num_outputs=self.num_outputs,
-                                   units_values_hidden=self.units_values_hidden,
+                                   units_values=self.head_units_values,
                                    activation_hidden="relu",
                                    normalization="batch")

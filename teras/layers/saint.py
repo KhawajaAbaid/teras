@@ -339,8 +339,8 @@ class Encoder(layers.Layer):
                                             attention_dropout=self.attention_dropout,
                                             inter_sample_attention_dropout=self.inter_sample_attention_dropout,
                                             feedforward_dropout=self.feedforward_dropout,
-                                            use_inter_sample_attention=self.use_inter_sample_attention,
-                                            apply_attention_to_rows_only=self.apply_attention_to_rows_only,
+                                            apply_attention_to_features=self.apply_attention_to_features,
+                                            apply_attention_to_rows=self.apply_attention_to_rows,
                                             num_embedded_features=self.num_embedded_features,
                                             name=f"saint_transformer_layer_{i}"))
 
