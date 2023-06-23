@@ -13,8 +13,8 @@ class SAINTConfig(BaseConfig):
     attention_dropout: float = 0.1
     inter_sample_attention_dropout: float = 0.1
     feedforward_dropout: float = 0.1
+    feedforward_multiplier: int = 4
     norm_epsilon: float = 1e-6
     encode_categorical_values: bool = True
-    embed_numerical_features: bool = True
     apply_attention_to_features: bool = True
     apply_attention_to_rows: bool = True
