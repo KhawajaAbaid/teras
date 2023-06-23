@@ -157,6 +157,10 @@ class SAINTTransformer(layers.Layer):
             MultiHeadInterSampleAttention which is applied over rows.
         feedforward_dropout: `float`, default 0.1, Dropout rate for the
             dropout layer that is part of the FeedForward block.
+        feedforward_multiplier: `int`, default 4.
+            Multiplier that is multiplied with the `embedding_dim`
+            and the resultant value is used as hidden dimensions value for the
+            hidden layer in the feedforward block.
         apply_attention_to_features: `bool`, default True,
             Whether to apply attention over features.
             If True, the regular MultiHeadAttention layer will be applied
@@ -181,6 +185,7 @@ class SAINTTransformer(layers.Layer):
                  attention_dropout: float = 0.1,
                  inter_sample_attention_dropout: float = 0.1,
                  feedforward_dropout: float = 0.1,
+                 feedforward_multiplier: int = 4,
                  norm_epsilon: float = 1e-6,
                  apply_attention_to_features: bool = True,
                  apply_attention_to_rows: bool = True,
@@ -193,6 +198,7 @@ class SAINTTransformer(layers.Layer):
         self.attention_dropout = attention_dropout
         self.inter_sample_attention_dropout = inter_sample_attention_dropout
         self.feedforward_dropout = feedforward_dropout
+        self.feedforward_multiplier = feedforward_multiplier
         self.norm_epsilon = norm_epsilon
         self.apply_attention_to_features = apply_attention_to_features
         self.apply_attention_to_rows = apply_attention_to_rows
@@ -213,7 +219,9 @@ class SAINTTransformer(layers.Layer):
             x = layers.Add()([x, residual])
             x = layers.LayerNormalization(epsilon=self.norm_epsilon)(x)
             residual = x
-            x = FeedForward(self.embedding_dim)(x)
+            x = FeedForward(embedding_dim=self.embedding_dim,
+                            multiplier=self.feedforward_multiplier,
+                            dropout=feedforward_dropout)(x)
             x = layers.Add()([x, residual])
             intermediate_outputs = layers.LayerNormalization(epsilon=self.norm_epsilon)(x)
             final_outputs = intermediate_outputs
@@ -223,14 +231,15 @@ class SAINTTransformer(layers.Layer):
             # If `apply_attention_to_features` is set to True,
             # then attention will be applied to columns/features
             # The MultiHeadInterSampleAttention applies attention over rows,
-            # but the regular MultiHeadAttention layer to apply attention over features
-            # Since the common Transformer layer applies MutliHeadAttention over rows
-            # as well as take care of applying all the preceding and following stuff,
+            # but the regular MultiHeadAttention layer is used to apply attention over features.
+            # Since the common Transformer layer applies MutliHeadAttention over features
+            # as well as takes care of applying all the preceding and following layers,
             # so we'll just use that here.
             final_outputs = Transformer(embedding_dim=self.embedding_dim,
                                         num_attention_heads=self.num_attention_heads,
                                         attention_dropout=self.attention_dropout,
                                         feedforward_dropout=self.feedforward_dropout,
+                                        feedforward_multiplier=self.feedforward_multiplier,
                                         norm_epsilon=self.norm_epsilon,
                                         name="inner_trasnformer_block_for_features")(intermediate_outputs)
 
@@ -280,6 +289,10 @@ class Encoder(layers.Layer):
             MultiHeadInterSampleAttention which is applied over rows.
         feedforward_dropout: `float`, default 0.1, Dropout rate for the
             dropout layer that is part of the FeedForward block.
+        feedforward_multiplier: `int`, default 4.
+            Multiplier that is multiplied with the `embedding_dim`
+            and the resultant value is used as hidden dimensions value for the
+            hidden layer in the feedforward block.
         apply_attention_to_features: `bool`, default True,
             Whether to apply attention over features.
             If True, the regular MultiHeadAttention layer will be applied
@@ -305,6 +318,7 @@ class Encoder(layers.Layer):
                  attention_dropout: float = 0.1,
                  inter_sample_attention_dropout: float = 0.1,
                  feedforward_dropout: float = 0.1,
+                 feedforward_multiplier: int = 4,
                  norm_epsilon: float = 1e-6,
                  apply_attention_to_features: bool = True,
                  apply_attention_to_rows: bool = True,
@@ -325,6 +339,7 @@ class Encoder(layers.Layer):
         self.attention_dropout = attention_dropout
         self.inter_sample_attention_dropout = inter_sample_attention_dropout
         self.feedforward_dropout = feedforward_dropout
+        self.feedforward_multiplier = feedforward_multiplier
         self.norm_epsilon = norm_epsilon
         self.apply_attention_to_features = apply_attention_to_features
         self.apply_attention_to_rows = apply_attention_to_rows
@@ -339,6 +354,7 @@ class Encoder(layers.Layer):
                                             attention_dropout=self.attention_dropout,
                                             inter_sample_attention_dropout=self.inter_sample_attention_dropout,
                                             feedforward_dropout=self.feedforward_dropout,
+                                            feedforward_multiplier=self.feedforward_multiplier,
                                             apply_attention_to_features=self.apply_attention_to_features,
                                             apply_attention_to_rows=self.apply_attention_to_rows,
                                             num_embedded_features=self.num_embedded_features,
