@@ -5,8 +5,9 @@ from sklearn.preprocessing import LabelEncoder
 import pandas as pd
 import numpy as np
 
-from teras.utils import get_categorical_features_vocab, dataframe_to_tf_dataset
+from teras.utils import get_features_metadata_for_embedding, dataframe_to_tf_dataset
 from teras.models import SAINTClassifier, SAINTRegressor
+tf.config.run_functions_eagerly(True)
 
 
 #  <<<<<<<<<<<<<<<<<<<<< REGRESSION Test >>>>>>>>>>>>>>>>>>>>>
@@ -18,22 +19,16 @@ cat_cols = ["cut", "color", "clarity"]
 num_cols = ["carat", "depth", "table", "x", "y", "z"]
 
 
-# For FTTransformer, TabTranformer and SAINT, we need to pass a vacobulary of dict type
-# for the categorical features. You can get this vocab by calling the utility function as below
-cat_feat_vocab = get_categorical_features_vocab(gem_df, cat_cols)
-# print(cat_feat_vocab)
+# For FTTransformer, TabTranformer and SAINT, we need to pass features metadata of dict type
+# You can get this metadata by calling the utility function as below
+features_metadata = get_features_metadata_for_embedding(gem_df, cat_cols)
 
-# For FTTransformer, TabTransfomer and SAINT, we need to convert our dataframe to tensorflow
-# dataset that support retrieving features by indexing column names like X_train["age"] in the model's call method
-# And, for that, I have a utility function in teras.utils which is used below.
-X_ds = dataframe_to_tf_dataset(gem_df, 'price', batch_size=1024)
+X_ds = dataframe_to_tf_dataset(gem_df, 'price', batch_size=1024, as_dict=True)
 
 
-saint_regressor = SAINTRegressor(units_out=1,
-                                          numerical_features=num_cols,
-                                          categorical_features=cat_cols,
-                                          categorical_features_vocab=cat_feat_vocab
-                                         )
+saint_regressor = SAINTRegressor(num_outputs=1,
+                                 features_metadata=features_metadata
+                                )
 
 saint_regressor.compile(loss="MSE",
                         optimizer=keras.optimizers.AdamW(learning_rate=0.05),
