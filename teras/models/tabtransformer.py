@@ -31,6 +31,18 @@ class TabTransformer(keras.Model):
         https://arxiv.org/abs/2012.06678
 
     Args:
+        features_metadata: `dict`,
+            a nested dictionary of metadata for features where
+            categorical sub-dictionary is a mapping of categorical feature names to a tuple of
+            feature indices and the lists of unique values (vocabulary) in them,
+            while numerical dictionary is a mapping of numerical feature names to their indices.
+            `{feature_name: (feature_idx, vocabulary)}` for feature in categorical features.
+            `{feature_name: feature_idx}` for feature in numerical features.
+            You can get this dictionary from
+                >>> from teras.utils import get_features_metadata_for_embedding
+                >>> metadata_dict = get_features_metadata_for_embedding(dataframe,
+                                                                        numerical_features,
+                                                                        categorical_features)
         embedding_dim: `int`, default 32, Dimensionality of the learnable
             feature embeddings for categorical features.
         num_transformer_layers: `int`, default 6, Number of transformer layers
@@ -49,13 +61,6 @@ class TabTransformer(keras.Model):
             layer proposed in the TabTransformer architecture for the categorical features.
             The ColumnEmbedding layer is an alternative to positional encoding that is applied
             in the Transformers in Natural Langauge Processing application settings.
-        categorical_features_vocabulary: `dict`, Vocabulary of categorical feature.
-            Vocabulary is simply a dictionary where feature name maps
-            to a tuple of feature index and a list of unique values in the feature.
-            You can get this vocabulary by calling
-            `teras.utils.get_categorical_features_vocabulary(dataset, categorical_features)`
-            If None, dataset will be assumed to contain no categorical features and
-            hence CategoricalFeatureEmbedding layer won't be applied.
         encode_categorical_values: `bool`, default True, whether to (label) encode categorical values,
             If you've already encoded the categorical values using for instance
             Label/Ordinal encoding, you should set this to False,
@@ -64,6 +69,7 @@ class TabTransformer(keras.Model):
             using keras's string lookup layer.
 """
     def __init__(self,
+                 features_metadata: dict,
                  embedding_dim: int = TabTransformerConfig.embedding_dim,
                  num_transformer_layers: int = TabTransformerConfig.num_transformer_layers,
                  num_attention_heads: int = TabTransformerConfig.num_attention_heads,
@@ -71,23 +77,20 @@ class TabTransformer(keras.Model):
                  feedforward_dropout: float = TabTransformerConfig.feedforward_dropout,
                  norm_epsilon: float = TabTransformerConfig.norm_epsilon,
                  use_column_embedding: bool = TabTransformerConfig.use_column_embedding,
-                 categorical_features_vocabulary: dict = TabTransformerConfig.categorical_features_vocabulary,
                  encode_categorical_values: bool = TabTransformerConfig.encode_categorical_values,
                  **kwargs
                  ):
         super().__init__(**kwargs)
 
-        if categorical_features_vocabulary is None:
-            warn("""
-            No value for `categorical_features_vocabulary` was passed. 
-            It is assumed that the dataset doesn't contain any categorical features,
-            hence CategoricalFeaturesEmbedding won't be applied. "
-            If your dataset does contain categorical features and you must pass the
-            `categorical_features_vocabulary` for better performance and to avoid unexpected results.
-            You can get this vocabulary by calling
-            `teras.utils.get_categorical_features_vocabulary(dataset, categorical_features)`
-                 """)
+        if features_metadata is None:
+            raise ValueError(f"""
+            `features_metadata` is required for embedding features and hence cannot be None.            
+            You can get this features_metadata dictionary by calling
+            `teras.utils.get_categorical_features_vocabulary(dataset, categorical_features, numerical_features)`
+            Received, `features_metadata`: {features_metadata}
+            """)
 
+        self.features_metadata = features_metadata
         self.embedding_dim = embedding_dim
         self.num_transformer_layers = num_transformer_layers
         self.num_attention_heads = num_attention_heads
@@ -95,52 +98,46 @@ class TabTransformer(keras.Model):
         self.feedforward_dropout = feedforward_dropout
         self.use_column_embedding = use_column_embedding
         self.norm_epsilon = norm_epsilon
-        self.categorical_features_vocabulary = categorical_features_vocabulary
         self.encode_categorical_values = encode_categorical_values
 
-        self.num_categorical_features = len(self.categorical_features_vocabulary)
+        self._categorical_features_metadata = self.features_metadata["categorical"]
+        self._numerical_features_metadata = self.features_metadata["numerical"]
+        self._num_categorical_features = len(self._categorical_features_metadata)
+        self._num_numerical_features = len(self._numerical_features_metadata)
+        self._numerical_features_exist = self._num_numerical_features > 0
+        self._categorical_features_exist = self._num_categorical_features > 0
 
-        self.categorical_feature_embedding = CategoricalFeatureEmbedding(
-                                                categorical_features_vocabulary=self.categorical_features_vocabulary,
-                                                embedding_dim=self.embedding_dim,
-                                                encode=self.encode_categorical_values
-                                            )
+        # _processed_features_dim is the computed dimensionality of the resultant features
+        # after all data has been processed.
+        # Since categorical features are first embedded and then flattened, so their shape
+        # becomes `number of categorical features` * `embedding dimensions`
+        # And since we only normalize the numerical features so their shape stays the same
+        # Finally we concatenate the flattened embedded categorical features and normalized
+        # numerical features giving us a final shape that is computed as below.
+        # (Note that this computation easily handles the cases when either numerical features
+        # are categorical features don't exist, in which case the respective _num variable
+        # will be 0.)
+        # We need this dimensions to set the shape of `features` variable in the `call` method.
+        self._processed_features_dim = (self._num_categorical_features * self.embedding_dim) \
+                                        + self._num_numerical_features
 
-        self.column_embedding = ColumnEmbedding(embedding_dim=self.embedding_dim,
-                                                num_categorical_features=self.num_categorical_features)
-
-        self.encoder = Encoder(num_transformer_layers=self.num_transformer_layers,
-                               num_heads=self.num_attention_heads,
-                               embedding_dim=self.embedding_dim,
-                               attention_dropout=self.attention_dropout,
-                               feedforward_dropout=self.feedforward_dropout,
-                               norm_epsilon=self.norm_epsilon)
-        self.flatten = layers.Flatten()
+        if self._categorical_features_exist:
+            self.categorical_feature_embedding = CategoricalFeatureEmbedding(
+                                                    categorical_features_metadata=self._categorical_features_metadata,
+                                                    embedding_dim=self.embedding_dim,
+                                                    encode=self.encode_categorical_values
+                                                )
+            self.column_embedding = ColumnEmbedding(embedding_dim=self.embedding_dim,
+                                                    num_categorical_features=self._num_categorical_features)
+            self.encoder = Encoder(num_transformer_layers=self.num_transformer_layers,
+                                   num_heads=self.num_attention_heads,
+                                   embedding_dim=self.embedding_dim,
+                                   attention_dropout=self.attention_dropout,
+                                   feedforward_dropout=self.feedforward_dropout,
+                                   norm_epsilon=self.norm_epsilon)
+            self.flatten = layers.Flatten()
         self.norm = layers.LayerNormalization(epsilon=self.norm_epsilon)
         self.head = None
-
-        self._numerical_features_exist = True
-        self._categorical_features_exist = True
-
-        # Since we already have categorical features names and indices in the
-        # categorical features vocabulary -- but we also do need this info for
-        # numerical features -- names in the case of dictionary format inputs
-        # and idx in the case of regular array format inputs.
-        # Fortunately we can find out both in the call method.
-        # If inputs are dict, we can simply extract the keys and delete out the
-        # categorical features names to get numerical features names
-        # And if inputs are arrays, we can construct a input_dim array, in the
-        # range 0 - input_dim and delete out numbers that correspond to categorical
-        # feature indices to get the indices for the numerical features.
-        self._categorical_features_names = None
-        self._categorical_features_idx = None
-        if self.categorical_features_vocabulary is not None:
-            self._categorical_features_idx = set(map(lambda x: x[0], categorical_features_vocabulary.values()))
-            self._categorical_features_names = set(categorical_features_vocabulary.keys())
-        else:
-            self._categorical_features_exist = False
-        self._numerical_features_names = None
-        self._numerical_features_idx = None
 
         self._is_first_batch = True
         self._is_data_in_dict_format = False
@@ -149,29 +146,9 @@ class TabTransformer(keras.Model):
         if self._is_first_batch:
             if isinstance(inputs, dict):
                 self._is_data_in_dict_format = True
-                all_features_names = set(inputs.keys())
-                if self._categorical_features_names is None:
-                    # Then there are only numerical features in the dataset
-                    self._numerical_features_names = all_features_names
-                else:
-                    # Otherwise there are definitely categorical features but may or may not be
-                    # numerical features -- why? let's see.
-                    self._numerical_features_names = all_features_names - self._categorical_features_names
-                    if len(self._numerical_features_names) == 0:
-                        # There are no numerical features
-                        self._numerical_features_exist = False
-            else:
-                # otherwise the inputs must be in regular arrays format
-                all_features_idx = set(range(tf.shape(inputs)[1]))
-                if self._categorical_features_idx is None:
-                    self._numerical_features_idx = all_features_idx
-                else:
-                    self._numerical_features_idx = all_features_idx - self._categorical_features_idx
-                if len(self._numerical_features_idx) == 0:
-                    self._numerical_features_exist = False
             self._is_first_batch = False
 
-        categorical_features = None
+        features = None
         if self._categorical_features_exist:
             # The categorical feature embedding layer takes care of handling
             # different input data types and features names nad indices
@@ -182,29 +159,35 @@ class TabTransformer(keras.Model):
             categorical_features = self.encoder(categorical_features)
             # Flatten the contextualized embeddings of the categorical features
             categorical_features = self.flatten(categorical_features)
+            features = categorical_features
 
-        numerical_features = []
         if self._numerical_features_exist:
-            # Normalize numerical features
-            if self._is_data_in_dict_format:
-                for feature_name in self._numerical_features_names:
-                    numerical_features.append(self.norm(tf.expand_dims(inputs[feature_name], 1)))
+            # In TabTransformer we normalize the raw numerical features
+            # and concatenate them with flattened contextualized categorical features
+            numerical_features = tf.TensorArray(size=self._num_numerical_features,
+                                                dtype=tf.float32)
+            for i, (feature_name, feature_idx) in enumerate(self._numerical_features_metadata.items()):
+                if self._is_data_in_dict_format:
+                    feature = tf.expand_dims(inputs[feature_name], axis=1)
+                else:
+                    feature = tf.expand_dims(inputs[:, feature_idx], axis=1)
+                numerical_features = numerical_features.write(i, feature)
+            numerical_features = tf.transpose(tf.squeeze(numerical_features.stack()))
+            if features is not None:
+                features = tf.concat([features, numerical_features],
+                                     axis=1)
             else:
-                for feature_idx in self._numerical_features_idx:
-                    numerical_features.append(self.norm(tf.expand_dims(inputs[:, feature_idx], 1)))
-            numerical_features = layers.concatenate(numerical_features, axis=1)
+                features = numerical_features
 
-        # Concatenate all features
-        if not self._categorical_features_exist:
-            outputs = numerical_features
-        elif not self._numerical_features_exist:
-            outputs = categorical_features
-        else:
-            outputs = layers.concatenate([categorical_features, numerical_features], axis=1)
-
+        # Since `features` shape is pretty ambigious -- so in graphmode it results in an error
+        # since it passes shape (None, None) because it infers both dimensions as None,
+        # as both are subjected to change depending on the `if` conditions.
+        # To combat that, we manually set the shape using self._processed_features_dim
+        # Read more about it in the __init__ method
+        features.set_shape((None, self._processed_features_dim))
+        outputs = features
         if self.head is not None:
             outputs = self.head(outputs)
-
         return outputs
 
 
@@ -232,6 +215,18 @@ class TabTransformerClassifier(TabTransformer):
         activation_out: Activation to use in the Classification head,
             by default, `sigmoid` is used for binary and `softmax` is used
             for multi-class classification.
+        features_metadata: `dict`,
+            a nested dictionary of metadata for features where
+            categorical sub-dictionary is a mapping of categorical feature names to a tuple of
+            feature indices and the lists of unique values (vocabulary) in them,
+            while numerical dictionary is a mapping of numerical feature names to their indices.
+            `{feature_name: (feature_idx, vocabulary)}` for feature in categorical features.
+            `{feature_name: feature_idx}` for feature in numerical features.
+            You can get this dictionary from
+                >>> from teras.utils import get_features_metadata_for_embedding
+                >>> metadata_dict = get_features_metadata_for_embedding(dataframe,
+                                                                        numerical_features,
+                                                                        categorical_features)
         embedding_dim: `int`, default 32, Dimensionality of the learnable
             feature embeddings for categorical features.
         num_transformer_layers: `int`, default 6, Number of transformer layers
@@ -250,13 +245,6 @@ class TabTransformerClassifier(TabTransformer):
             layer proposed in the TabTransformer architecture for the categorical features.
             The ColumnEmbedding layer is an alternative to positional encoding that is applied
             in the Transformers in Natural Langauge Processing application settings.
-        categorical_features_vocabulary: `dict`, Vocabulary of categorical feature.
-            Vocabulary is simply a dictionary where feature name maps
-            to a tuple of feature index and a list of unique values in the feature.
-            You can get this vocabulary by calling
-            `teras.utils.get_categorical_features_vocabulary(dataset, categorical_features)`
-            If None, dataset will be assumed to contain no categorical features and
-            hence CategoricalFeatureEmbedding layer won't be applied.
         encode_categorical_values: `bool`, default True, whether to (label) encode categorical values,
             If you've already encoded the categorical values using for instance
             Label/Ordinal encoding, you should set this to False,
@@ -268,6 +256,7 @@ class TabTransformerClassifier(TabTransformer):
                  num_classes: int = 2,
                  head_units_values: LIST_OR_TUPLE_OF_INT = (64, 32),
                  activation_out=None,
+                 features_metadata: dict = None,
                  embedding_dim: int = TabTransformerConfig.embedding_dim,
                  num_transformer_layers: int = TabTransformerConfig.num_transformer_layers,
                  num_attention_heads: int = TabTransformerConfig.num_attention_heads,
@@ -275,18 +264,17 @@ class TabTransformerClassifier(TabTransformer):
                  feedforward_dropout: float = TabTransformerConfig.feedforward_dropout,
                  norm_epsilon: float = TabTransformerConfig.norm_epsilon,
                  use_column_embedding: bool = TabTransformerConfig.use_column_embedding,
-                 categorical_features_vocabulary: dict = TabTransformerConfig.categorical_features_vocabulary,
                  encode_categorical_values: bool = TabTransformerConfig.encode_categorical_values,
                  **kwargs
                  ):
-        super().__init__(embedding_dim=embedding_dim,
+        super().__init__(features_metadata=features_metadata,
+                         embedding_dim=embedding_dim,
                          num_transformer_layers=num_transformer_layers,
                          numgirl_attention_heads=num_attention_heads,
                          attention_dropout=attention_dropout,
                          feedforward_dropout=feedforward_dropout,
                          norm_epsilon=norm_epsilon,
                          use_column_embedding=use_column_embedding,
-                         categorical_features_vocabulary=categorical_features_vocabulary,
                          encode_categorical_values=encode_categorical_values,
                          **kwargs)
 
@@ -321,6 +309,18 @@ class TabTransformerRegressor(TabTransformer):
             Units values to use in the hidden layers in the Regression head.
             For each value in the list/tuple,
             a hidden layer of that dimensionality is added to the head.
+        features_metadata: `dict`,
+            a nested dictionary of metadata for features where
+            categorical sub-dictionary is a mapping of categorical feature names to a tuple of
+            feature indices and the lists of unique values (vocabulary) in them,
+            while numerical dictionary is a mapping of numerical feature names to their indices.
+            `{feature_name: (feature_idx, vocabulary)}` for feature in categorical features.
+            `{feature_name: feature_idx}` for feature in numerical features.
+            You can get this dictionary from
+                >>> from teras.utils import get_features_metadata_for_embedding
+                >>> metadata_dict = get_features_metadata_for_embedding(dataframe,
+                                                                        numerical_features,
+                                                                        categorical_features)
         embedding_dim: `int`, default 32, Dimensionality of the learnable
             feature embeddings for categorical features.
         num_transformer_layers: `int`, default 6, Number of transformer layers
@@ -339,13 +339,6 @@ class TabTransformerRegressor(TabTransformer):
             layer proposed in the TabTransformer architecture for the categorical features.
             The ColumnEmbedding layer is an alternative to positional encoding that is applied
             in the Transformers in Natural Langauge Processing application settings.
-        categorical_features_vocabulary: `dict`, Vocabulary of categorical feature.
-            Vocabulary is simply a dictionary where feature name maps
-            to a tuple of feature index and a list of unique values in the feature.
-            You can get this vocabulary by calling
-            `teras.utils.get_categorical_features_vocabulary(dataset, categorical_features)`
-            If None, dataset will be assumed to contain no categorical features and
-            hence CategoricalFeatureEmbedding layer won't be applied.
         encode_categorical_values: `bool`, default True, whether to (label) encode categorical values,
             If you've already encoded the categorical values using for instance
             Label/Ordinal encoding, you should set this to False,
@@ -356,6 +349,7 @@ class TabTransformerRegressor(TabTransformer):
     def __init__(self,
                  num_outputs: int = 1,
                  head_units_values: LIST_OR_TUPLE_OF_INT = (64, 32),
+                 features_metadata: dict = None,
                  embedding_dim: int = TabTransformerConfig.embedding_dim,
                  num_transformer_layers: int = TabTransformerConfig.num_transformer_layers,
                  num_attention_heads: int = TabTransformerConfig.num_attention_heads,
@@ -363,18 +357,17 @@ class TabTransformerRegressor(TabTransformer):
                  feedforward_dropout: float = TabTransformerConfig.feedforward_dropout,
                  norm_epsilon: float = TabTransformerConfig.norm_epsilon,
                  use_column_embedding: bool = TabTransformerConfig.use_column_embedding,
-                 categorical_features_vocabulary: dict = TabTransformerConfig.categorical_features_vocabulary,
                  encode_categorical_values: bool = TabTransformerConfig.encode_categorical_values,
                  **kwargs
                  ):
-        super().__init__(embedding_dim=embedding_dim,
+        super().__init__(features_metadata=features_metadata,
+                         embedding_dim=embedding_dim,
                          num_transformer_layers=num_transformer_layers,
                          num_attention_heads=num_attention_heads,
                          attention_dropout=attention_dropout,
                          feedforward_dropout=feedforward_dropout,
                          norm_epsilon=norm_epsilon,
                          use_column_embedding=use_column_embedding,
-                         categorical_features_vocabulary=categorical_features_vocabulary,
                          encode_categorical_values=encode_categorical_values,
                          **kwargs)
         self.num_outputs = num_outputs
