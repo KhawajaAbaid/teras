@@ -55,6 +55,10 @@ class TabTransformer(keras.Model):
             MultiHeadSelfAttention layer in the transformer layer.
         feedforward_dropout: `float`, default 0.0, Dropout rate to use for the
             dropout layer in the FeedForward block.
+        feedforward_multiplier: `int`, default 4.
+            Multiplier that is multiplied with the `embedding_dim`
+            and the resultant value is used as hidden dimensions value for the
+            hidden layer in the feedforward block.
         norm_epsilon: `float`, default 1e-6, A very small number used for normalization
             in the LayerNormalization layer.
         use_column_embedding: `bool`, default True, Whether to use the novel ColumnEmbedding
@@ -75,6 +79,7 @@ class TabTransformer(keras.Model):
                  num_attention_heads: int = TabTransformerConfig.num_attention_heads,
                  attention_dropout: float = TabTransformerConfig.attention_dropout,
                  feedforward_dropout: float = TabTransformerConfig.feedforward_dropout,
+                 feedforward_multiplier: int = TabTransformerConfig.feedforward_multiplier,
                  norm_epsilon: float = TabTransformerConfig.norm_epsilon,
                  use_column_embedding: bool = TabTransformerConfig.use_column_embedding,
                  encode_categorical_values: bool = TabTransformerConfig.encode_categorical_values,
@@ -96,6 +101,7 @@ class TabTransformer(keras.Model):
         self.num_attention_heads = num_attention_heads
         self.attention_dropout = attention_dropout
         self.feedforward_dropout = feedforward_dropout
+        self.feedforward_multiplier = feedforward_multiplier
         self.use_column_embedding = use_column_embedding
         self.norm_epsilon = norm_epsilon
         self.encode_categorical_values = encode_categorical_values
@@ -134,6 +140,7 @@ class TabTransformer(keras.Model):
                                    embedding_dim=self.embedding_dim,
                                    attention_dropout=self.attention_dropout,
                                    feedforward_dropout=self.feedforward_dropout,
+                                   feedforward_multiplier=self.feedforward_multiplier,
                                    norm_epsilon=self.norm_epsilon)
             self.flatten = layers.Flatten()
         self.norm = layers.LayerNormalization(epsilon=self.norm_epsilon)
@@ -239,6 +246,10 @@ class TabTransformerClassifier(TabTransformer):
             MultiHeadSelfAttention layer in the transformer layer.
         feedforward_dropout: `float`, default 0.0, Dropout rate to use for the
             dropout layer in the FeedForward block.
+        feedforward_multiplier: `int`, default 4.
+            Multiplier that is multiplied with the `embedding_dim`
+            and the resultant value is used as hidden dimensions value for the
+            hidden layer in the feedforward block.
         norm_epsilon: `float`, default 1e-6, A very small number used for normalization
             in the LayerNormalization layer.
         use_column_embedding: `bool`, default True, Whether to use the novel ColumnEmbedding
@@ -262,6 +273,7 @@ class TabTransformerClassifier(TabTransformer):
                  num_attention_heads: int = TabTransformerConfig.num_attention_heads,
                  attention_dropout: float = TabTransformerConfig.attention_dropout,
                  feedforward_dropout: float = TabTransformerConfig.feedforward_dropout,
+                 feedforward_multiplier: int = TabTransformerConfig.feedforward_multiplier,
                  norm_epsilon: float = TabTransformerConfig.norm_epsilon,
                  use_column_embedding: bool = TabTransformerConfig.use_column_embedding,
                  encode_categorical_values: bool = TabTransformerConfig.encode_categorical_values,
@@ -273,6 +285,7 @@ class TabTransformerClassifier(TabTransformer):
                          numgirl_attention_heads=num_attention_heads,
                          attention_dropout=attention_dropout,
                          feedforward_dropout=feedforward_dropout,
+                         feedforward_multiplier=feedforward_multiplier,
                          norm_epsilon=norm_epsilon,
                          use_column_embedding=use_column_embedding,
                          encode_categorical_values=encode_categorical_values,
@@ -333,6 +346,10 @@ class TabTransformerRegressor(TabTransformer):
             MultiHeadSelfAttention layer in the transformer layer.
         feedforward_dropout: `float`, default 0.0, Dropout rate to use for the
             dropout layer in the FeedForward block.
+        feedforward_multiplier: `int`, default 4.
+            Multiplier that is multiplied with the `embedding_dim`
+            and the resultant value is used as hidden dimensions value for the
+            hidden layer in the feedforward block.
         norm_epsilon: `float`, default 1e-6, A very small number used for normalization
             in the LayerNormalization layer.
         use_column_embedding: `bool`, default True, Whether to use the novel ColumnEmbedding
@@ -355,6 +372,7 @@ class TabTransformerRegressor(TabTransformer):
                  num_attention_heads: int = TabTransformerConfig.num_attention_heads,
                  attention_dropout: float = TabTransformerConfig.attention_dropout,
                  feedforward_dropout: float = TabTransformerConfig.feedforward_dropout,
+                 feedforward_multiplier: int = TabTransformerConfig.feedforward_multiplier,
                  norm_epsilon: float = TabTransformerConfig.norm_epsilon,
                  use_column_embedding: bool = TabTransformerConfig.use_column_embedding,
                  encode_categorical_values: bool = TabTransformerConfig.encode_categorical_values,
@@ -366,6 +384,7 @@ class TabTransformerRegressor(TabTransformer):
                          num_attention_heads=num_attention_heads,
                          attention_dropout=attention_dropout,
                          feedforward_dropout=feedforward_dropout,
+                         feedforward_multiplier=feedforward_multiplier,
                          norm_epsilon=norm_epsilon,
                          use_column_embedding=use_column_embedding,
                          encode_categorical_values=encode_categorical_values,
