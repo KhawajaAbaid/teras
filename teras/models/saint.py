@@ -60,6 +60,10 @@ class SAINT(keras.Model):
             attention over rows.
         feedforward_dropout: `float`, default 0.1,
             Dropout rate to use for the dropout layer in the FeedForward block.
+        feedforward_multiplier: `int`, default 4.
+            Multiplier that is multiplied with the `embedding_dim`
+            and the resultant value is used as hidden dimensions value for the
+            hidden layer in the feedforward block.
         norm_epsilon: `float`, default 1e-6,
             A very small number used for normalization in the `LayerNormalization` layer.
         encode_categorical_values: `bool`, default True,
@@ -69,10 +73,6 @@ class SAINT(keras.Model):
             otherwise leave it as True.
             In the case of True, categorical values will be mapped to integer indices
             using keras's string lookup layer.
-        embed_numerical_features: `bool`, default True,
-            Whether to embed the numerical features.
-            If False, (SAINT) `NumericalFeatureEmbedding` layer won't be applied to
-            numerical features instead they will just be normalized using `LayerNormaliztion`.
         apply_attention_to_features: `bool`, default True,
             Whether to apply attention over features using the regular `MultiHeadAttenion` layer.
         apply_attention_to_rows: `bool`, default True,
@@ -92,9 +92,9 @@ class SAINT(keras.Model):
                  attention_dropout: float = SAINTConfig.attention_dropout,
                  inter_sample_attention_dropout: float = SAINTConfig.inter_sample_attention_dropout,
                  feedforward_dropout: float = SAINTConfig.feedforward_dropout,
+                 feedforward_multiplier: int = SAINTConfig.feedforward_multiplier,
                  norm_epsilon: float = SAINTConfig.norm_epsilon,
                  encode_categorical_values: bool = SAINTConfig.encode_categorical_values,
-                 embed_numerical_features: bool = SAINTConfig.embed_numerical_features,
                  apply_attention_to_features: bool = SAINTConfig.apply_attention_to_features,
                  apply_attention_to_rows: bool = SAINTConfig.apply_attention_to_rows,
                  **kwargs
@@ -108,9 +108,9 @@ class SAINT(keras.Model):
         self.attention_dropout = attention_dropout
         self.inter_sample_attention_dropout = inter_sample_attention_dropout
         self.feedforward_dropout = feedforward_dropout
+        self.feedforward_multiplier = feedforward_multiplier
         self.norm_epsilon = norm_epsilon
         self.encode_categorical_values = encode_categorical_values
-        self.embed_numerical_features = embed_numerical_features
         self.numerical_embedding_hidden_dim = numerical_embedding_hidden_dim
         self.apply_attention_to_features = apply_attention_to_features
         self.apply_attention_to_rows = apply_attention_to_rows
@@ -120,37 +120,21 @@ class SAINT(keras.Model):
         self._num_categorical_features = len(self._categorical_features_metadata)
         self._num_numerical_features = len(self._numerical_features_metadata)
 
-        self._num_embedded_features = 0
-
-        self._numerical_features_exists = self._num_numerical_features > 0
+        self._numerical_features_exist = self._num_numerical_features > 0
         self._categorical_features_exist = self._num_categorical_features > 0
 
+        self._num_embedded_features = 0
+
         # Numerical/Continuous Features Embedding
-        self.numerical_feature_embedding = None
-        if self.embed_numerical_features:
-            if self._numerical_features_exists:
-                self.numerical_feature_embedding = SAINTNumericalFeatureEmbedding(
-                    embedding_dim=self.embedding_dim,
-                    hidden_dim=self.numerical_embedding_hidden_dim,
-                    numerical_features_metadata=self._numerical_features_metadata
-                )
-                self._num_embedded_features += self._num_numerical_features
-            else:
-                # Numerical features don't exist
-                warn("`embed_numerical_features` is set to True, but no numerical features exist in the "
-                     "`features_metadata` dictionary, hence it is assumed that no numerical features exist "
-                     "in the given dataset. "
-                     "But if numerical features do exist in the dataset, then make sure to pass them when "
-                     "you call the `get_features_metadata_for_embedding` function. And train this this model again. ")
-        else:
-            # embed_numerical_features is set to False by the user.
-            if self._numerical_features_exists:
-                # But numerical features exist, so warn the user
-                warn("`embed_numerical_features` is set to False but numerical features exist in the dataset. "
-                     "It is recommended to embed the numerical features for better performance. ")
+        if self._numerical_features_exist:
+            self.numerical_feature_embedding = SAINTNumericalFeatureEmbedding(
+                embedding_dim=self.embedding_dim,
+                hidden_dim=self.numerical_embedding_hidden_dim,
+                numerical_features_metadata=self._numerical_features_metadata
+            )
+            self._num_embedded_features += self._num_numerical_features
 
         # Categorical Features Embedding
-        self.categorical_feature_embedding = None
         if self._categorical_features_exist:
             # If categorical features exist, then they must be embedded
             self.categorical_feature_embedding = CategoricalFeatureEmbedding(
@@ -166,6 +150,7 @@ class SAINT(keras.Model):
                                           attention_dropout=self.attention_dropout,
                                           inter_sample_attention_dropout=self.inter_sample_attention_dropout,
                                           feedforward_dropout=self.feedforward_dropout,
+                                          feedforward_multiplier=self.feedforward_multiplier,
                                           norm_epsilon=self.norm_epsilon,
                                           apply_attention_to_features=self.apply_attention_to_features,
                                           apply_attention_to_rows=self.apply_attention_to_rows,
@@ -186,12 +171,13 @@ class SAINT(keras.Model):
             if isinstance(inputs, dict):
                 self._is_data_in_dict_format = True
             self._is_first_batch = False
+
         features = None
-        if self.categorical_feature_embedding is not None:
+        if self._categorical_features_exist:
             categorical_features = self.categorical_feature_embedding(inputs)
             features = categorical_features
 
-        if self.numerical_feature_embedding is not None:
+        if self._numerical_features_exist:
             numerical_features = self.numerical_feature_embedding(inputs)
             if features is not None:
                 features = tf.concat([features, numerical_features],
@@ -204,26 +190,6 @@ class SAINT(keras.Model):
 
         # Flatten the contextualized embeddings of the features
         features = self.flatten(features)
-
-        if self._numerical_features_exists and not self.embed_numerical_features:
-            # then it means that we only apply attention to categorical features
-            # and only normalize the numerical features after categorical features
-            # have been embedded, contextualized and flattened. Then we concatenate
-            # them with the categorical features
-            # Normalize numerical features
-            numerical_features = tf.TensorArray(size=self._num_numerical_features,
-                                                dtype=tf.float32)
-            for i, (feature_name, feature_idx) in enumerate(self._numerical_features_metadata.items()):
-                if self._is_data_in_dict_format:
-                    feature = tf.expand_dims(inputs[feature_name], axis=1)
-                else:
-                    feature = tf.expand_dims(inputs[:, feature_idx], axis=1)
-                feature = self.norm(feature)
-                numerical_features = numerical_features.write(i, feature)
-            numerical_features = tf.transpose(tf.squeeze(numerical_features.stack()))
-
-            # Concatenate all features
-            features = layers.concatenate([features, numerical_features])
 
         outputs = features
         if self.head is not None:
@@ -286,6 +252,10 @@ class SAINTClassifier(SAINT):
             attention over rows.
         feedforward_dropout: `float`, default 0.1,
             Dropout rate to use for the dropout layer in the FeedForward block.
+        feedforward_multiplier: `int`, default 4.
+            Multiplier that is multiplied with the `embedding_dim`
+            and the resultant value is used as hidden dimensions value for the
+            hidden layer in the feedforward block.
         norm_epsilon: `float`, default 1e-6,
             A very small number used for normalization in the `LayerNormalization` layer.
         encode_categorical_values: `bool`, default True,
@@ -295,10 +265,6 @@ class SAINTClassifier(SAINT):
             otherwise leave it as True.
             In the case of True, categorical values will be mapped to integer indices
             using keras's string lookup layer.
-        embed_numerical_features: `bool`, default True,
-            Whether to embed the numerical features.
-            If False, (SAINT) `NumericalFeatureEmbedding` layer won't be applied to
-            numerical features instead they will just be normalized using `LayerNormaliztion`.
         apply_attention_to_features: `bool`, default True,
             Whether to apply attention over features using the regular `MultiHeadAttenion` layer.
         apply_attention_to_rows: `bool`, default True,
@@ -321,9 +287,9 @@ class SAINTClassifier(SAINT):
                  attention_dropout: float = SAINTConfig.attention_dropout,
                  inter_sample_attention_dropout: float = SAINTConfig.inter_sample_attention_dropout,
                  feedforward_dropout: float = SAINTConfig.feedforward_dropout,
+                 feedforward_multiplier: int = SAINTConfig.feedforward_multiplier,
                  norm_epsilon: float = SAINTConfig.norm_epsilon,
                  encode_categorical_values: bool = SAINTConfig.encode_categorical_values,
-                 embed_numerical_features: bool = SAINTConfig.embed_numerical_features,
                  apply_attention_to_features: bool = SAINTConfig.apply_attention_to_features,
                  apply_attention_to_rows: bool = SAINTConfig.apply_attention_to_rows,
                  **kwargs
@@ -337,9 +303,9 @@ class SAINTClassifier(SAINT):
                          attention_dropout=attention_dropout,
                          inter_sample_attention_dropout=inter_sample_attention_dropout,
                          feedforward_dropout=feedforward_dropout,
+                         feedforward_multiplier=feedforward_multiplier,
                          norm_epsilon=norm_epsilon,
                          encode_categorical_values=encode_categorical_values,
-                         embed_numerical_features=embed_numerical_features,
                          apply_attention_to_features=apply_attention_to_features,
                          apply_attention_to_rows=apply_attention_to_rows,
                          **kwargs)
@@ -406,6 +372,10 @@ class SAINTRegressor(SAINT):
             attention over rows.
         feedforward_dropout: `float`, default 0.1,
             Dropout rate to use for the dropout layer in the FeedForward block.
+        feedforward_multiplier: `int`, default 4.
+            Multiplier that is multiplied with the `embedding_dim`
+            and the resultant value is used as hidden dimensions value for the
+            hidden layer in the feedforward block.
         norm_epsilon: `float`, default 1e-6,
             A very small number used for normalization in the `LayerNormalization` layer.
         encode_categorical_values: `bool`, default True,
@@ -415,10 +385,6 @@ class SAINTRegressor(SAINT):
             otherwise leave it as True.
             In the case of True, categorical values will be mapped to integer indices
             using keras's string lookup layer.
-        embed_numerical_features: `bool`, default True,
-            Whether to embed the numerical features.
-            If False, (SAINT) `NumericalFeatureEmbedding` layer won't be applied to
-            numerical features instead they will just be normalized using `LayerNormaliztion`.
         apply_attention_to_features: `bool`, default True,
             Whether to apply attention over features using the regular `MultiHeadAttenion` layer.
         apply_attention_to_rows: `bool`, default True,
@@ -441,9 +407,9 @@ class SAINTRegressor(SAINT):
                  attention_dropout: float = SAINTConfig.attention_dropout,
                  inter_sample_attention_dropout: float = SAINTConfig.inter_sample_attention_dropout,
                  feedforward_dropout: float = SAINTConfig.feedforward_dropout,
+                 feedforward_multiplier: int = SAINTConfig.feedforward_multiplier,
                  norm_epsilon: float = SAINTConfig.norm_epsilon,
                  encode_categorical_values: bool = SAINTConfig.encode_categorical_values,
-                 embed_numerical_features: bool = SAINTConfig.embed_numerical_features,
                  apply_attention_to_features: bool = SAINTConfig.apply_attention_to_features,
                  apply_attention_to_rows: bool = SAINTConfig.apply_attention_to_rows,
                  **kwargs
@@ -457,9 +423,9 @@ class SAINTRegressor(SAINT):
                          attention_dropout=attention_dropout,
                          inter_sample_attention_dropout=inter_sample_attention_dropout,
                          feedforward_dropout=feedforward_dropout,
+                         feedforward_multiplier=feedforward_multiplier,
                          norm_epsilon=norm_epsilon,
                          encode_categorical_values=encode_categorical_values,
-                         embed_numerical_features=embed_numerical_features,
                          apply_attention_to_features=apply_attention_to_features,
                          apply_attention_to_rows=apply_attention_to_rows,
                          **kwargs)
