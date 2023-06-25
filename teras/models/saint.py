@@ -1,12 +1,13 @@
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras import layers
+from tensorflow.keras import layers, models
 from warnings import warn
 from teras.layers import CategoricalFeatureEmbedding
 from teras.layers import SAINTNumericalFeatureEmbedding, SAINTEncoder
 from teras.layers.common.transformer import (ClassificationHead,
                                              RegressionHead)
 from teras.config.saint import SAINTConfig
+from teras.layers.regularization import MixUp, CutMix
 from typing import Union, List, Tuple
 
 
@@ -119,6 +120,7 @@ class SAINT(keras.Model):
         self._numerical_features_metadata = self.features_metadata["numerical"]
         self._num_categorical_features = len(self._categorical_features_metadata)
         self._num_numerical_features = len(self._numerical_features_metadata)
+        self.num_features = self._num_numerical_features + self._num_categorical_features
 
         self._numerical_features_exist = self._num_numerical_features > 0
         self._categorical_features_exist = self._num_categorical_features > 0
@@ -436,3 +438,99 @@ class SAINTRegressor(SAINT):
                                    units_values=self.head_units_values,
                                    activation_hidden="relu",
                                    normalization="batch")
+
+
+class SAINTPretrainer(keras.Model):
+    """
+    SAINTPretrainer model based on the pretraining architecture
+    for the SAINT model proposed by Gowthami Somepalli et al.
+    in the paper,
+    SAINT: Improved Neural Networks for Tabular Data
+    via Row Attention and Contrastive Pre-Training.
+
+    SAINT performs attention over both rows and columns.
+
+    Reference(s):
+        https://arxiv.org/abs/2106.01342
+
+    Args:
+        model: `keras.Model`,
+            An instance of the SAINT model that you want to pretrain.
+        cutmix_probs: `float`, default 0.1,
+            CutMix probability which is used in generation of mask
+            that is used to mix samples together.
+        mixup_alpha: `float`, default 1.0,
+            Alpha value for the MixUp layer, that is used for the
+            Beta distribution to sample `lambda_`
+            which is used to interpolate samples.
+    """
+    def __int__(self,
+                model: SAINT,
+                cutmix_probs: float = 0.3,
+                mixup_alpha: float = 1.0,
+                **kwargs):
+        self.model = model
+        self.cutmix_probs = cutmix_probs
+        self.mixup_alpha = mixup_alpha
+
+        self.mixup = MixUp(alpha=self.alpha)
+        self.cutmix = CutMix(probs=self.cutmix_probs)
+
+        # Projection head hidden dimensions as calculated by the
+        # official implementation
+        projection_head_hidden_dim = 6 * self.model.embedding_dim * self.model.num_features // 5
+        projection_head_output_dim = self.model.embedding_dim * self.model.num_features // 2
+        self.projection_head_1 = models.Sequential(
+            [
+                layers.Dense(units=projection_head_hidden_dim, activation="relu"),
+                layers.Dense(units=projection_head_output_dim)
+            ],
+            name="projection_head_for_original_data"
+        )
+
+        self.projection_head_2 = models.Sequential(
+            [
+                layers.Dense(units=projection_head_hidden_dim, activation="relu"),
+                layers.Dense(units=projection_head_output_dim)
+            ],
+            name="projection_head_for_augmented_data"
+        )
+
+    def call(self, inputs):
+        x = inputs
+
+        # Apply cutmix on the raw input space
+        x_prime = self.cutmix(x)
+
+        # Embed the raw inputs as well as cutmixed data
+        # TODO: This looks ugly -- maybe create a Embedding layer that wraps these two embedding layers
+        p = None
+        p_prime = None
+        if self.model._categorical_features_exist:
+            p = self.model.categorical_feature_embedding(x)
+            p_prime = self.model.categorical_feature_embedding(x_prime)
+
+        if self.model._numerical_features_exist:
+            numerical_features = self.numerical_feature_embedding(x)
+            numerical_features_prime = self.numerical_feature_embedding(x_prime)
+            if p is not None:
+                p = tf.concat([p, numerical_features],
+                              axis=1)
+                p_prime = tf.concat([p_prime, numerical_features_prime],
+                                    axis=1)
+            else:
+                p = numerical_features
+                p_prime = numerical_features_prime
+
+        # Apply mixup on the embedding space -- only to the augment data
+        p_prime = self.mixup(p_prime)
+
+        # Pass these embeddings through saint encoder
+        r = self.model.saint_encoder(p)
+        r_prime = self.model.saint_encoder(p_prime)
+
+        # Pass the encoded features through projection heads
+        z = self.projection_head_1(r)
+        z_prime = self.projection_head_2(r_prime)
+
+        return z, z_prime
