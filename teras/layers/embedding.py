@@ -74,7 +74,7 @@ class CategoricalFeatureEmbedding(layers.Layer):
 
         return lookup_tables, embedding_layers
 
-    def encode(self, inputs, concatenate_numerical_features=False):
+    def encoder(self, inputs, concatenate_numerical_features=False):
         """This function just encodes the data -- doesn't create embeddings
         Essentially it acts as a Label encoder.
         Useful in cases like SAINT Pretraining where we want to compute the
