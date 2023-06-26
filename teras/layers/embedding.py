@@ -74,6 +74,72 @@ class CategoricalFeatureEmbedding(layers.Layer):
 
         return lookup_tables, embedding_layers
 
+    def encode(self, inputs, concatenate_numerical_features=False):
+        """This function just encodes the data -- doesn't create embeddings
+        Essentially it acts as a Label encoder.
+        Useful in cases like SAINT Pretraining where we want to compute the
+        difference between original and reconstructed inputs and for cases
+        when original inputs contain features with strings, we can simply
+        call the encode method to convert them to their respective integer
+        labels.
+
+        Args:
+            inputs: Inputs with string features that should be encoded
+            concatenate_numerical_features: `bool`, default False,
+                Whether to concatenate numerical features
+                to the encoded categorical features.
+        """
+        if self._is_first_batch:
+            if isinstance(inputs, dict):
+                self._is_data_in_dict_format = True
+                num_features = len(inputs)
+            else:
+                num_features = tf.shape(inputs)[1]
+            self._is_first_batch = False
+        else:
+            num_features = tf.shape(inputs)[1]
+
+        numerical_features_names = None
+        if concatenate_numerical_features:
+            # since we only have metadata for categorical values e.g. feature names and indices
+            # we can still get indices and names for the numerical features --
+            # Just see the magic that's about to happen. aabraca... whoops not that magic
+            categorical_features_idx = set(map(lambda x: x[0], self.categorical_features_metadata.values()))
+            numerical_features_idx = set(range(num_features)) - categorical_features_idx
+            if self._is_data_in_dict_format:
+                categorical_features_names = set(self.categorical_features_metadata.keys())
+                numerical_features_names = list(set(inputs.keys()) - categorical_features_names)
+            encoded_features = tf.TensorArray(size=num_features,
+                                              dtype=tf.float32)
+        else:
+            encoded_features = tf.TensorArray(size=self._num_categorical_features,
+                                              dtype=tf.float32)
+
+        current_idx = 0
+        for feature_name, (feature_idx, _) in self.categorical_features_metadata.items():
+            if self._is_data_in_dict_format:
+                feature = tf.expand_dims(inputs[feature_name], 1)
+            else:
+                feature = tf.expand_dims(inputs[:, feature_idx], 1)
+            # Convert string input values to integer indices
+            lookup = self.lookup_tables[current_idx]
+            feature = lookup(feature)
+            encoded_features = encoded_features.write(current_idx, feature)
+            current_idx += 1
+
+        if concatenate_numerical_features:
+            for i, feature_idx in enumerate(numerical_features_idx):
+                if self._is_data_in_dict_format:
+                    feature = inputs[numerical_features_names[i]]
+                else:
+                    feature = inputs[:, feature_idx]
+                encoded_features = encoded_features.write(current_idx, feature)
+                current_idx += 1
+
+        encoded_features = tf.squeeze(encoded_features.stack())
+        encoded_features = tf.transpose(encoded_features)
+        return encoded_features
+
     def call(self, inputs):
         # Find the dataset's format - is it either in dictionary format.
         # If inputs is an instance of dict, it's in dictionary format
