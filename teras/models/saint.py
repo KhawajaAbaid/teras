@@ -472,17 +472,19 @@ class SAINTPretrainer(keras.Model):
             Controls the weightage of denoising loss in the summation of denoising and
             contrastive loss.
     """
-    def __int__(self,
+    def __init__(self,
                 model: SAINT,
                 cutmix_probs: float = 0.3,
                 mixup_alpha: float = 1.0,
                 temperature: float = 0.7,
                 lambda_: float = 10.,
                 **kwargs):
+        super().__init__(**kwargs)
         self.model = model
         self.cutmix_probs = cutmix_probs
         self.mixup_alpha = mixup_alpha
         self.temperature = temperature
+        self.lambda_ = lambda_
 
         self.mixup = MixUp(alpha=self.alpha)
         self.cutmix = CutMix(probs=self.cutmix_probs)
