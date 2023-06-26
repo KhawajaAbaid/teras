@@ -2,8 +2,8 @@ import tensorflow as tf
 from tensorflow import keras
 
 
-def info_nce_loss(projection_outputs_original=None,
-                  projection_outputs_augmented=None,
+def info_nce_loss(real_projection_outputs=None,
+                  augmented_projection_outputs=None,
                   temperature: float = 0.7,
                   lambda_: float = 0.5):
     """
@@ -20,9 +20,9 @@ def info_nce_loss(projection_outputs_original=None,
     Returns:
         Info NCE loss.
     """
-    labels = tf.one_hot(tf.range(tf.shape(projection_outputs_original)[0]))
-    logits_ab = tf.matmul(projection_outputs_original, projection_outputs_augmented, transpose_b=True) / temperature
-    logits_ba = tf.matmul(projection_outputs_augmented, projection_outputs_original, transpose_b=True) / temperature
+    labels = tf.one_hot(tf.range(tf.shape(real_projection_outputs)[0]))
+    logits_ab = tf.matmul(real_projection_outputs, augmented_projection_outputs, transpose_b=True) / temperature
+    logits_ba = tf.matmul(augmented_projection_outputs, real_projection_outputs, transpose_b=True) / temperature
     loss_a = tf.losses.categorical_crossentropy(y_true=labels,
                                                 y_pred=logits_ab,
                                                 from_logits=True)
