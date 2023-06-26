@@ -3,6 +3,7 @@ from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras import models
 from teras.layers.common.transformer import FeedForward, Transformer
+import numpy as np
 
 
 class NumericalFeatureEmbedding(layers.Layer):
@@ -363,3 +364,95 @@ class Encoder(layers.Layer):
     def call(self, inputs):
         outputs = self.transformer_layers(inputs)
         return outputs
+
+
+class ReconstructionHead(layers.Layer):
+    """
+    ReconstructionHead layer for SAINTPretrainer model.
+    SAINT applies a separate single hidden layer MLP block
+    (here we name it, the reconstruction block)
+    with an output layer where output dimensions are equal
+    to the number of categories in the case of categorical
+    features and 1 in the case of numerical features.
+
+    Args:
+        features_metadata: `dict`,
+            a nested dictionary of metadata for features where
+            categorical sub-dictionary is a mapping of categorical feature names to a tuple of
+            feature indices and the lists of unique values (vocabulary) in them,
+            while numerical dictionary is a mapping of numerical feature names to their indices.
+            `{feature_name: (feature_idx, vocabulary)}` for feature in categorical features.
+            `{feature_name: feature_idx}` for feature in numerical features.
+            You can get this dictionary from
+                >>> from teras.utils import get_features_metadata_for_embedding
+                >>> metadata_dict = get_features_metadata_for_embedding(dataframe,
+                                                                        numerical_features,
+                                                                        categorical_features)
+        embedding_dim: `int`, default 32,
+            Embedding dimensions being used in the pretraining model.
+            Used in the computation of the hidden dimensions for each
+            reconstruction (mlp) block for each feature.
+    """
+    def __init__(self,
+                 features_metadata: dict,
+                 embedding_dim: int = 32,
+                 **kwargs):
+        super().__init__(**kwargs)
+        self.features_metadata = features_metadata
+        self.embedding_dim = embedding_dim
+
+        categorical_features_metadata = self.features_metadata["categorical"]
+        numerical_features_metadata = self.features_metadata["numerical"]
+        num_categorical_features = len(categorical_features_metadata)
+        num_numerical_features = len(numerical_features_metadata)
+        self.num_features = num_categorical_features + num_numerical_features
+
+        # feature_dims: Dimensions of each feature in the input
+        # For a categorical feature, it is equal to the number of unique categories in the feature
+        # For a numerical features, it is equal to 1
+        feature_dims = []
+        # recall that categorical_features_metadata dict maps feature names to a tuple of
+        # feature id and unique values in the feature
+        num_categories_per_feature = list(map(lambda x: len(x[1]), categorical_features_metadata.values()))
+        for num in num_categories_per_feature:
+            feature_dims.append(num)
+        feature_dims.extend([1] * num_numerical_features)
+
+        # For the computation of denoising loss, we use a separate MLP block for each feature
+        # we call the combined blocks, reconstruction heads
+        self.reconstruction_blocks = [models.Sequential([
+            layers.Dense(units=self.embedding_dim * 5,
+                         activation="relu"),
+            layers.Dense(units=dim)
+        ])
+            for dim in feature_dims]
+
+    def call(self, inputs):
+        """
+        Args:
+            inputs: SAINT transformer outputs for the augmented data.
+                Since we apply categorical and numerical embedding layers
+                separately and then combine them into a new features matrix
+                this effectively makes the first k features in the outputs
+                categorical (since categorical embeddings are applied first)
+                and all other features numerical.
+                Here, k = num_categorical_features
+
+        Returns:
+            Reconstructed input features
+        """
+        reconstructed_inputs = tf.TensorArray(size=self.num_features,
+                                              dtype=tf.float32)
+
+        for idx in range(self.num_features):
+            feature_encoding = inputs[:, idx]
+            reconstructed_feature = self.reconstruction_blocks[idx][feature_encoding]
+            reconstructed_inputs = reconstructed_inputs.write(idx, reconstructed_feature)
+
+        reconstructed_inputs = tf.squeeze(reconstructed_inputs.stack(), axis=2)
+        if tf.rank(reconstructed_inputs) == 3:
+            reconstructed_inputs = tf.transpose(reconstructed_inputs, perm=[1, 0, 2])
+        else:
+            reconstructed_inputs = tf.transpose(reconstructed_inputs)
+
+        return reconstructed_inputs
