@@ -1,13 +1,16 @@
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers, models
+import numpy as np
 from warnings import warn
 from teras.layers import CategoricalFeatureEmbedding
 from teras.layers import SAINTNumericalFeatureEmbedding, SAINTEncoder
+from teras.layers.saint import ReconstructionHead
 from teras.layers.common.transformer import (ClassificationHead,
                                              RegressionHead)
 from teras.config.saint import SAINTConfig
 from teras.layers.regularization import MixUp, CutMix
+from teras.losses.saint import info_nce_loss, denoising_loss
 from typing import Union, List, Tuple
 
 
@@ -463,19 +466,28 @@ class SAINTPretrainer(keras.Model):
             Alpha value for the MixUp layer, that is used for the
             Beta distribution to sample `lambda_`
             which is used to interpolate samples.
+        temperature: `float`, default 0.7,
+            Temperature value used in the computation of the InfoNCE contrastive loss.
+        lambda_: `float`, default 10,
+            Controls the weightage of denoising loss in the summation of denoising and
+            contrastive loss.
     """
     def __int__(self,
                 model: SAINT,
                 cutmix_probs: float = 0.3,
                 mixup_alpha: float = 1.0,
+                temperature: float = 0.7,
+                lambda_: float = 10.,
                 **kwargs):
         self.model = model
         self.cutmix_probs = cutmix_probs
         self.mixup_alpha = mixup_alpha
+        self.temperature = temperature
 
         self.mixup = MixUp(alpha=self.alpha)
         self.cutmix = CutMix(probs=self.cutmix_probs)
 
+        # For the computation of contrastive loss, we use projection heads.
         # Projection head hidden dimensions as calculated by the
         # official implementation
         projection_head_hidden_dim = 6 * self.model.embedding_dim * self.model.num_features // 5
@@ -496,6 +508,19 @@ class SAINTPretrainer(keras.Model):
             name="projection_head_for_augmented_data"
         )
 
+        self.reconstruction_head = ReconstructionHead(features_metadata=self.model.features_metadata,
+                                                      embedding_dim=self.model.embedding_dim)
+        self.contrastive_loss_tracker = keras.metrics.Mean(name="contrastive_loss")
+        self.denoising_loss_tracker = keras.metrics.Mean(name="denoising_loss")
+
+    def compile(self,
+                contrastive_loss=info_nce_loss,
+                denoising_loss=denoising_loss,
+                **kwargs):
+        super().compile(**kwargs)
+        self.contrastive_loss = contrastive_loss
+        self.denoising_loss = denoising_loss
+
     def call(self, inputs):
         x = inputs
 
@@ -511,8 +536,8 @@ class SAINTPretrainer(keras.Model):
             p_prime = self.model.categorical_feature_embedding(x_prime)
 
         if self.model._numerical_features_exist:
-            numerical_features = self.numerical_feature_embedding(x)
-            numerical_features_prime = self.numerical_feature_embedding(x_prime)
+            numerical_features = self.model.numerical_feature_embedding(x)
+            numerical_features_prime = self.model.numerical_feature_embedding(x_prime)
             if p is not None:
                 p = tf.concat([p, numerical_features],
                               axis=1)
@@ -533,4 +558,37 @@ class SAINTPretrainer(keras.Model):
         z = self.projection_head_1(r)
         z_prime = self.projection_head_2(r_prime)
 
-        return z, z_prime
+        # To reconstruct the input data, we pass the encodings of augmented data
+        # i.e. the `r_prime` through a reconstruction head
+        reconstructed_samples = self.reconstruction_head(r_prime)
+
+        return z, z_prime, reconstructed_samples
+
+    def train_step(self, data):
+        if isinstance(data, tuple):
+            data = data[0]
+
+        with tf.GradientTape() as tape:
+            z, z_prime, reconstructed_samples = self(data)
+            c_loss = self.contrastive_loss(real_projection_outputs=z,
+                                           augmented_projection_outputs=z_prime,
+                                           temperature=self.temperature)
+            # we encode the raw data in case it contains string values before we can
+            # pass it for denoising loss computation since string values would result
+            # will cause errors
+            if self.model.encode_categorical_values:
+                data = self.model.categorical_feature_embedding.encoder(data)
+            d_loss = self.denoising_loss(real_samples=data,
+                                         reconstructed_samples=reconstructed_samples,
+                                         num_categorical_features=self.model._num_categorical_features)
+
+            loss = c_loss + self.lambda_ * d_loss
+        gradients = tape.gradient(loss, self.model.trainable_weights)
+        self.optimizer.apply_gradients(gradients, self.model.trainable_weights)
+
+        self.contrastive_loss_tracker.update_state(c_loss)
+        self.denoising_loss_tracker.update_state(d_loss)
+
+        results = {m.name: m.result() for m in self.metrics}
+        return results
+
