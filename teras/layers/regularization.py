@@ -76,7 +76,7 @@ class CutMix(keras.layers.Layer):
 
     def call(self, inputs):
         # Generate mask for CutMix mixing
-        mask_cutmix = self.cutmix_mask_generator.sample(tf.shape(inputs))
+        mask_cutmix = self.mask_generator.sample(sample_shape=tf.shape(inputs))
 
         # For each data sample select a partner to mix it with at random.
         # To efficiently achieve this, we can just shuffle the data
