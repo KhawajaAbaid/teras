@@ -546,7 +546,6 @@ class SAINTPretrainer(keras.Model):
         # so we essentially will set it to False at the start of this call method
         # and back to True at the end.
         self.model.categorical_feature_embedding.encode = False
-        inputs = self.label_encoding(inputs)
         x = inputs
 
         # Apply cutmix on the raw input space
@@ -599,6 +598,12 @@ class SAINTPretrainer(keras.Model):
         return z, z_prime, reconstructed_samples
 
     def train_step(self, data):
+        # At each batch, if the user has set the encode categorical values flag to True,
+        # we encode the categorical (string) values in the data to make life easier and efficient
+        # down the road.
+        if self.model.encode_categorical_values:
+            data = self.label_encoding(data)
+
         if isinstance(data, tuple):
             data = data[0]
 
@@ -607,11 +612,6 @@ class SAINTPretrainer(keras.Model):
             c_loss = self.contrastive_loss(real_projection_outputs=z,
                                            augmented_projection_outputs=z_prime,
                                            temperature=self.temperature)
-            # we encode the raw data in case it contains string values before we can
-            # pass it for denoising loss computation since string values would result
-            # will cause errors
-            if self.model.encode_categorical_values:
-                data = self.model.categorical_feature_embedding.encoder(data)
             d_loss = self.denoising_loss(real_samples=data,
                                          reconstructed_samples=reconstructed_samples,
                                          categorical_features_metadata=self.model._categorical_features_metadata)
