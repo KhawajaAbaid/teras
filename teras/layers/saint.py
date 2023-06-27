@@ -413,9 +413,10 @@ class ReconstructionHead(layers.Layer):
         feature_dims = []
         # recall that categorical_features_metadata dict maps feature names to a tuple of
         # feature id and unique values in the feature
-        num_categories_per_feature = list(map(lambda x: len(x[1]), categorical_features_metadata.values()))
-        for num in num_categories_per_feature:
-            feature_dims.append(num)
+        if num_categorical_features > 0:
+            feature_dims = list(map(lambda x: len(x[1]), categorical_features_metadata.values()))
+        # for num in num_categories_per_feature:
+        #     feature_dims.append(num)
         feature_dims.extend([1] * num_numerical_features)
 
         # For the computation of denoising loss, we use a separate MLP block for each feature
@@ -441,18 +442,12 @@ class ReconstructionHead(layers.Layer):
         Returns:
             Reconstructed input features
         """
-        reconstructed_inputs = tf.TensorArray(size=self.num_features,
-                                              dtype=tf.float32)
-
+        reconstructed_inputs = []
         for idx in range(self.num_features):
             feature_encoding = inputs[:, idx]
-            reconstructed_feature = self.reconstruction_blocks[idx][feature_encoding]
-            reconstructed_inputs = reconstructed_inputs.write(idx, reconstructed_feature)
-
-        reconstructed_inputs = tf.squeeze(reconstructed_inputs.stack(), axis=2)
-        if tf.rank(reconstructed_inputs) == 3:
-            reconstructed_inputs = tf.transpose(reconstructed_inputs, perm=[1, 0, 2])
-        else:
-            reconstructed_inputs = tf.transpose(reconstructed_inputs)
-
+            reconstructed_feature = self.reconstruction_blocks[idx](feature_encoding)
+            reconstructed_inputs.append(reconstructed_feature)
+        # the reconstructed inputs will have features equal to
+        # `number of numerical features` + `number of categories in the categorical features`
+        reconstructed_inputs = tf.concat(reconstructed_inputs, axis=1)
         return reconstructed_inputs
