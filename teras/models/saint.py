@@ -10,6 +10,7 @@ from teras.layers.common.transformer import (ClassificationHead,
                                              RegressionHead)
 from teras.config.saint import SAINTConfig
 from teras.layers.regularization import MixUp, CutMix
+from teras.layers.encoding import LabelEncoding
 from teras.losses.saint import info_nce_loss, denoising_loss
 from typing import Union, List, Tuple
 
@@ -486,7 +487,7 @@ class SAINTPretrainer(keras.Model):
         self.temperature = temperature
         self.lambda_ = lambda_
 
-        self.mixup = MixUp(alpha=self.alpha)
+        self.mixup = MixUp(alpha=self.mixup_alpha)
         self.cutmix = CutMix(probs=self.cutmix_probs)
 
         # For the computation of contrastive loss, we use projection heads.
@@ -515,6 +516,14 @@ class SAINTPretrainer(keras.Model):
         self.contrastive_loss_tracker = keras.metrics.Mean(name="contrastive_loss")
         self.denoising_loss_tracker = keras.metrics.Mean(name="denoising_loss")
 
+        # We set concatenate_numerical_features because we want the layer to return the whole data including numerical
+        # features and not just categorical features
+        self.label_encoding = LabelEncoding(categorical_features_metadata=self.model.features_metadata["categorical"],
+                                            concatenate_numerical_features=True,
+                                            keep_features_order=True)
+
+        self._is_first_batch = True
+
     def compile(self,
                 contrastive_loss=info_nce_loss,
                 denoising_loss=denoising_loss,
@@ -524,6 +533,20 @@ class SAINTPretrainer(keras.Model):
         self.denoising_loss = denoising_loss
 
     def call(self, inputs):
+        # Okay this is going to be a bit ugly solution but bear with me
+        # Because we receive a model instance and not create an instance ourselves,
+        # and becuse the encoding is currently merged in the emebdding layer, we have two options
+        # 1. Create a separate copy of inputs, encode it and pass it to the layers like cutmix
+        #   which cannot handle encoding.
+        # 2. Set the model's categorical_feature_embedding layer's encode attribute to False
+        #   so it doesn't encode values when called.
+
+        # Since we have to set the encode attribute back to True if it was True originally
+        # and we have to do it at the last batch of last epoch, which we cannot know,
+        # so we essentially will set it to False at the start of this call method
+        # and back to True at the end.
+        self.model.categorical_feature_embedding.encode = False
+        inputs = self.label_encoding(inputs)
         x = inputs
 
         # Apply cutmix on the raw input space
@@ -559,11 +582,20 @@ class SAINTPretrainer(keras.Model):
         # Pass the encoded features through projection heads
         z = self.projection_head_1(r)
         z_prime = self.projection_head_2(r_prime)
+        # Normalize
+        z = z / tf.norm(z, axis=-1, keepdims=True)
+        z_prime = z_prime / tf.norm(z_prime, axis=-1, keepdims=True)
+        # Flatten last two dimensions
+        z = tf.reshape(z, shape=(tf.shape(z)[0], tf.reduce_prod(tf.shape(z)[1:])))
+        z_prime = tf.reshape(z_prime, shape=(tf.shape(z_prime)[0], tf.reduce_prod(tf.shape(z_prime)[1:])))
 
         # To reconstruct the input data, we pass the encodings of augmented data
         # i.e. the `r_prime` through a reconstruction head
         reconstructed_samples = self.reconstruction_head(r_prime)
 
+        # Since we want to keep the encode value to what originally was,
+        # which is also stored in the model's encode_categorical_values attribute, so we set it equal to that
+        self.model.categorical_feature_embedding.encode = self.model.encode_categorical_values
         return z, z_prime, reconstructed_samples
 
     def train_step(self, data):
@@ -582,7 +614,7 @@ class SAINTPretrainer(keras.Model):
                 data = self.model.categorical_feature_embedding.encoder(data)
             d_loss = self.denoising_loss(real_samples=data,
                                          reconstructed_samples=reconstructed_samples,
-                                         num_categorical_features=self.model._num_categorical_features)
+                                         categorical_features_metadata=self.model._categorical_features_metadata)
 
             loss = c_loss + self.lambda_ * d_loss
         gradients = tape.gradient(loss, self.model.trainable_weights)
