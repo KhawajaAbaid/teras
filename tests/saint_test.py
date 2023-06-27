@@ -7,7 +7,8 @@ import numpy as np
 
 from teras.utils import get_features_metadata_for_embedding, dataframe_to_tf_dataset
 from teras.models import SAINTClassifier, SAINTRegressor
-tf.config.run_functions_eagerly(True)
+from teras.models.saint import SAINTPretrainer
+# tf.config.run_functions_eagerly(True)
 
 
 #  <<<<<<<<<<<<<<<<<<<<< REGRESSION Test >>>>>>>>>>>>>>>>>>>>>
@@ -21,21 +22,26 @@ num_cols = ["carat", "depth", "table", "x", "y", "z"]
 
 # For FTTransformer, TabTranformer and SAINT, we need to pass features metadata of dict type
 # You can get this metadata by calling the utility function as below
-features_metadata = get_features_metadata_for_embedding(gem_df, cat_cols)
+features_metadata = get_features_metadata_for_embedding(gem_df, cat_cols, num_cols)
 
 X_ds = dataframe_to_tf_dataset(gem_df, 'price', batch_size=1024, as_dict=True)
 
+pretrain_df = gem_df.copy()
+pretrain_df.pop("price")
+X_pretrain = dataframe_to_tf_dataset(pretrain_df, as_dict=True)
 
 saint_regressor = SAINTRegressor(num_outputs=1,
                                  features_metadata=features_metadata
                                 )
 
+pretrainer = SAINTPretrainer(model=saint_regressor)
+pretrainer.compile(optimizer=keras.optimizers.AdamW(learning_rate=0.05))
+pretrainer.fit(X_ds, epochs=3)
+
 saint_regressor.compile(loss="MSE",
                         optimizer=keras.optimizers.AdamW(learning_rate=0.05),
                         metrics=["MAE"])
 saint_regressor.fit(X_ds, epochs=10)
-
-
 
 
 # <<<<<<<<<<<<<<<<<<<<<<<<<<< CLASSIFICATION TEST >>>>>>>>>>>>>>>>>>>>>>>
