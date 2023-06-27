@@ -1,5 +1,6 @@
 import tensorflow as tf
 from tensorflow import keras
+from tensorflow.keras import losses
 
 
 def info_nce_loss(real_projection_outputs=None,
@@ -20,22 +21,21 @@ def info_nce_loss(real_projection_outputs=None,
     Returns:
         Info NCE loss.
     """
-    labels = tf.one_hot(tf.range(tf.shape(real_projection_outputs)[0]))
+    batch_size = tf.shape(real_projection_outputs)[0]
+    labels = tf.range(batch_size)
     logits_ab = tf.matmul(real_projection_outputs, augmented_projection_outputs, transpose_b=True) / temperature
     logits_ba = tf.matmul(augmented_projection_outputs, real_projection_outputs, transpose_b=True) / temperature
-    loss_a = tf.losses.categorical_crossentropy(y_true=labels,
-                                                y_pred=logits_ab,
-                                                from_logits=True)
-    loss_b = tf.losses.categorical_crossentropy(y_true=labels,
-                                                y_pred=logits_ba,
-                                                from_logits=True)
+    loss_a = losses.SparseCategoricalCrossentropy(from_logits=True)(y_true=labels,
+                                                                    y_pred=logits_ab)
+    loss_b = losses.SparseCategoricalCrossentropy(from_logits=True)(y_true=labels,
+                                                                    y_pred=logits_ba)
     loss = lambda_ * (loss_a + loss_b) / 2
     return loss
 
 
 def denoising_loss(real_samples=None,
                    reconstructed_samples=None,
-                   num_categorical_features: int = None):
+                   categorical_features_metadata: dict = None):
     """
     Since we apply categorical and numerical embedding layers
     separately and then combine them into a new features matrix
@@ -61,18 +61,29 @@ def denoising_loss(real_samples=None,
         raise ValueError("`reconstructed_samples` cannot be None. "
                          "You must pass the samples reconstructed by the ReconstructionHead.")
 
-    if num_categorical_features is None:
-        raise ValueError("`num_categorical_features` cannot be None. "
-                         "If there are no categorical features in the dataset, pass 0.")
+    if categorical_features_metadata is None:
+        raise ValueError("`categorical_features_metadata` cannot be None. ")
 
     num_features = tf.shape(real_samples)[1]
+    num_categorical_features = len(categorical_features_metadata)
+    num_categories_per_feature = list(map(lambda x: len(x[1]), categorical_features_metadata.values()))
+    total_categories = sum(num_categories_per_feature)
     loss = 0.
-    if num_categorical_features > 0:
-        loss += tf.reduce_sum(tf.losses.categorical_crossentropy(real_samples,
-                                                                 reconstructed_samples,
-                                                                 from_logits=True))
+    # The reconstructed samples have dimensions equal to number of categorical features + number of categories in all
+    # the categorical features combined.
+    # In other words, each categorical feature gets expanded into `number of categories` features due to softmax layer
+    # during the reconstruction phase.
+    # Since the order they occur in is still the same
+    # except for that the first `total_categories` number of features are categorical and following are numerical
+    for current_idx, (feature_idx, _) in enumerate(categorical_features_metadata.values()):
+        num_categories = num_categories_per_feature[current_idx]
+        loss += tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)(
+                                    y_true=real_samples[:, feature_idx],  # real_samples have the original feature order
+                                    y_pred=reconstructed_samples[:, current_idx: current_idx + num_categories])
+        current_idx += 1
     if num_categorical_features < num_features:
         # there are numerical features
-        loss += tf.reduce_sum(tf.losses.mse(real_samples, reconstructed_samples))
+        loss += tf.reduce_sum(tf.losses.mse(real_samples[:, num_categorical_features:],
+                                            reconstructed_samples[:, total_categories:]))
 
     return loss
