@@ -213,6 +213,9 @@ class RegressionHead(layers.Layer):
                                                    activation=self.activation_hidden))
         self.dense_out = layers.Dense(self.num_outputs)
 
+    def build(self, input_shape):
+        self.hidden_block.build(input_shape)
+
     def call(self, inputs):
         x = inputs
         if self.hidden_block is not None:
