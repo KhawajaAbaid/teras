@@ -598,14 +598,13 @@ class SAINTPretrainer(keras.Model):
         return z, z_prime, reconstructed_samples
 
     def train_step(self, data):
+        if isinstance(data, tuple):
+            data = data[0]
         # At each batch, if the user has set the encode categorical values flag to True,
         # we encode the categorical (string) values in the data to make life easier and efficient
         # down the road.
         if self.model.encode_categorical_values:
             data = self.label_encoding(data)
-
-        if isinstance(data, tuple):
-            data = data[0]
 
         with tf.GradientTape() as tape:
             z, z_prime, reconstructed_samples = self(data)
