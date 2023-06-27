@@ -4,7 +4,7 @@ import tensorflow as tf
 import pandas as pd
 from teras.models.pcgain import PCGAIN
 from teras.preprocessing.pcgain import DataTransformer, DataSampler
-from teras.utils.gain import introduce_missing_data_in_this_thing
+from teras.utils.gain import inject_missing_values
 
 from warnings import filterwarnings
 filterwarnings('ignore')
@@ -19,18 +19,18 @@ num_cols = ["carat", "depth", "table", "x", "y", "z"]
 
 x = gem_df
 
-x_with_missing = introduce_missing_data_in_this_thing(x)
+x_with_missing = inject_missing_values(x)
 
 
 data_transformer = DataTransformer(numerical_features=num_cols,
                                    categorical_features=cat_cols)
-x_transformed = data_transformer.transform(x_with_missing, return_dataframe=True)
+x_transformed = data_transformer.fit_transform(x_with_missing, return_dataframe=True)
 
 data_sampler = DataSampler()
 dataset = data_sampler.get_dataset(x_transformed)
 pretraining_dataset = data_sampler.get_pretraining_dataset(x_transformed, pretraining_size=0.4)
 
-pcgain_imputer = PCGAIN()
+pcgain_imputer = PCGAIN(data_dim=data_sampler.data_dim)
 pcgain_imputer.compile()
 # You MUST pretrain first or perish
 pretrainer_fit_kwargs = {"epochs": 2}
@@ -40,6 +40,7 @@ history = pcgain_imputer.fit(dataset, epochs=2)
 
 
 test_chunk = x_transformed[500:1000]
-x_filled = pcgain_imputer.predict(x=test_chunk)
-
-print()
+# x_filled = pcgain_imputer.predict(x=test_chunk)
+# x_filled = data_transformer.reverse_transform(x_filled)
+x_filled = pcgain_imputer.impute(test_chunk, data_transformer=data_transformer)
+print(x_filled.head())

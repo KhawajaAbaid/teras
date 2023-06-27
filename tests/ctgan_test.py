@@ -3,7 +3,7 @@ import pandas as pd
 from teras.generative import CTGAN
 from teras.preprocessing.ctgan import DataSampler, DataTransformer
 import tensorflow as tf
-# tf.config.run_functions_eagerly(True)
+tf.config.run_functions_eagerly(True)
 
 print(f"{'-'*15}  CTGAN TEST {'-'*15}")
 
@@ -17,19 +17,22 @@ num_cols = ["carat", "depth"]
 
 gem_df = gem_df[:1024]
 
-data_transformer = DataTransformer(continuous_features=num_cols,
+data_transformer = DataTransformer(numerical_features=num_cols,
                                    categorical_features=cat_cols)
 x_transformed = data_transformer.transform(gem_df)
 
-data_sampler = DataSampler(x_original=gem_df, x_transformed=x_transformed,
+data_sampler = DataSampler(batch_size=512,
                            categorical_features=cat_cols,
-                           categorical_features_meta_data=data_transformer.categorical_features_meta_data)
+                           meta_data=data_transformer.get_meta_data())
+dataset = data_sampler.get_dataset(x_transformed=x_transformed,
+                                   x_original=gem_df)
 
-ctgan = CTGAN(data_sampler=data_sampler,
-              data_transformer=data_transformer)
-
-dataset = data_sampler.get_dataset(batch_size=512)
-ctgan.compile(optimizer=keras.optimizers.Adam(learning_rate=0.01))
-history = ctgan.fit(dataset, epochs=1)
-ctgan.generate_new_data(num_samples=1000, reverse_transform=True)
-print("woah")
+ctgan = CTGAN(data_dim=data_sampler.data_dim,
+              meta_data=data_transformer.get_meta_data())
+ctgan.compile()
+history = ctgan.fit(dataset, epochs=2)
+generated_data = ctgan.generate(num_samples=1000,
+                                data_sampler=data_sampler,
+                                data_transformer=data_transformer,
+                                reverse_transform=True)
+print(generated_data.head())

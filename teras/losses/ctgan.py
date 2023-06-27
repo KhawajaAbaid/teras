@@ -2,21 +2,46 @@ import tensorflow as tf
 from tensorflow import keras
 
 
-@tf.function
-def generator_loss(generated_samples, y_generated,
-                   cond_vector=None, mask=None, features_meta_data=None):
+def generator_loss(generated_samples,
+                   y_generated,
+                   cond_vectors=None,
+                   mask=None,
+                   meta_data=None):
+    """
+    Loss for the Generator model in the CTGAN architecture.
+
+    CTGAN is a state-of-the-art tabular data generation architecture
+    proposed by Lei Xu et al. in the paper,
+    "Modeling Tabular data using Conditional GAN".
+
+    Reference(s):
+        https://arxiv.org/abs/1907.00503
+
+    Args:
+        generated_samples: Samples drawn from the input dataset
+        y_generated: Discriminator's output for the generated samples
+        cond_vectors: Conditional vectors that are used for and with
+            generated samples
+        mask: Mask created during the conditional vectors generation step
+        meta_data: Namedtuple meta deta of features.
+            That meta data contains miscellaneous information about features,
+            which is calculated during data transformation step.
+
+    Returns:
+        Generator's loss.
+    """
     loss = []
     cross_entropy_loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True,
                                                                     reduction=keras.losses.Reduction.NONE)
-    continuous_features_relative_indices = features_meta_data["continuous"]["relative_indices_all"]
-    features_relative_indices_all = features_meta_data["relative_indices_all"]
-    num_categories_all = features_meta_data["categorical"]["num_categories_all"]
-    # the first k features in the data are continuous which we'll ignore as we're only
+    numerical_features_relative_indices = meta_data.numerical.relative_indices_all
+    features_relative_indices_all = meta_data.relative_indices_all
+    num_categories_all = meta_data.categorical.num_categories_all
+    # the first k features in the data are numerical which we'll ignore as we're only
     # concerned with the categorical features here
-    offset = len(continuous_features_relative_indices)
+    offset = len(numerical_features_relative_indices)
     for i, index in enumerate(features_relative_indices_all[offset:]):
         logits = generated_samples[:, index: index + num_categories_all[i]]
-        temp_cond_vector = cond_vector[:, i: i + num_categories_all[i]]
+        temp_cond_vector = cond_vectors[:, i: i + num_categories_all[i]]
         labels = tf.argmax(temp_cond_vector, axis=1)
         ce_loss = cross_entropy_loss(y_pred=logits,
                                      y_true=labels
@@ -28,19 +53,27 @@ def generator_loss(generated_samples, y_generated,
     return loss
 
 
-@tf.function
 def discriminator_loss(y_real, y_generated):
     """
-    CTGAN's discriminator loss as proposed by xyz et al.
-    in abc paper.
+    Loss for the Discriminator model in the CTGAN architecture.
+
+    CTGAN is a state-of-the-art tabular data generation architecture
+    proposed by Lei Xu et al. in the paper,
+    "Modeling Tabular data using Conditional GAN".
+
+    Reference(s):
+        https://arxiv.org/abs/1907.00503
+
     Args:
         y_real: Discriminator's output for real samples
         y_generated: Discriminator's output for generated samples
+
+    Returns:
+        Discriminator's loss.
     """
     return -(tf.reduce_mean(y_real) - tf.reduce_mean(y_generated))
 
 
-@tf.function
 def generator_dummy_loss(y_dummy, y_pred):
     """
     For the generator model to track the loss function, and show it in outputs

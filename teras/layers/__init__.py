@@ -18,22 +18,26 @@ from .activations import (GLU,
                           GEGLU,
                           GumbelSoftmax)
 
+
+# Embedding layers
+from .embedding import CategoricalFeatureEmbedding
+
+
 # NODE layers
 from .node import ObliviousDecisionTree
 
+
 # TabNet layers
-from .tabnet import (FeatureTransformerBlock as TabNetFeatureTransformerBlock,
+from .tabnet import (AttentiveTransformer as TabNetAttentiveTransformer,
+                     FeatureTransformerBlock as TabNetFeatureTransformerBlock,
                      FeatureTransformer as TabNetFeatureTransformer,
-                     Encoder as TabNetEncoder)
+                     Encoder as TabNetEncoder,
+                     Decoder as TabNetDecoder)
+
 
 # TabTransformer layers
-from .tabtransformer import (CategoricalFeatureEmbedding as TabTransformerCategoricalFeatureEmbedding,
-                             ColumnEmbedding as TabTransformerColumnEmbedding,
-                             FeedForward as TabTransformerFeedForward,
-                             Transformer as TabTransformerTransformerLayer,
-                             Encoder as TabTransformerEncoder,
-                             RegressionHead as TabTransformerRegressionHead,
-                             ClassificationHead as TabTransformerClassificationHead)
+from .tabtransformer import ColumnEmbedding as TabTransformerColumnEmbedding
+
 
 # DNFNet layers
 from .dnfnet import (DNNF,
@@ -42,30 +46,21 @@ from .dnfnet import (DNNF,
 
 
 # SAINT layers
-from .saint import (CategoricalFeaturesEmbedding as SAINTCategoricalFeaturesEmbedding,
-                    NumericalFeaturesEmbedding as SAINTNumericalFeaturesEmbedding,
-                    FeedForward as SAINTFeedForward,
+from .saint import (NumericalFeatureEmbedding as SAINTNumericalFeatureEmbedding,
                     MultiHeadInterSampleAttention as SAINTMultiHeadInterSampleAttention,
-                    SAINTTransformer as SAINTTransformer,
-                    Encoder as SAINTEncoder,
-                    RegressionHead as SAINTRegressionHead,
-                    ClassificationHead as SAINTClassificationHead)
+                    Encoder as SAINTEncoder)
 
 
 # RTDL ResNet layers
-from .rtdl.resnet import (ResNetBlock as RTDLResNetBlock,
-                          ClassificationHead as RTDLResNetClassificationHead,
-                          RegressionHead as RTDLResNetRegressionHead)
+from teras.layers.rtdl_resnet import (ResNetBlock as RTDLResNetBlock,
+                                      ClassificationHead as RTDLResNetClassificationHead,
+                                      RegressionHead as RTDLResNetRegressionHead)
+
 
 # RTDL FTTransformer layers
-from .rtdl.ft_transformer import (FeatureTokenizer as FTFeatureTokenizer,
-                                  NumericalFeatureTokenizer as FTNumericalFeatureTokenizer,
-                                  CategoricalFeatureTokenizer as FTCategoricalFeatureTokenizer,
-                                  Transformer as FTTransformer,
-                                  Encoder as FTEncoder,
-                                  CLSToken as FTCLSToken,
-                                  ClassificationHead as FTClassificationHead,
-                                  RegressionHead as FTRegressionHead)
+from teras.layers.ft_transformer import (NumericalFeatureEmbedding as FTNumericalFeatureEmbedding,
+                                         CLSToken as FTCLSToken)
+
 
 # VIME layers
 from .vime import (MaskEstimator as VimeMaskEstimator,
@@ -74,13 +69,12 @@ from .vime import (MaskEstimator as VimeMaskEstimator,
                    MaskGenerationAndCorruption as VimeMaskGenerationAndCorruption,
                    Predictor as VimePredictor)
 
+
 # On Embeddings for Numerical Features (paper) layers
 from .oenf import (PeriodicEmbedding)
 
+
 # CTGAN layers
-from .ctgan import (GeneratorResidualBlock as CTGANGeneratorResidualBlock,
+from .ctgan import (GeneratorBlock as CTGANGeneratorBlock,
                     DiscriminatorBlock as CTGANDiscriminatorBlock)
 
-# TVAE layers
-from .tvae import (Encoder as TvaeEncoder,
-                   Decoder as TvaeDecoder)

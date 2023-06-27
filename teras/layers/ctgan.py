@@ -1,10 +1,10 @@
 from tensorflow.keras import layers
 
 
-class GeneratorResidualBlock(layers.Layer):
+class GeneratorBlock(layers.Layer):
     """
-    Residual Block as used by the authors of CTGAN proposed
-    in the paper Modeling Tabular data using Conditional GAN.
+    Residual Block for Generator as used by the authors of CTGAN
+    proposed in the paper Modeling Tabular data using Conditional GAN.
 
     outputs = Concat([ReLU(BatchNorm(Dense(inputs))), inputs])
 

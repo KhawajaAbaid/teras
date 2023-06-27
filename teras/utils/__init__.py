@@ -18,7 +18,9 @@ from .utils import (tf_random_choice,
                     get_normalization_layer,
                     get_categorical_features_cardinalities,
                     get_activation,
-                    get_initializer)
+                    get_initializer,
+                    get_features_metadata_for_embedding,
+                    dataframe_to_tf_dataset)
 
 
 # DNFNet utility function(s)
@@ -29,11 +31,6 @@ from .utils import (tf_random_choice,
 
 # NODE utility function(s)
 from .node import sparsemoid
-
-
-# TabTransformer utility function(s)
-from .tabtransformer import (get_categorical_features_vocab,
-                             dataframe_to_tf_dataset)
 
 
 # VIME utility function(s)
