@@ -1,15 +1,15 @@
+import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.datasets import boston_housing
-import tensorflow as tf
 from sklearn.preprocessing import LabelEncoder
 import pandas as pd
 import numpy as np
 
 from teras.utils import get_features_metadata_for_embedding, dataframe_to_tf_dataset
 from teras.models import SAINTClassifier, SAINTRegressor
+from teras.models.saint import SAINT
 from teras.models.saint import SAINTPretrainer
 # tf.config.run_functions_eagerly(True)
-
 
 #  <<<<<<<<<<<<<<<<<<<<< REGRESSION Test >>>>>>>>>>>>>>>>>>>>>
 print(f"{'-'*15} REGRESSION TEST {'-'*15}")
@@ -24,20 +24,28 @@ num_cols = ["carat", "depth", "table", "x", "y", "z"]
 # You can get this metadata by calling the utility function as below
 features_metadata = get_features_metadata_for_embedding(gem_df, cat_cols, num_cols)
 
+# from sklearn.preprocessing import OrdinalEncoder
+# oe = OrdinalEncoder()
+# gem_df[cat_cols] = oe.fit_transform(gem_df[cat_cols])
+
 X_ds = dataframe_to_tf_dataset(gem_df, 'price', batch_size=1024, as_dict=True)
 
 pretrain_df = gem_df.copy()
 pretrain_df.pop("price")
 X_pretrain = dataframe_to_tf_dataset(pretrain_df, as_dict=True)
 
-saint_regressor = SAINTRegressor(num_outputs=1,
-                                 features_metadata=features_metadata
-                                )
+# saint_regressor = SAINTRegressor(num_outputs=1,
+#                                  features_metadata=features_metadata,
+#                                  encode_categorical_values=True
+#                                 )
 
-pretrainer = SAINTPretrainer(model=saint_regressor)
+saint_base = SAINT(features_metadata=features_metadata,
+                   encode_categorical_values=True)
+
+pretrainer = SAINTPretrainer(model=saint_base)
 pretrainer.compile(optimizer=keras.optimizers.AdamW(learning_rate=0.05))
 pretrainer.fit(X_ds, epochs=3)
-
+saint_regressor = pretrainer.pretrained_model
 saint_regressor.compile(loss="MSE",
                         optimizer=keras.optimizers.AdamW(learning_rate=0.05),
                         metrics=["MAE"])
