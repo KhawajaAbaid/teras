@@ -632,11 +632,12 @@ class SAINTPretrainer(keras.Model):
             data = convert_dict_to_array_tensor(data)
 
         if self._is_first_batch:
-            dummy_inputs = tf.zeros(tf.shape(data))
-            # since we don't need the head during pretraining
-            # but not creating its weights causes trouble, so we call it on dummy
-            # inputs to just initialize the weights on the first batch.
-            self.model.head(dummy_inputs)
+            if self.model.head is not None:
+                dummy_inputs = tf.zeros(tf.shape(data))
+                # since we don't need the head during pretraining
+                # but not creating its weights causes trouble, so we call it on dummy
+                # inputs to just initialize the weights on the first batch.
+                self.model.head(dummy_inputs)
             self._is_first_batch = False
 
         with tf.GradientTape() as tape:
