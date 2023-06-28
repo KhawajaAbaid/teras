@@ -152,10 +152,6 @@ class TabNet(keras.Model):
         # PLEASE WORK!!
         # self.encoder.build(input_shape=(None, self._num_features))
 
-        self.pretrainer_fit_config = FitConfig()
-
-        self._pretrained = False
-        self.pretrainer = None
         self.head = None
 
         self._categorical_features_names = None
@@ -169,56 +165,6 @@ class TabNet(keras.Model):
 
         self._is_first_batch = True
         self._is_data_in_dict_format = False
-
-    def pretrain(self,
-                 pretraining_dataset,
-                 missing_feature_probability: float = 0.3,
-                 decoder_feature_transformer_dim: int = 32,
-                 decoder_decision_step_output_dim: int = 32,
-                 decoder_num_decision_steps: int = 5,
-                 decoder_num_shared_layers: int = 2,
-                 decoder_num_decision_dependent_layers: int = 2,
-                 ):
-        """
-        Helper function to pretrain the encoder and
-        Args:
-            pretraining_dataset: Dataset used for pretraining. It doesn't have to be labeled.
-            missing_feature_probability: Missing features are introduced in the pretraining
-                dataset and the probability of missing features is controlled by the parameter.
-                The pretraining objective is to predict values for these missing features,
-                (pre)training the encoder in process.
-            decoder_feature_transformer_dim: `int`, default 32, Feature transformer dimensions for decoder.
-            decoder_decision_step_output_dim: `int`, default 32, Decision step output dimensions for decoder.
-            decoder_num_decision_steps: `int`, default 5, Number of decision steps to use in decoder.
-            decoder_num_shared_layers: `int`, default 2, Number of shared layers in feature transformer in decoder.
-            decoder_num_decision_dependent_layers: `int`, default 2, Number of decision dependent layers
-                in feature transformer in decoder.
-        """
-        dim = self._num_features
-        pretrainer = TabNetPretrainer(data_dim=dim,
-                                      missing_feature_probability=missing_feature_probability,
-                                      features_metadata=self.features_metadata,
-                                      encoder_feature_transformer_dim=self.feature_transformer_dim,
-                                      encoder_decision_step_output_dim=self.decision_step_output_dim,
-                                      encoder_num_decision_steps=self.num_decision_steps,
-                                      encoder_num_shared_layers=self.num_shared_layers,
-                                      encoder_num_decision_dependent_layers=self.num_decision_dependent_layers,
-                                      decoder_feature_transformer_dim=decoder_feature_transformer_dim,
-                                      decoder_decision_step_output_dim=decoder_decision_step_output_dim,
-                                      decoder_num_decision_steps=decoder_num_decision_steps,
-                                      decoder_num_shared_layers=decoder_num_shared_layers,
-                                      decoder_num_decision_dependent_layers=decoder_num_decision_dependent_layers,
-                                      virtual_batch_size=self.virtual_batch_size,
-                                      batch_momentum=self.batch_momentum,
-                                      residual_normalization_factor=self.residual_normalization_factor,
-                                      encode_categorical_values=self.encode_categorical_values,
-                                    )
-        pretrainer.compile()
-        # print("passing params", self.pretrainer_fit_config.to_dict())
-        pretrainer.fit(pretraining_dataset, **self.pretrainer_fit_config.to_dict())
-        self.categorical_features_embedding = pretrainer.categorical_features_embedding
-        self.encoder = pretrainer.get_encoder()
-        self._pretrained = True
 
     def call(self, inputs):
         if self._is_first_batch:
