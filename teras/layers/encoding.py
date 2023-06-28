@@ -112,4 +112,5 @@ class LabelEncoding(layers.Layer):
 
         encoded_features = tf.squeeze(encoded_features.stack())
         encoded_features = tf.transpose(encoded_features)
+        encoded_features.set_shape((None, self._num_features))
         return encoded_features
