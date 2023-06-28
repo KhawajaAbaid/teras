@@ -528,6 +528,15 @@ class SAINTPretrainer(keras.Model):
 
         self._is_first_batch = True
 
+    def get_pretrained_model(self):
+        """Returns pretrained model"""
+        return self.model
+
+    @property
+    def pretrained_model(self):
+        """Returns pretrained model"""
+        return self.model
+
     def compile(self,
                 contrastive_loss=info_nce_loss,
                 denoising_loss=denoising_loss,
