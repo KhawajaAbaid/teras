@@ -654,7 +654,12 @@ class SAINTPretrainer(keras.Model):
 
         self.contrastive_loss_tracker.update_state(c_loss)
         self.denoising_loss_tracker.update_state(d_loss)
-
+        # If user has passed any additional metrics to compile, we should update their states
+        if len(self.compiled_metrics.metrics) > 0:
+            self.compiled_metrics.update_state(data, reconstructed_samples)
+        # If user has passed any additional losses to compile, we should call them
+        if self.compiled_loss._losses is not None:
+            self.compiled_loss(data, reconstructed_samples)
         results = {m.name: m.result() for m in self.metrics}
         return results
 
