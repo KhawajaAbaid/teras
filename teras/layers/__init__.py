@@ -78,3 +78,7 @@ from .oenf import (PeriodicEmbedding)
 from .ctgan import (GeneratorBlock as CTGANGeneratorBlock,
                     DiscriminatorBlock as CTGANDiscriminatorBlock)
 
+
+# Regularization layers
+from teras.layers.regularization import (MixUp,
+                                         CutMix)
