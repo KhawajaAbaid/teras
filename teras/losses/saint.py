@@ -81,9 +81,11 @@ def denoising_loss(real_samples=None,
                                     y_true=real_samples[:, feature_idx],  # real_samples have the original feature order
                                     y_pred=reconstructed_samples[:, current_idx: current_idx + num_categories])
         current_idx += 1
-    if num_categorical_features < num_features:
-        # there are numerical features
-        loss += tf.reduce_sum(tf.losses.mse(real_samples[:, num_categorical_features:],
-                                            reconstructed_samples[:, total_categories:]))
-
+    # Check if there are numerical features -- if so, compute the mse loss
+    mse_loss = tf.cond(pred=num_categorical_features < num_features,
+                       true_fn=lambda: tf.reduce_sum(tf.losses.mse(real_samples[:, num_categorical_features:],
+                                                                   reconstructed_samples[:, total_categories:])),
+                       false_fn=lambda: 0.
+                       )
+    loss += mse_loss
     return loss
