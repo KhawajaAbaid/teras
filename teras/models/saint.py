@@ -1,8 +1,6 @@
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers, models
-import numpy as np
-from warnings import warn
 from teras.layers import CategoricalFeatureEmbedding
 from teras.layers import SAINTNumericalFeatureEmbedding, SAINTEncoder
 from teras.layers.saint import ReconstructionHead
@@ -12,6 +10,7 @@ from teras.config.saint import SAINTConfig
 from teras.layers.regularization import MixUp, CutMix
 from teras.layers.encoding import LabelEncoding
 from teras.losses.saint import info_nce_loss, denoising_loss
+from teras.utils import convert_dict_to_array_tensor
 from typing import Union, List, Tuple
 
 
@@ -619,16 +618,22 @@ class SAINTPretrainer(keras.Model):
         if self.model.encode_categorical_values:
             data = self.label_encoding(data)
 
+        elif isinstance(data, dict):
+            # If encode flag is set to false, then that means that all values are numerical
+            # and hence the data is in homogenous form and hence we can convert data to
+            # array format and save us lots of trouble down the road.
+            # Sure, teras's feature embedding layers can handle dict type data but layers
+            # like cutmix where we have to shuffle the data will be a pain to work with dicts.
+            # BTW, the label encoding layer above not only encodes string values but also
+            # converts dictionary data to array format but in case user doesn't want to encode
+            # but has data in dict format, we convert it to array format.
+            # Basically what we want to do is to make it so data from this point onwards is in
+            # array format.
+            data = convert_dict_to_array_tensor(data)
+
         if self._is_first_batch:
-            if isinstance(data, dict):
-                batch_size = len(list(data.values())[0])
-                dim = len(data)
-                input_shape = (batch_size, dim)
-            else:
-                # input_shape = keras.layers.Input(shape=(tf.shape(inputs)[1],))
-                input_shape = tf.shape(data)
-            dummy_inputs = tf.zeros(input_shape)
-            # since we don't need the head during pretrianing
+            dummy_inputs = tf.zeros(tf.shape(data))
+            # since we don't need the head during pretraining
             # but not creating its weights causes trouble, so we call it on dummy
             # inputs to just initialize the weights on the first batch.
             self.model.head(dummy_inputs)
