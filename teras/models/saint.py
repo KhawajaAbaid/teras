@@ -323,7 +323,8 @@ class SAINTClassifier(SAINT):
                                        units_values=self.head_units_values,
                                        activation_hidden="relu",
                                        activation_out=self.activation_out,
-                                       normalization="batch")
+                                       normalization="batch",
+                                       name="head")
 
 
 class SAINTRegressor(SAINT):
@@ -441,7 +442,8 @@ class SAINTRegressor(SAINT):
         self.head = RegressionHead(num_outputs=self.num_outputs,
                                    units_values=self.head_units_values,
                                    activation_hidden="relu",
-                                   normalization="batch")
+                                   normalization="batch",
+                                   name="head")
 
 
 class SAINTPretrainer(keras.Model):
@@ -518,6 +520,8 @@ class SAINTPretrainer(keras.Model):
 
         # We set concatenate_numerical_features because we want the layer to return the whole data including numerical
         # features and not just categorical features
+        # NOTE: we must set keep_features_order=True if there are layers like CategoricalFeatureEmbedding that depened
+        # heavily on the feature indices in case of array format input and the LabelEncoding returns data in array format
         self.label_encoding = LabelEncoding(categorical_features_metadata=self.model.features_metadata["categorical"],
                                             concatenate_numerical_features=True,
                                             keep_features_order=True)
@@ -606,6 +610,21 @@ class SAINTPretrainer(keras.Model):
         if self.model.encode_categorical_values:
             data = self.label_encoding(data)
 
+        if self._is_first_batch:
+            if isinstance(data, dict):
+                batch_size = len(list(data.values())[0])
+                dim = len(data)
+                input_shape = (batch_size, dim)
+            else:
+                # input_shape = keras.layers.Input(shape=(tf.shape(inputs)[1],))
+                input_shape = tf.shape(data)
+            dummy_inputs = tf.zeros(input_shape)
+            # since we don't need the head during pretrianing
+            # but not creating its weights causes trouble, so we call it on dummy
+            # inputs to just initialize the weights on the first batch.
+            self.model.head(dummy_inputs)
+            self._is_first_batch = False
+
         with tf.GradientTape() as tape:
             z, z_prime, reconstructed_samples = self(data)
             c_loss = self.contrastive_loss(real_projection_outputs=z,
@@ -616,8 +635,8 @@ class SAINTPretrainer(keras.Model):
                                          categorical_features_metadata=self.model._categorical_features_metadata)
 
             loss = c_loss + self.lambda_ * d_loss
-        gradients = tape.gradient(loss, self.model.trainable_weights)
-        self.optimizer.apply_gradients(gradients, self.model.trainable_weights)
+        gradients = tape.gradient(loss, self.trainable_weights)
+        self.optimizer.apply_gradients(zip(gradients, self.trainable_weights))
 
         self.contrastive_loss_tracker.update_state(c_loss)
         self.denoising_loss_tracker.update_state(d_loss)
