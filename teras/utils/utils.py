@@ -247,8 +247,9 @@ def convert_dict_to_array_tensor(dict_tensor):
     array_tensor = tf.TensorArray(size=len(feature_names),
                                   dtype=tf.float32)
     for idx, feature_name in enumerate(feature_names):
-        feature = tf.expand_dims(dict_tensor[feature_name], 1)
+        feature = tf.expand_dims(tf.cast(dict_tensor[feature_name], dtype=tf.float32), 1)
         array_tensor = array_tensor.write(idx, feature)
 
     array_tensor = tf.transpose(tf.squeeze(array_tensor.stack()))
+    array_tensor.set_shape((None, len(feature_names)))
     return array_tensor
