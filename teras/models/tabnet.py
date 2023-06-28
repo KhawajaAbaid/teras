@@ -124,6 +124,8 @@ class TabNet(keras.Model):
         self.epsilon = epsilon
         self.encode_categorical_values = encode_categorical_values
 
+        # TODO make these features public because we need them in the child classes
+        #   specifically in the TabNetPretrainer class.
         self._categorical_features_metadata = features_metadata["categorical"]
         self._numerical_features_metadata = features_metadata["numerical"]
         self._num_numerical_features = len(self._numerical_features_metadata)
@@ -421,7 +423,7 @@ class TabNetRegressor(TabNet):
     #     return predictions
 
 
-class TabNetPretrainer(TabNet):
+class TabNetPretrainer(keras.Model):
     """
     TabNetPretrainer model based on the architecture
     proposed by Sercan et al. in TabNet paper.
@@ -435,123 +437,32 @@ class TabNetPretrainer(TabNet):
         https://arxiv.org/abs/1908.07442
 
     Args:
-        data_dim: `int`, Dimensionality of the input dataset.
+        model: `TabNet`, instance of base `TabNet` class to pretrain.
         missing_feature_probability: `float`, default 3, Fraction of features to randomly mask
             -- i.e. make them missing.
             Missing features are introduced in the pretraining dataset and
             the probability of missing features is controlled by the parameter.
             The pretraining objective is to predict values for these missing features,
             (pre)training the TabNet model in the process.
-        features_metadata: `dict`,
-            a nested dictionary of metadata for features where
-            categorical sub-dictionary is a mapping of categorical feature names to a tuple of
-            feature indices and the lists of unique values (vocabulary) in them,
-            while numerical dictionary is a mapping of numerical feature names to their indices.
-            `{feature_name: (feature_idx, vocabulary)}` for feature in categorical features.
-            `{feature_name: feature_idx}` for feature in numerical features.
-            You can get this dictionary from
-                >>> from teras.utils import get_features_metadata_for_embedding
-                >>> metadata_dict = get_features_metadata_for_embedding(dataframe,
-                                                                        numerical_features,
-                                                                        categorical_features)
-        encoder_feature_transformer_dim: `int`, default 32, the dimensionality of the hidden
-            representation in feature transformation block.
-            Each layer first maps the representation to a `2 * feature_transformer_dim`
-            output and half of it is used to determine the
-            non-linearity of the GLU activation where the other half is used as an
-            input to GLU, and eventually `feature_transformer_dim` output is
-            transferred to the next layer.
-        encoder_decision_step_output_dim: `int`, default 32, the dimensionality of output at each
-            decision step, which is later mapped to the final classification or regression output.
-            It is recommended to keep `decision_step_output_dim` and `feature_transformer_dim`
-            equal to each other.
-            Adjusting these two parameters values is a good way of obtaining a tradeoff between
-            performance and complexity.
-        encoder_num_decision_steps: `int`, default 5, the number of sequential decision steps.
-            For most datasets a value in the range [3, 10] is optimal.
-            If there are more informative features in the dataset, the value tends to
-            be higher. That said, a very high value of `num_decision_steps` may suffer
-            from overfitting.
-        encoder_num_shared_layers: `int`, default 2. Number of shared layers to use in the Feature Transformer.
-            These shared layers are `shared` across decision steps.
-        encoder_num_decision_dependent_layers: `int`, default 2. Number of decision dependent layers to use in
-            the Feature Transformer. In simple words, `num_decision_dependent_layers` are created
-            for each decision step in the `num_decision_steps`.
-            For instance, if `num_decision_steps = 5` and  `num_decision_dependent_layers = 2`
-            then 10 layers will be created, 2 for each decision step.
-
         decoder_feature_transformer_dim: Feature transformer dimensions for decoder.
         decoder_decision_step_output_dim: Decision step output dimensions for decoder.
         decoder_num_decision_steps: Number of decision steps to use in decoder.
         decoder_num_shared_layers: Number of shared layers in feature transformer in decoder.
         decoder_num_decision_dependent_layers: Number of decision dependent layers in feature transformer in decoder.
-
-        batch_momentum: `float`, default 0.9, Momentum value to use for BatchNormalization layer.
-        virtual_batch_size: `int`, default 64, Batch size to use for `virtual_batch_size`
-            parameter in BatchNormalization layer.
-            This is typically much smaller than the `batch_size` used for training.
-        residual_normalization_factor: `float`, default 0.5, In the feature transformer, except for the
-            layer, every other layer utilizes normalized residuals, where `residual_normalization_factor`
-            determines the scale of normalization.
-        relaxation_factor: `float`, default 1.5, Relaxation factor that promotes the reuse of each
-            feature at different decision steps. When it is 1, a feature is enforced
-            to be used only at one decision step and as it increases, more
-            flexibility is provided to use a feature at multiple decision steps.
-            An optimal value of relaxation_factor can have a major role on the performance.
-            Typically, a larger value for `num_decision_steps` favors for a larger `relaxation_factor`.
-        epsilon: `float`, default 0.00001, Epsilon is a small number for numerical stability
-            during the computation of entropy loss.
-        encode_categorical_values: `bool`, default True, whether to (label) encode categorical values,
-            If you've already encoded the categorical values using for instance
-            Label/Ordinal encoding, you should set this to False,
-            otherwise leave it as True.
-            In the case of True, categorical values will be mapped to integer indices
-            using keras's string lookup layer.
     """
 
     def __init__(self,
-                 data_dim: int,
+                 model: TabNet,
                  missing_feature_probability: float = 0.3,
-                 features_metadata: dict = None,
-
-                 encoder_feature_transformer_dim: int = TabNetConfig.feature_transformer_dim,
-                 encoder_decision_step_output_dim: int = TabNetConfig.decision_step_output_dim,
-                 encoder_num_decision_steps: int = TabNetConfig.num_decision_steps,
-                 encoder_num_shared_layers: int = TabNetConfig.num_shared_layers,
-                 encoder_num_decision_dependent_layers: int = TabNetConfig.num_decision_dependent_layers,
-
                  decoder_feature_transformer_dim: int = TabNetConfig.feature_transformer_dim,
                  decoder_decision_step_output_dim: int = TabNetConfig.decision_step_output_dim,
                  decoder_num_decision_steps: int = TabNetConfig.num_decision_steps,
                  decoder_num_shared_layers: int = TabNetConfig.num_shared_layers,
                  decoder_num_decision_dependent_layers: int = TabNetConfig.num_decision_dependent_layers,
-
-                 relaxation_factor: float = TabNetConfig.relaxation_factor,
-                 batch_momentum: float = TabNetConfig.batch_momentum,
-                 virtual_batch_size: int = TabNetConfig.virtual_batch_size,
-                 residual_normalization_factor: float = TabNetConfig.residual_normalization_factor,
-                 epsilon: float = TabNetConfig.epsilon,
-
-                 encode_categorical_values: bool = TabNetConfig.encode_categorical_features,
                  **kwargs):
-        # Since the base TabNet model is basically an Encoder only model
-        # so instead of defining encoder specific things here,
-        # we just subclass the TabNet class
-        super().__init__(features_metadata=features_metadata,
-                         feature_transformer_dim=encoder_feature_transformer_dim,
-                         decision_step_output_dim=encoder_decision_step_output_dim,
-                         num_decision_steps=encoder_num_decision_steps,
-                         num_shared_layers=encoder_num_shared_layers,
-                         num_decision_dependent_layers=encoder_num_decision_dependent_layers,
-                         relaxation_factor=relaxation_factor,
-                         batch_momentum=batch_momentum,
-                         virtual_batch_size=virtual_batch_size,
-                         residual_normalization_factor=residual_normalization_factor,
-                         epsilon=epsilon,
-                         encode_categorical_values=encode_categorical_values,
-                         **kwargs)
+        super().__init__(**kwargs)
 
-        self.data_dim = data_dim
+        self.model = model
         self.missing_feature_probability = missing_feature_probability
 
         self.decoder_feature_transformer_dim = decoder_feature_transformer_dim
@@ -563,6 +474,7 @@ class TabNetPretrainer(TabNet):
         self.binary_mask_generator = tfp.distributions.Binomial(total_count=1,
                                                                 probs=self.missing_feature_probability,
                                                                 name="binary_mask_generator")
+        self.data_dim = self.model._num_features
 
         self.decoder = TabNetDecoder(data_dim=self.data_dim,
                                      feature_transformer_dim=self.decoder_feature_transformer_dim,
@@ -570,12 +482,17 @@ class TabNetPretrainer(TabNet):
                                      num_decision_steps=self.decoder_num_decision_steps,
                                      num_shared_layers=self.decoder_num_shared_layers,
                                      num_decision_dependent_layers=self.decoder_num_decision_dependent_layers,
-                                     batch_momentum=self.batch_momentum,
-                                     virtual_batch_size=self.virtual_batch_size,
-                                     residual_normalization_factor=self.residual_normalization_factor,
+                                     batch_momentum=self.model.batch_momentum,
+                                     virtual_batch_size=self.model.virtual_batch_size,
+                                     residual_normalization_factor=self.model.residual_normalization_factor,
                                      )
-
         self._reconstruction_loss_tracker = keras.metrics.Mean(name="reconstruction_loss")
+
+        self.numerical_feature_names = list(self.model._numerical_features_metadata.keys())
+        self.numerical_features_indices = list(self.model._numerical_features_metadata.values())
+
+        self._is_first_batch = True
+        self._is_data_in_dict_format = False
 
     def get_encoder(self):
         return self.encoder
@@ -611,16 +528,43 @@ class TabNetPretrainer(TabNet):
         # We initialize P[0] = (1 − S) in encoder so that the model emphasizes merely on the known features.
         # -- So we pass the mask from here, the encoder checks if it received a value for mask, if so it won't
         # initialized the `mask_values` variable in its call method to zeros.
-        encoded_representations = self.encoder(encoder_input, mask=(1 - mask))
+        encoded_representations = self.model.encoder(encoder_input, mask=(1 - mask))
         decoder_outputs = self.decoder(encoded_representations)
         return decoder_outputs
 
     def train_step(self, data):
         if isinstance(data, tuple):
             data = data[0]
+        batch_size = tf.shape(data)[0]
+        if self._is_first_batch:
+            if isinstance(data, dict):
+                self._is_data_in_dict_format = True
+            self._is_first_batch = False
+
         with tf.GradientTape() as tape:
-            embedded_inputs = self.categorical_features_embedding(data)
-            batch_size = tf.shape(embedded_inputs)[0]
+            embedded_inputs = None
+            if self.model._categorical_features_exist:
+                categorical_embeddings = self.model.categorical_features_embedding(data)
+                categorical_embeddings = tf.cast(categorical_embeddings, tf.float32)
+                # Since tabnet uses embedding dimensions of one so we squeeze that additional dimensions
+                categorical_embeddings = tf.squeeze(categorical_embeddings)
+                embedded_inputs = categorical_embeddings
+            # We need to concatenate numerical features to the categorical embeddings
+            if self.model._numerical_features_exist:
+                if self._is_data_in_dict_format:
+                    numerical_features = [data[feature_name] for feature_name in self.numerical_feature_names]
+                    numerical_features = tf.concat(numerical_features, axis=1)
+                else:
+                    numerical_features = tf.gather(data,
+                                                   indices=self.numerical_features_indices,
+                                                   axis=1)
+                    numerical_features = tf.cast(numerical_features, tf.float32)
+                if embedded_inputs is None:
+                    embedded_inputs = numerical_features
+                else:
+                    embedded_inputs = tf.concat([embedded_inputs, numerical_features], axis=1)
+
+            embedded_inputs.set_shape((None, self.model._num_features))
             # Generate mask to create missing samples
             mask = self.binary_mask_generator.sample(sample_shape=(batch_size, self.data_dim))
             tape.watch(mask)
