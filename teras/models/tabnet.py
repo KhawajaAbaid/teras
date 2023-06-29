@@ -5,6 +5,7 @@ from teras.layers import TabNetEncoder, TabNetDecoder
 from typing import Union, List
 import tensorflow_probability as tfp
 from teras.losses.tabnet import reconstruction_loss
+from teras.layers.tabnet import RegressionHead, ClassificationHead
 from teras.layers import CategoricalFeatureEmbedding
 from teras.config.tabnet import TabNetConfig
 from warnings import warn
@@ -301,7 +302,9 @@ class TabNetClassifier(TabNet):
         self.activation_out = activation_out
         if self.activation_out is None:
             self.activation_out = "sigmoid" if self.num_classes == 1 else "softmax"
-        self.head = layers.Dense(self.num_classes, activation=self.activation_out)
+        self.head = ClassificationHead(num_classes=self.num_classes,
+                                       activation_out=self.activation_out,
+                                       name="tabnet_classification_head")
 
     @classmethod
     def from_pretrained(cls,
@@ -328,7 +331,9 @@ class TabNetClassifier(TabNet):
             activation_out = "sigmoid" if num_classes == 1 else "softmax"
         inputs = keras.layers.Input(shape=(pretrained_model.num_features,))
         x = pretrained_model(inputs, training=False)
-        outputs = layers.Dense(num_classes, activation=activation_out)(x)
+        outputs = ClassificationHead(num_classes=num_classes,
+                                     activation_out=activation_out,
+                                     name="tabnet_classification_head")(x)
         model = keras.models.Model(inputs=inputs, outputs=outputs)
         return model
 
@@ -438,7 +443,8 @@ class TabNetRegressor(TabNet):
                          encode_categorical_values=encode_categorical_values,
                          **kwargs)
         self.num_outputs = num_outputs
-        self.head = layers.Dense(self.num_outputs, name="tabnet_regressor_head")
+        self.head = RegressionHead(num_outputs=self.num_outputs,
+                                   name="tabnet_regression_head")
 
     @classmethod
     def from_pretrained(cls,
@@ -459,7 +465,8 @@ class TabNetRegressor(TabNet):
         """
         inputs = keras.layers.Input(shape=(pretrained_model.num_features,))
         x = pretrained_model(inputs, training=False)
-        outputs = layers.Dense(num_outputs, name="tabnet_regressor_head")(x)
+        outputs = RegressionHead(num_outputs=num_outputs,
+                                   name="tabnet_regression_head")(x)
         model = keras.models.Model(inputs=inputs, outputs=outputs)
         return model
 
