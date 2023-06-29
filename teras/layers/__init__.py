@@ -32,7 +32,9 @@ from .tabnet import (AttentiveTransformer as TabNetAttentiveTransformer,
                      FeatureTransformerBlock as TabNetFeatureTransformerBlock,
                      FeatureTransformer as TabNetFeatureTransformer,
                      Encoder as TabNetEncoder,
-                     Decoder as TabNetDecoder)
+                     Decoder as TabNetDecoder,
+                     ClassificationHead as TabNetClassificationHead,
+                     RegressionHead as TabNetRegressionHead)
 
 
 # TabTransformer layers
