@@ -303,6 +303,35 @@ class TabNetClassifier(TabNet):
             self.activation_out = "sigmoid" if self.num_classes == 1 else "softmax"
         self.head = layers.Dense(self.num_classes, activation=self.activation_out)
 
+    @classmethod
+    def from_pretrained(cls,
+                        pretrained_model: TabNet,
+                        num_classes: int = 2,
+                        activation_out=None):
+        """
+        Class method to create a TabNet Classifier model instance from
+        a pretrained base TabNet model instance.
+
+        Args:
+            pretrained_model: `TabNet`,
+                A pretrained base TabNet model instance.
+            num_classes: `int`, 2,
+                Number of classes to predict.
+            activation_out:
+                Activation function to use in the (head) output layer.
+
+        Returns:
+            A TabNet Classifier instance based of the pretrained model.
+        """
+        num_classes = 1 if num_classes <= 2 else num_classes
+        if activation_out is None:
+            activation_out = "sigmoid" if num_classes == 1 else "softmax"
+        inputs = keras.layers.Input(shape=(pretrained_model.num_features,))
+        x = pretrained_model(inputs, training=False)
+        outputs = layers.Dense(num_classes, activation=activation_out)(x)
+        model = keras.models.Model(inputs=inputs, outputs=outputs)
+        return model
+
     # def call(self, inputs):
     #     x = inputs
     #     if self.categorical_features_vocabulary is not None:
@@ -410,6 +439,29 @@ class TabNetRegressor(TabNet):
                          **kwargs)
         self.num_outputs = num_outputs
         self.head = layers.Dense(self.num_outputs, name="tabnet_regressor_head")
+
+    @classmethod
+    def from_pretrained(cls,
+                        pretrained_model: TabNet,
+                        num_outputs: int = 1):
+        """
+        Class method to create a TabNet Regressor model instance from
+        a pretrained base TabNet model instance.
+
+        Args:
+            pretrained_model: `TabNet`,
+                A pretrained base TabNet model instance.
+            num_outputs: `int`, 1,
+                Number of regression outputs to predict.
+
+        Returns:
+            A TabNet Regressor instance based of the pretrained model.
+        """
+        inputs = keras.layers.Input(shape=(pretrained_model.num_features,))
+        x = pretrained_model(inputs, training=False)
+        outputs = layers.Dense(num_outputs, name="tabnet_regressor_head")(x)
+        model = keras.models.Model(inputs=inputs, outputs=outputs)
+        return model
 
     # def call(self, inputs):
     #     x = inputs
