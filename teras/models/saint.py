@@ -3,9 +3,7 @@ from tensorflow import keras
 from tensorflow.keras import layers, models
 from teras.layers import CategoricalFeatureEmbedding
 from teras.layers import SAINTNumericalFeatureEmbedding, SAINTEncoder
-from teras.layers.saint import ReconstructionHead
-from teras.layers.common.transformer import (ClassificationHead,
-                                             RegressionHead)
+from teras.layers.saint import ReconstructionHead, ClassificationHead, RegressionHead
 from teras.config.saint import SAINTConfig
 from teras.layers.regularization import MixUp, CutMix
 from teras.layers.encoding import LabelEncoding
@@ -320,10 +318,8 @@ class SAINTClassifier(SAINT):
 
         self.head = ClassificationHead(num_classes=self.num_classes,
                                        units_values=self.head_units_values,
-                                       activation_hidden="relu",
                                        activation_out=self.activation_out,
-                                       normalization="batch",
-                                       name="head")
+                                       name="saint_classification_head")
 
 
 class SAINTRegressor(SAINT):
@@ -440,9 +436,7 @@ class SAINTRegressor(SAINT):
 
         self.head = RegressionHead(num_outputs=self.num_outputs,
                                    units_values=self.head_units_values,
-                                   activation_hidden="relu",
-                                   normalization="batch",
-                                   name="head")
+                                   name="saint_regression_head")
 
 
 class SAINTPretrainer(keras.Model):
