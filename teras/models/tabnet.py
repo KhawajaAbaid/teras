@@ -7,7 +7,6 @@ import tensorflow_probability as tfp
 from teras.losses.tabnet import reconstruction_loss
 from teras.layers import CategoricalFeatureEmbedding
 from teras.config.tabnet import TabNetConfig
-from teras.config.base import FitConfig
 from warnings import warn
 
 
