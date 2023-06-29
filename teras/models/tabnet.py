@@ -124,19 +124,17 @@ class TabNet(keras.Model):
         self.epsilon = epsilon
         self.encode_categorical_values = encode_categorical_values
 
-        # TODO make these features public because we need them in the child classes
-        #   specifically in the TabNetPretrainer class.
-        self._categorical_features_metadata = features_metadata["categorical"]
-        self._numerical_features_metadata = features_metadata["numerical"]
-        self._num_numerical_features = len(self._numerical_features_metadata)
-        self._num_categorical_features = len(self._categorical_features_metadata)
-        self._num_features = self._num_numerical_features + self._num_categorical_features
+        self.categorical_features_metadata = features_metadata["categorical"]
+        self.numerical_features_metadata = features_metadata["numerical"]
+        self._num_numerical_features = len(self.numerical_features_metadata)
+        self._num_categorical_features = len(self.categorical_features_metadata)
+        self.num_features = self._num_numerical_features + self._num_categorical_features
 
-        self._numerical_features_exist = self._num_numerical_features > 0
-        self._categorical_features_exist = self._num_categorical_features > 0
+        self.numerical_features_exist = self._num_numerical_features > 0
+        self.categorical_features_exist = self._num_categorical_features > 0
 
         self.categorical_features_embedding = CategoricalFeatureEmbedding(
-            categorical_features_metadata=self._categorical_features_metadata,
+            categorical_features_metadata=self.categorical_features_metadata,
             embedding_dim=1,
             encode=self.encode_categorical_values)
 
@@ -150,17 +148,17 @@ class TabNet(keras.Model):
                                      virtual_batch_size=self.virtual_batch_size,
                                      residual_normalization_factor=self.residual_normalization_factor,
                                      epsilon=self.epsilon,
-                                     num_features=self._num_features)
+                                     num_features=self.num_features)
         # PLEASE WORK!!
-        # self.encoder.build(input_shape=(None, self._num_features))
+        # self.encoder.build(input_shape=(None, self.num_features))
 
         self.head = None
 
         self._categorical_features_names = None
         self._categorical_features_idx = None
-        if self._categorical_features_exist:
-            self._categorical_features_idx = set(map(lambda x: x[0], self._categorical_features_metadata.values()))
-            self._categorical_features_names = set(self._categorical_features_metadata.keys())
+        if self.categorical_features_exist:
+            self._categorical_features_idx = set(map(lambda x: x[0], self.categorical_features_metadata.values()))
+            self._categorical_features_names = set(self.categorical_features_metadata.keys())
 
         self._numerical_features_names = None
         self._numerical_features_idx = None
@@ -175,16 +173,16 @@ class TabNet(keras.Model):
             self._is_first_batch = False
 
         features = None
-        if self._categorical_features_exist:
+        if self.categorical_features_exist:
             categorical_features = self.categorical_features_embedding(inputs)
             categorical_features = tf.squeeze(categorical_features)
             features = categorical_features
 
-        if self._numerical_features_exist:
+        if self.numerical_features_exist:
             # In TabNet we pass raw numerical feature to the encoder -- no embeddings are applied.
             numerical_features = tf.TensorArray(size=self._num_numerical_features,
                                                 dtype=tf.float32)
-            for i, (feature_name, feature_idx) in enumerate(self._numerical_features_metadata.items()):
+            for i, (feature_name, feature_idx) in enumerate(self.numerical_features_metadata.items()):
                 if self._is_data_in_dict_format:
                     feature = tf.expand_dims(inputs[feature_name], axis=1)
                 else:
@@ -197,7 +195,7 @@ class TabNet(keras.Model):
             else:
                 features = numerical_features
 
-        features.set_shape([None, self._num_features])
+        features.set_shape([None, self.num_features])
         outputs = self.encoder(features)
         if self.head is not None:
             outputs = self.head(outputs)
@@ -474,7 +472,7 @@ class TabNetPretrainer(keras.Model):
         self.binary_mask_generator = tfp.distributions.Binomial(total_count=1,
                                                                 probs=self.missing_feature_probability,
                                                                 name="binary_mask_generator")
-        self.data_dim = self.model._num_features
+        self.data_dim = self.model.num_features
 
         self.decoder = TabNetDecoder(data_dim=self.data_dim,
                                      feature_transformer_dim=self.decoder_feature_transformer_dim,
@@ -488,8 +486,8 @@ class TabNetPretrainer(keras.Model):
                                      )
         self._reconstruction_loss_tracker = keras.metrics.Mean(name="reconstruction_loss")
 
-        self.numerical_feature_names = list(self.model._numerical_features_metadata.keys())
-        self.numerical_features_indices = list(self.model._numerical_features_metadata.values())
+        self.numerical_feature_names = list(self.model.numerical_features_metadata.keys())
+        self.numerical_features_indices = list(self.model.numerical_features_metadata.values())
 
         self._is_first_batch = True
         self._is_data_in_dict_format = False
@@ -543,14 +541,14 @@ class TabNetPretrainer(keras.Model):
 
         with tf.GradientTape() as tape:
             embedded_inputs = None
-            if self.model._categorical_features_exist:
+            if self.model.categorical_features_exist:
                 categorical_embeddings = self.model.categorical_features_embedding(data)
                 categorical_embeddings = tf.cast(categorical_embeddings, tf.float32)
                 # Since tabnet uses embedding dimensions of one so we squeeze that additional dimensions
                 categorical_embeddings = tf.squeeze(categorical_embeddings)
                 embedded_inputs = categorical_embeddings
             # We need to concatenate numerical features to the categorical embeddings
-            if self.model._numerical_features_exist:
+            if self.model.numerical_features_exist:
                 if self._is_data_in_dict_format:
                     numerical_features = [data[feature_name] for feature_name in self.numerical_feature_names]
                     numerical_features = tf.concat(numerical_features, axis=1)
@@ -564,7 +562,7 @@ class TabNetPretrainer(keras.Model):
                 else:
                     embedded_inputs = tf.concat([embedded_inputs, numerical_features], axis=1)
 
-            embedded_inputs.set_shape((None, self.model._num_features))
+            embedded_inputs.set_shape((None, self.model.num_features))
             # Generate mask to create missing samples
             mask = self.binary_mask_generator.sample(sample_shape=(batch_size, self.data_dim))
             tape.watch(mask)
