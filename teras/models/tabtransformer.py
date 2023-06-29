@@ -2,12 +2,9 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 from teras.layers.embedding import CategoricalFeatureEmbedding
-from teras.layers.tabtransformer import ColumnEmbedding
-from teras.layers.common.transformer import (Encoder,
-                                             RegressionHead,
-                                             ClassificationHead)
+from teras.layers.tabtransformer import ColumnEmbedding, ClassificationHead, RegressionHead
+from teras.layers.common.transformer import Encoder
 from typing import List, Union, Tuple
-from warnings import warn
 from teras.config.tabtransformer import TabTransformerConfig
 
 
@@ -296,9 +293,8 @@ class TabTransformerClassifier(TabTransformer):
         self.activation_out = activation_out
         self.head = ClassificationHead(num_classes=self.num_classes,
                                        units_values=self.head_units_values,
-                                       activation_hidden="relu",
                                        activation_out=self.activation_out,
-                                       normalization="batch")
+                                       name="tabtransformer_classification_head")
 
 
 class TabTransformerRegressor(TabTransformer):
@@ -393,5 +389,4 @@ class TabTransformerRegressor(TabTransformer):
         self.head_units_values = head_units_values
         self.head = RegressionHead(num_outputs=self.num_outputs,
                                    units_values=self.head_units_values,
-                                   activation_hidden="relu",
-                                   normalization="batch")
+                                   name="tabtransformer_regression_head")
