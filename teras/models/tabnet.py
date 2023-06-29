@@ -492,11 +492,14 @@ class TabNetPretrainer(keras.Model):
         self._is_first_batch = True
         self._is_data_in_dict_format = False
 
-    def get_encoder(self):
-        return self.encoder
+    def get_pretrained_model(self):
+        """Returns pretrained model"""
+        return self.model
 
-    def get_decoder(self):
-        return self.decoder
+    @property
+    def pretrained_model(self):
+        """Returns pretrained model"""
+        return self.model
 
     @property
     def feature_importances_per_sample(self):
