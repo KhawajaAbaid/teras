@@ -1,6 +1,6 @@
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras import layers
+from tensorflow.keras import layers, models
 from tensorflow.keras import losses, optimizers
 from teras.layers.embedding import CategoricalFeatureEmbedding
 from teras.layers.tabtransformer import ColumnEmbedding, ClassificationHead, RegressionHead
@@ -302,6 +302,43 @@ class TabTransformerClassifier(TabTransformer):
                                        activation_out=self.activation_out,
                                        name="tabtransformer_classification_head")
 
+    @classmethod
+    def from_pretrained(cls,
+                        pretrained_model: TabTransformer,
+                        num_classes: int = 2,
+                        head_units_values: LIST_OR_TUPLE_OF_INT = (64, 32),
+                        activation_out=None):
+        """
+        Class method to create a TabTransformer Classifier model instance from
+        a pretrained base TabTransformer model instance.
+
+        Args:
+            pretrained_model: `TabTransformer`,
+                A pretrained base TabTransformer model instance.
+            num_classes: `int`, 2,
+                Number of classes to predict.
+            head_units_values: `List[int] | Tuple[int]`, default (64, 32),
+                For each value in the sequence,
+                a hidden layer of that dimension is added to the ClassificationHead.
+            activation_out:
+                Activation function to use in the (head) output layer.
+
+        Returns:
+            A TabTransformer Classifier instance based of the pretrained model.
+        """
+        num_classes = 1 if num_classes <= 2 else num_classes
+        if activation_out is None:
+            activation_out = "sigmoid" if num_classes == 1 else "softmax"
+        inputs = layers.Input(shape=(pretrained_model.num_features,))
+        x = pretrained_model(inputs, training=False)
+        outputs = ClassificationHead(num_classes=num_classes,
+                                     units_values=head_units_values,
+                                     activation_out=activation_out,
+                                     name="tabtransformer_classification_head")(x)
+        model = models.Model(inputs=inputs, outputs=outputs)
+        return model
+
+
 
 class TabTransformerRegressor(TabTransformer):
     """
@@ -396,6 +433,36 @@ class TabTransformerRegressor(TabTransformer):
         self.head = RegressionHead(num_outputs=self.num_outputs,
                                    units_values=self.head_units_values,
                                    name="tabtransformer_regression_head")
+
+    @classmethod
+    def from_pretrained(cls,
+                        pretrained_model: TabTransformer,
+                        num_outputs: int = 1,
+                        head_units_values: LIST_OR_TUPLE_OF_INT = (64, 32)
+                        ):
+        """
+        Class method to create a TabTransformer Regressor model instance from
+        a pretrained base TabTransformer model instance.
+
+        Args:
+            pretrained_model: `TabTransformer`,
+                A pretrained base TabTransformer model instance.
+            num_outputs: `int`, 1,
+                Number of regression outputs to predict.
+            head_units_values: `List[int] | Tuple[int]`, default (64, 32),
+                For each value in the sequence,
+                a hidden layer of that dimension is added to the ClassificationHead.
+
+        Returns:
+            A TabTransformer Regressor instance based of the pretrained model.
+        """
+        inputs = layers.Input(shape=(pretrained_model.num_features,))
+        x = pretrained_model(inputs, training=False)
+        outputs = RegressionHead(num_outputs=num_outputs,
+                                 units_values=head_units_values,
+                                 name="tabtransformer_regression_head")(x)
+        model = models.Model(inputs=inputs, outputs=outputs)
+        return model
 
 
 class TabTransformerPretrainer(keras.Model):
