@@ -84,3 +84,7 @@ from .ctgan import (GeneratorBlock as CTGANGeneratorBlock,
 # Regularization layers
 from teras.layers.regularization import (MixUp,
                                          CutMix)
+
+# Encoding layers
+from teras.layers.encoding import LabelEncoding
+
