@@ -226,3 +226,30 @@ def dataframe_to_tf_dataset(
     dataset = dataset.batch(batch_size)
     dataset = dataset.prefetch(batch_size)
     return dataset
+
+
+def convert_dict_to_array_tensor(dict_tensor):
+    """
+    Converts a batch of data taken from tensorflow dictionary format dataset
+    to array format.
+    Args:
+        dict_tensor: A batch of data taken from tensorflow dictionary format dataset.
+
+    Returns:
+        Array format data.
+    """
+    if not isinstance(dict_tensor, dict):
+        print("Given tensor is not in dictionary format. Hence no processing will be applied. \n"
+              f"Expected type: {dict}, Received type: {type(dict_tensor)}")
+        return
+
+    feature_names = dict_tensor.keys()
+    array_tensor = tf.TensorArray(size=len(feature_names),
+                                  dtype=tf.float32)
+    for idx, feature_name in enumerate(feature_names):
+        feature = tf.expand_dims(tf.cast(dict_tensor[feature_name], dtype=tf.float32), 1)
+        array_tensor = array_tensor.write(idx, feature)
+
+    array_tensor = tf.transpose(tf.squeeze(array_tensor.stack()))
+    array_tensor.set_shape((None, len(feature_names)))
+    return array_tensor

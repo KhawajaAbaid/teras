@@ -1,4 +1,4 @@
-from teras.models.tabnet import TabNetClassifier, TabNetRegressor
+from teras.models.tabnet import TabNetClassifier, TabNetRegressor, TabNet, TabNetPretrainer
 import tensorflow as tf
 from sklearn import datasets as sklearn_datasets
 from sklearn.model_selection import train_test_split
@@ -6,7 +6,7 @@ from sklearn.preprocessing import LabelEncoder, OrdinalEncoder
 import pandas as pd
 import numpy as np
 from teras.utils.utils import get_features_metadata_for_embedding, dataframe_to_tf_dataset
-# tf.config.run_functions_eagerly(True)
+tf.config.run_functions_eagerly(True)
 
 
 #  <<<<<<<<<<<<<<<<<<<<< REGRESSION Test >>>>>>>>>>>>>>>>>>>>>
@@ -35,22 +35,41 @@ features_metadata = get_features_metadata_for_embedding(gem_df,
                                                         categorical_features=cat_cols,
                                                         numerical_features=num_cols)
 
+
 training_df, pretrain_df = train_test_split(gem_df, test_size=0.25, shuffle=True, random_state=1337)
 
+pretrain_df.pop("price")
 X_ds = dataframe_to_tf_dataset(training_df, 'price', batch_size=1024, as_dict=False)
 pretrain_ds = dataframe_to_tf_dataset(pretrain_df, batch_size=1024, as_dict=False)
 
 # NEW DISCOVERY: If the categorical values have been encoded, you MUST set the encode_categorical_values param to False
 # other otherwise it the string lookup layer will throw an error.
 
-tabnet_regressor = TabNetRegressor(features_metadata=features_metadata,
-                                   encode_categorical_values=False,
-                                   virtual_batch_size=4)
+tabnet = TabNet(features_metadata=features_metadata,
+                          encode_categorical_values=False,
+                          virtual_batch_size=4)
+tabnet_pretrainer = TabNetPretrainer(model=tabnet)
+tabnet_pretrainer.compile()
+tabnet_pretrainer.fit(pretrain_ds, epochs=3)
 
-# Configure Pretrainer's fit() method arguments
-tabnet_regressor.pretrainer_fit_config.epochs = 2
-# Call pretrain
-# tabnet_regressor.pretrain(pretrain_ds, num_features=gem_df.shape[1])
-# Train the regressor for our main task
+# Retrieve the pretrained instance
+pretrained_tabent = tabnet_pretrainer.pretrained_model
+
+# Create a tabnet regressor instance based off the pretrained model
+# to finetune on the main task at hand
+tabnet_regressor = TabNetRegressor.from_pretrained(pretrained_model=pretrained_tabent,
+                                                   num_outputs=1)
+
+# The returned instance is not compiled -- for obvious reasons to allow user the flexibility
+# freeze compile train, unfreeze compile train, you know the typical fine-tuning workflow.
+
+# First we'll train the head and keep the base freezed
+pretrained_tabent.trainable = False
 tabnet_regressor.compile(loss="mse", metrics=["mae"])
 tabnet_regressor.fit(X_ds, epochs=3)
+
+# Then we'll unfreeze the base and train the whole model
+pretrained_tabent.trainable = True
+tabnet_regressor.compile(loss="mse", metrics=["mae"])
+tabnet_regressor.fit(X_ds, epochs=3)
+print()

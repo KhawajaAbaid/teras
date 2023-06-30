@@ -20,7 +20,8 @@ from .utils import (tf_random_choice,
                     get_activation,
                     get_initializer,
                     get_features_metadata_for_embedding,
-                    dataframe_to_tf_dataset)
+                    dataframe_to_tf_dataset,
+                    convert_dict_to_array_tensor)
 
 
 # DNFNet utility function(s)

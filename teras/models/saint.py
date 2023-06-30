@@ -1,17 +1,14 @@
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers, models
-import numpy as np
-from warnings import warn
 from teras.layers import CategoricalFeatureEmbedding
 from teras.layers import SAINTNumericalFeatureEmbedding, SAINTEncoder
-from teras.layers.saint import ReconstructionHead
-from teras.layers.common.transformer import (ClassificationHead,
-                                             RegressionHead)
+from teras.layers.saint import ReconstructionHead, ClassificationHead, RegressionHead
 from teras.config.saint import SAINTConfig
 from teras.layers.regularization import MixUp, CutMix
 from teras.layers.encoding import LabelEncoding
 from teras.losses.saint import info_nce_loss, denoising_loss
+from teras.utils import convert_dict_to_array_tensor
 from typing import Union, List, Tuple
 
 
@@ -321,9 +318,8 @@ class SAINTClassifier(SAINT):
 
         self.head = ClassificationHead(num_classes=self.num_classes,
                                        units_values=self.head_units_values,
-                                       activation_hidden="relu",
                                        activation_out=self.activation_out,
-                                       normalization="batch")
+                                       name="saint_classification_head")
 
 
 class SAINTRegressor(SAINT):
@@ -440,8 +436,7 @@ class SAINTRegressor(SAINT):
 
         self.head = RegressionHead(num_outputs=self.num_outputs,
                                    units_values=self.head_units_values,
-                                   activation_hidden="relu",
-                                   normalization="batch")
+                                   name="saint_regression_head")
 
 
 class SAINTPretrainer(keras.Model):
@@ -518,11 +513,22 @@ class SAINTPretrainer(keras.Model):
 
         # We set concatenate_numerical_features because we want the layer to return the whole data including numerical
         # features and not just categorical features
+        # NOTE: we must set keep_features_order=True if there are layers like CategoricalFeatureEmbedding that depened
+        # heavily on the feature indices in case of array format input and the LabelEncoding returns data in array format
         self.label_encoding = LabelEncoding(categorical_features_metadata=self.model.features_metadata["categorical"],
                                             concatenate_numerical_features=True,
                                             keep_features_order=True)
 
         self._is_first_batch = True
+
+    def get_pretrained_model(self):
+        """Returns pretrained model"""
+        return self.model
+
+    @property
+    def pretrained_model(self):
+        """Returns pretrained model"""
+        return self.model
 
     def compile(self,
                 contrastive_loss=info_nce_loss,
@@ -606,6 +612,28 @@ class SAINTPretrainer(keras.Model):
         if self.model.encode_categorical_values:
             data = self.label_encoding(data)
 
+        elif isinstance(data, dict):
+            # If encode flag is set to false, then that means that all values are numerical
+            # and hence the data is in homogenous form and hence we can convert data to
+            # array format and save us lots of trouble down the road.
+            # Sure, teras's feature embedding layers can handle dict type data but layers
+            # like cutmix where we have to shuffle the data will be a pain to work with dicts.
+            # BTW, the label encoding layer above not only encodes string values but also
+            # converts dictionary data to array format but in case user doesn't want to encode
+            # but has data in dict format, we convert it to array format.
+            # Basically what we want to do is to make it so data from this point onwards is in
+            # array format.
+            data = convert_dict_to_array_tensor(data)
+
+        if self._is_first_batch:
+            if self.model.head is not None:
+                dummy_inputs = tf.zeros(tf.shape(data))
+                # since we don't need the head during pretraining
+                # but not creating its weights causes trouble, so we call it on dummy
+                # inputs to just initialize the weights on the first batch.
+                self.model.head(dummy_inputs)
+            self._is_first_batch = False
+
         with tf.GradientTape() as tape:
             z, z_prime, reconstructed_samples = self(data)
             c_loss = self.contrastive_loss(real_projection_outputs=z,
@@ -616,12 +644,17 @@ class SAINTPretrainer(keras.Model):
                                          categorical_features_metadata=self.model._categorical_features_metadata)
 
             loss = c_loss + self.lambda_ * d_loss
-        gradients = tape.gradient(loss, self.model.trainable_weights)
-        self.optimizer.apply_gradients(gradients, self.model.trainable_weights)
+        gradients = tape.gradient(loss, self.trainable_weights)
+        self.optimizer.apply_gradients(zip(gradients, self.trainable_weights))
 
         self.contrastive_loss_tracker.update_state(c_loss)
         self.denoising_loss_tracker.update_state(d_loss)
-
+        # If user has passed any additional metrics to compile, we should update their states
+        if len(self.compiled_metrics.metrics) > 0:
+            self.compiled_metrics.update_state(data, reconstructed_samples)
+        # If user has passed any additional losses to compile, we should call them
+        if self.compiled_loss._losses is not None:
+            self.compiled_loss(data, reconstructed_samples)
         results = {m.name: m.result() for m in self.metrics}
         return results
 

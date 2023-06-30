@@ -32,7 +32,9 @@ from .tabnet import (AttentiveTransformer as TabNetAttentiveTransformer,
                      FeatureTransformerBlock as TabNetFeatureTransformerBlock,
                      FeatureTransformer as TabNetFeatureTransformer,
                      Encoder as TabNetEncoder,
-                     Decoder as TabNetDecoder)
+                     Decoder as TabNetDecoder,
+                     ClassificationHead as TabNetClassificationHead,
+                     RegressionHead as TabNetRegressionHead)
 
 
 # TabTransformer layers
@@ -77,4 +79,12 @@ from .oenf import (PeriodicEmbedding)
 # CTGAN layers
 from .ctgan import (GeneratorBlock as CTGANGeneratorBlock,
                     DiscriminatorBlock as CTGANDiscriminatorBlock)
+
+
+# Regularization layers
+from teras.layers.regularization import (MixUp,
+                                         CutMix)
+
+# Encoding layers
+from teras.layers.encoding import LabelEncoding
 

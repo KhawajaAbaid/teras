@@ -23,8 +23,10 @@ from .tabnet import (TabNetClassifier,
                      TabNetRegressor)
 
 # TabTransformer models
-from .tabtransformer import (TabTransformerClassifier,
-                             TabTransformerRegressor)
+from .tabtransformer import (TabTransformer,
+                             TabTransformerClassifier,
+                             TabTransformerRegressor,
+                             TabTransformerPretrainer)
 
 # DNFNet models
 from .dnfnet import (DNFNetRegressor,
