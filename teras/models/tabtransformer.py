@@ -1,11 +1,14 @@
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
+from tensorflow.keras import losses, optimizers
 from teras.layers.embedding import CategoricalFeatureEmbedding
 from teras.layers.tabtransformer import ColumnEmbedding, ClassificationHead, RegressionHead
 from teras.layers.common.transformer import Encoder
 from typing import List, Union, Tuple
 from teras.config.tabtransformer import TabTransformerConfig
+from teras.utils import convert_dict_to_array_tensor
+from teras.layers.encoding import LabelEncoding
 
 
 LIST_OR_TUPLE_OF_INT = Union[List[int], Tuple[int]]
@@ -151,6 +154,8 @@ class TabTransformer(keras.Model):
             if isinstance(inputs, dict):
                 self._is_data_in_dict_format = True
             self._is_first_batch = False
+        # TODO: Shouldn't we convert dict format data to array format using convert_dict_to_array_tensor?
+        #   Thoughts? How would it affect performance?
 
         features = None
         if self._categorical_features_exist:
@@ -166,6 +171,7 @@ class TabTransformer(keras.Model):
             features = categorical_features
 
         if self._numerical_features_exist:
+            # TODO make this efficient -- for loop isn't needed for numerical features if data's in array format
             # In TabTransformer we normalize the raw numerical features
             # and concatenate them with flattened contextualized categorical features
             numerical_features = tf.TensorArray(size=self._num_numerical_features,
@@ -390,3 +396,121 @@ class TabTransformerRegressor(TabTransformer):
         self.head = RegressionHead(num_outputs=self.num_outputs,
                                    units_values=self.head_units_values,
                                    name="tabtransformer_regression_head")
+
+
+class TabTransformerPretrainer(keras.Model):
+    """
+    Pretrainer model for TabTransformer based on the
+    Replaced Token Detection (RTD) method.
+    RTD replaces the original feature by a random value
+    of that feature.
+    Here, the loss is minimized for a binary classifier
+    that tries to predict whether or not the feature has
+    been replaced.
+
+    Reference(s):
+        https://arxiv.org/abs/2012.06678
+
+    Args:
+        model: `TabTransformer`,
+            An instance of base TabTransformer class to pretrain.
+        replace_rate: `float`, default 0.3,
+            Fraction of total features per sample to replace.
+            Must be in between 0. - 1.0
+    """
+    def __init__(self,
+                 model: TabTransformer,
+                 replace_rate: float = 0.3,
+                 **kwargs):
+        super().__init__(**kwargs)
+        self.model = model
+        self.replace_rate = replace_rate
+
+        self.label_encoding = LabelEncoding(categorical_features_metadata=self.model._categorical_features_metadata,
+                                            concatenate_numerical_features=True)
+
+        self._is_first_batch = True
+        self._is_data_in_dict_format = False
+        self.num_features = None
+        self.num_features_to_replace = None
+        self.loss_tracker = keras.metrics.Mean(name="loss")
+
+    def build(self, input_shape):
+        self.head = layers.Dense(input_shape[1], activation="sigmoid")
+    
+    def compile(self,
+                loss=losses.BinaryCrossentropy(),
+                optimizer=optimizers.AdamW(learning_rate=0.01),
+                **kwargs):
+        super().compile(**kwargs)
+        self.loss_fn = loss
+        self.optimizer = optimizer
+
+    def call(self, inputs, mask=None):
+        # Since in RTD, for a sample, we randomly replace k% of its features values using
+        # random values of those features.
+        # We can efficiently achieve this by first getting x_rand = shuffle(inputs)
+        # then, to apply replacement, inputs = (inputs * (1-mask)) + (x_rand * mask)
+        x_rand = tf.random.shuffle(inputs)
+        inputs = (inputs * (1 - mask)) + (x_rand * mask)
+        intermediate_features = self.model(inputs)
+        # Using sigmoid we essentially get a predicted mask which can we used to
+        # compute loss just like that of binary classification
+        mask_pred = self.head(intermediate_features)
+        return mask_pred
+    
+    def train_step(self, data):
+        if isinstance(data, tuple):
+            data = data[0]
+            
+        if self._is_first_batch:
+            if isinstance(data, dict):
+                self._is_data_in_dict_format = True
+                self.num_features = len(data)
+            else:
+                self.num_features = tf.shape(data)[1]
+            self.num_features_to_replace = tf.cast(self.num_features * self.replace_rate,
+                                                   dtype=tf.int32)
+            self._is_first_batch = False
+
+        # To make things simpler and easier, specifically the shuffling process,
+        # we convert data to array format if it's in dict format
+        # But first we check if the user has set the `encode_categorical_values` flag, in which case
+        # we'll label encoding layer whose outputs will be in array format.
+        # When instantiating the LabelEncoding layer we set the `concatenate_numerical_features`
+        # flag to True so that the layer returns all features and not just categorical features.
+        if self.model.encode_categorical_values:
+            data = self.label_encoding(data)
+            # Okay this is a bit of hacky way to do things but --
+            # Since the base model is already instantiated and the encode flag is set
+            # for the categorical feature embedding layer but here we're encoding things
+            # in advance so it will result in error since it will try to encode already encoded
+            # values considering them as string values.
+            # So to avoid that, we'll set the categorical feature embedding layer's encode flag
+            # to False
+            self.model.categorical_feature_embedding.encode = False
+
+        elif self._is_data_in_dict_format:
+            # If the encode flag is not set then it means that data is in homogeneous format
+            # in which case we can safely just convert dictionary format data to array format
+            data = convert_dict_to_array_tensor(data)
+
+        # Feature indices is of the shape batch_size x num_features_to_replace
+        feature_indices_to_replace = tf.random.uniform((tf.shape(data)[0], self.num_features_to_replace),
+                                                       maxval=self.num_features,
+                                                       dtype=tf.int32)
+        # Mask is of the shape batch_size x num_features and contains values in range [0, 1]
+        # A value of 1 represents if the feature is replaced, while 0 means it's not replaced.
+        mask = tf.reduce_max(tf.one_hot(feature_indices_to_replace,
+                                        depth=self.num_features),
+                             axis=1)
+        
+        with tf.GradientTape() as tape:
+            mask_pred = self(data, mask=mask)
+            loss = self.loss_fn(mask, mask_pred)
+        gradients = tape.gradient(loss, self.trainable_weights)
+        self.optimizer.apply_gradients(zip(gradients, self.trainable_weights))
+        self.loss_tracker.update_state(loss)
+        self.compiled_metrics.update_state(mask, mask_pred)
+        results = {m.name: m.result() for m in self.metrics}
+        return results
