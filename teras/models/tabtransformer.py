@@ -9,6 +9,7 @@ from typing import List, Union, Tuple
 from teras.config.tabtransformer import TabTransformerConfig
 from teras.utils import convert_dict_to_array_tensor
 from teras.layers.encoding import LabelEncoding
+from teras.layerflow.models import SimpleModel
 
 
 LIST_OR_TUPLE_OF_INT = Union[List[int], Tuple[int]]
@@ -149,6 +150,32 @@ class TabTransformer(keras.Model):
 
         self._is_first_batch = True
         self._is_data_in_dict_format = False
+
+    def reset_training_flags(self):
+        """
+        Resets the `_is_first_batch` and `_is_data_in_dict_format` flags
+        to their default values.
+
+        Training flags like `_is_first_batch` and `_is_data_in_dict_format`
+        are vital for training and to handle data of different types and
+        to compute/apply different things on the first batch.
+        In regular training this works fine but when we pretrain this model
+        the flags value are set and they stay the same when pretrained base
+        model is mixed with the classificaiton or regression head which
+        often results in error.
+        For instance, the `_is_first_batch` is set to False during pretraining
+        so it will stay the same during finetuning and since the
+        `_is_data_in_dict_format` flag is only set if `_is_first_batch` is True,
+        so that will stay the same as well.
+        Consequently, any difference between data format between pretraining
+        and fine-tuning will lead to errors since the model won't be able to
+        infer the vital info required to make decisions about what
+        functionality to apply based on data.
+        """
+        self._is_first_batch = True
+        self._is_data_in_dict_format = False
+        self.categorical_feature_embedding._is_first_batch = True
+        self.categorical_feature_embedding._is_data_in_dict_format = False
 
     def call(self, inputs):
         if self._is_first_batch:
@@ -330,13 +357,20 @@ class TabTransformerClassifier(TabTransformer):
         num_classes = 1 if num_classes <= 2 else num_classes
         if activation_out is None:
             activation_out = "sigmoid" if num_classes == 1 else "softmax"
-        inputs = layers.Input(shape=(pretrained_model.num_features,))
-        x = pretrained_model(inputs, training=False)
-        outputs = ClassificationHead(num_classes=num_classes,
-                                     units_values=head_units_values,
-                                     activation_out=activation_out,
-                                     name="tabtransformer_classification_head")(x)
-        model = models.Model(inputs=inputs, outputs=outputs)
+        # inputs = layers.Input(shape=(pretrained_model.num_features,))
+        # x = pretrained_model(inputs, training=False)
+        # outputs = ClassificationHead(num_classes=num_classes,
+        #                              units_values=head_units_values,
+        #                              activation_out=activation_out,
+        #                              name="tabtransformer_classification_head")(x)
+        # model = models.Model(inputs=inputs, outputs=outputs)
+        head = ClassificationHead(num_classes=num_classes,
+                                  units_values=head_units_values,
+                                  activation_out=activation_out,
+                                  name="tabtransformer_classification_head")
+        model = SimpleModel(body=pretrained_model,
+                            head=head,
+                            name="tabtransformer_classifier_pretrained")
         return model
 
 
@@ -456,12 +490,32 @@ class TabTransformerRegressor(TabTransformer):
         Returns:
             A TabTransformer Regressor instance based of the pretrained model.
         """
-        inputs = layers.Input(shape=(pretrained_model.num_features,))
-        x = pretrained_model(inputs, training=False)
-        outputs = RegressionHead(num_outputs=num_outputs,
-                                 units_values=head_units_values,
-                                 name="tabtransformer_regression_head")(x)
-        model = models.Model(inputs=inputs, outputs=outputs)
+
+        # Functional approach
+        # inputs = layers.Input(shape=(pretrained_model.num_features,))
+        # x = pretrained_model(inputs, training=False)
+        # outputs = RegressionHead(num_outputs=num_outputs,
+        #                          units_values=head_units_values,
+        #                          name="tabtransformer_regression_head")(x)
+        # model = models.Model(inputs=inputs, outputs=outputs)
+
+        # The problem with functional approach is that it cannot handle dictionary format data
+
+        # Sequential approach
+        # model = keras.models.Sequential([pretrained_model, head])
+
+        # The problem with sequential is that it gives a plethora of warnings
+        # because of dictionary data, saying that layers
+        # in a sequential model should only have a one input tensor
+
+        # But subclassed model can handle it all with ease and no warnings.
+        # here we used the layerflow api of teras.
+        head = RegressionHead(num_outputs=num_outputs,
+                              units_values=head_units_values,
+                              name="tabtransformer_regression_head")
+        model = SimpleModel(body=pretrained_model,
+                            head=head,
+                            name="tabtransformer_regressor_pretrained")
         return model
 
 
@@ -507,12 +561,13 @@ class TabTransformerPretrainer(keras.Model):
 
     def get_pretrained_model(self):
         """Returns pretrained model"""
+        self.model.reset_training_flags()
         return self.model
 
     @property
     def pretrained_model(self):
         """Returns pretrained model"""
-        return self.model
+        return self.get_pretrained_model()
 
     def compile(self,
                 loss=losses.BinaryCrossentropy(),
@@ -545,8 +600,9 @@ class TabTransformerPretrainer(keras.Model):
                 self.num_features = len(data)
             else:
                 self.num_features = tf.shape(data)[1]
-            self.num_features_to_replace = tf.cast(self.num_features * self.replace_rate,
-                                                   dtype=tf.int32)
+            self.num_features_to_replace = int(self.num_features * self.replace_rate)
+            # self.num_features_to_replace = tf.cast(self.num_features_to_replace,
+            #                                        dtype=tf.int32)
             self._is_first_batch = False
 
         # To make things simpler and easier, specifically the shuffling process,
@@ -589,4 +645,7 @@ class TabTransformerPretrainer(keras.Model):
         self.loss_tracker.update_state(loss)
         self.compiled_metrics.update_state(mask, mask_pred)
         results = {m.name: m.result() for m in self.metrics}
+        # Since we cant check for the last batch last epoch so
+        # reset it at the end of every batch
+        self.model.categorical_feature_embedding.encode = True
         return results
