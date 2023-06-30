@@ -437,7 +437,16 @@ class TabTransformerPretrainer(keras.Model):
 
     def build(self, input_shape):
         self.head = layers.Dense(input_shape[1], activation="sigmoid")
-    
+
+    def get_pretrained_model(self):
+        """Returns pretrained model"""
+        return self.model
+
+    @property
+    def pretrained_model(self):
+        """Returns pretrained model"""
+        return self.model
+
     def compile(self,
                 loss=losses.BinaryCrossentropy(),
                 optimizer=optimizers.AdamW(learning_rate=0.01),
