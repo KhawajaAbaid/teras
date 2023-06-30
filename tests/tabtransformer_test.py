@@ -1,4 +1,4 @@
-from teras.models import TabTransformerClassifier, TabTransformerRegressor
+from teras.models import TabTransformer, TabTransformerRegressor, TabTransformerClassifier, TabTransformerPretrainer
 from tensorflow import keras
 import tensorflow as tf
 from sklearn.preprocessing import LabelEncoder
@@ -12,7 +12,7 @@ print(f"{'-'*15}  REGRESSION TEST {'-'*15}")
 
 # Gemstone dataset from Kaggle's Playground Season 3 Episode 8
 # https://www.kaggle.com/competitions/playground-series-s3e8/data?select=train.csv
-gem_df = pd.read_csv("gemstone_data/train.csv").drop(["id"], axis=1)
+gem_df = pd.read_csv("gemstone_data/train.csv").drop(["id"], axis=1)[:20480]
 cat_cols = ["cut", "color", "clarity"]
 num_cols = ["carat", "depth", "table", "x", "y", "z"]
 
@@ -21,15 +21,25 @@ num_cols = ["carat", "depth", "table", "x", "y", "z"]
 features_metadata = get_features_metadata_for_embedding(gem_df, categorical_features=cat_cols,
                                                         numerical_features=num_cols)
 
-X_ds = dataframe_to_tf_dataset(gem_df, 'price', batch_size=1024, as_dict=True)
+pretraining_ds = gem_df.copy()
+pretraining_ds.pop("price")
+pretraining_ds = dataframe_to_tf_dataset(pretraining_ds, batch_size=4096, as_dict=True)
+X_ds = dataframe_to_tf_dataset(gem_df, 'price', batch_size=4096, as_dict=True)
 
-tab_transformer_regressor = TabTransformerRegressor(num_outputs=1,
-                                                    features_metadata=features_metadata
-                                                    )
-tab_transformer_regressor.compile(loss="MSE",
-                                  optimizer=keras.optimizers.AdamW(learning_rate=0.05),
-                                  metrics=["MAE"])
-tab_transformer_regressor.fit(X_ds, epochs=10)
+# Use a base TabTransformer instance for pretraining
+tab_transformer = TabTransformer(features_metadata=features_metadata)
+tab_transformer_pretrainer = TabTransformerPretrainer(model=tab_transformer)
+# We have default loss and optimizer values in place already - though feel free to use your own
+tab_transformer_pretrainer.compile()
+tab_transformer_pretrainer.fit(pretraining_ds, epochs=1)
+# Retrieve the pretrained base model
+pretrained_model = tab_transformer_pretrainer.pretrained_model
+# Use to base pretrained model to build a regressor model
+tabnet_regressor = TabTransformerRegressor.from_pretrained(pretrained_model=pretrained_model,
+                                                           num_outputs=1)
+tabnet_regressor.compile(loss="mse", metrics=["mae"], optimizer=keras.optimizers.AdamW(learning_rate=0.05))
+tabnet_regressor.fit(X_ds, epochs=3)
+
 
 
 # <<<<<<<<<<<<<<<<<<<<<<<<<<<<< Classficiation Test >>>>>>>>>>>>>>>>>>>>>>>
