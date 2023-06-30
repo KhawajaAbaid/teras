@@ -106,12 +106,13 @@ class TabTransformer(keras.Model):
         self.norm_epsilon = norm_epsilon
         self.encode_categorical_values = encode_categorical_values
 
-        self._categorical_features_metadata = self.features_metadata["categorical"]
-        self._numerical_features_metadata = self.features_metadata["numerical"]
-        self._num_categorical_features = len(self._categorical_features_metadata)
-        self._num_numerical_features = len(self._numerical_features_metadata)
-        self._numerical_features_exist = self._num_numerical_features > 0
-        self._categorical_features_exist = self._num_categorical_features > 0
+        self.categorical_features_metadata = self.features_metadata["categorical"]
+        self.numerical_features_metadata = self.features_metadata["numerical"]
+        self.num_categorical_features = len(self.categorical_features_metadata)
+        self.num_numerical_features = len(self.numerical_features_metadata)
+        self.num_features = self.num_categorical_features + self.num_numerical_features
+        self.numerical_features_exist = self.num_numerical_features > 0
+        self.categorical_features_exist = self.num_categorical_features > 0
 
         # _processed_features_dim is the computed dimensionality of the resultant features
         # after all data has been processed.
@@ -124,17 +125,17 @@ class TabTransformer(keras.Model):
         # are categorical features don't exist, in which case the respective _num variable
         # will be 0.)
         # We need this dimensions to set the shape of `features` variable in the `call` method.
-        self._processed_features_dim = (self._num_categorical_features * self.embedding_dim) \
-                                        + self._num_numerical_features
+        self._processed_features_dim = (self.num_categorical_features * self.embedding_dim) \
+                                        + self.num_numerical_features
 
-        if self._categorical_features_exist:
+        if self.categorical_features_exist:
             self.categorical_feature_embedding = CategoricalFeatureEmbedding(
-                                                    categorical_features_metadata=self._categorical_features_metadata,
+                                                    categorical_features_metadata=self.categorical_features_metadata,
                                                     embedding_dim=self.embedding_dim,
                                                     encode=self.encode_categorical_values
                                                 )
             self.column_embedding = ColumnEmbedding(embedding_dim=self.embedding_dim,
-                                                    num_categorical_features=self._num_categorical_features)
+                                                    num_categorical_features=self.num_categorical_features)
             self.encoder = Encoder(num_transformer_layers=self.num_transformer_layers,
                                    num_heads=self.num_attention_heads,
                                    embedding_dim=self.embedding_dim,
@@ -158,7 +159,7 @@ class TabTransformer(keras.Model):
         #   Thoughts? How would it affect performance?
 
         features = None
-        if self._categorical_features_exist:
+        if self.categorical_features_exist:
             # The categorical feature embedding layer takes care of handling
             # different input data types and features names nad indices
             categorical_features = self.categorical_feature_embedding(inputs)
@@ -170,13 +171,13 @@ class TabTransformer(keras.Model):
             categorical_features = self.flatten(categorical_features)
             features = categorical_features
 
-        if self._numerical_features_exist:
+        if self.numerical_features_exist:
             # TODO make this efficient -- for loop isn't needed for numerical features if data's in array format
             # In TabTransformer we normalize the raw numerical features
             # and concatenate them with flattened contextualized categorical features
-            numerical_features = tf.TensorArray(size=self._num_numerical_features,
+            numerical_features = tf.TensorArray(size=self.num_numerical_features,
                                                 dtype=tf.float32)
-            for i, (feature_name, feature_idx) in enumerate(self._numerical_features_metadata.items()):
+            for i, (feature_name, feature_idx) in enumerate(self.numerical_features_metadata.items()):
                 if self._is_data_in_dict_format:
                     feature = tf.expand_dims(inputs[feature_name], axis=1)
                 else:
@@ -339,7 +340,6 @@ class TabTransformerClassifier(TabTransformer):
         return model
 
 
-
 class TabTransformerRegressor(TabTransformer):
     """
     TabTransformerRegressor based on the TabTransformer architecture
@@ -493,7 +493,7 @@ class TabTransformerPretrainer(keras.Model):
         self.model = model
         self.replace_rate = replace_rate
 
-        self.label_encoding = LabelEncoding(categorical_features_metadata=self.model._categorical_features_metadata,
+        self.label_encoding = LabelEncoding(categorical_features_metadata=self.model.categorical_features_metadata,
                                             concatenate_numerical_features=True)
 
         self._is_first_batch = True
@@ -555,7 +555,7 @@ class TabTransformerPretrainer(keras.Model):
         # we'll label encoding layer whose outputs will be in array format.
         # When instantiating the LabelEncoding layer we set the `concatenate_numerical_features`
         # flag to True so that the layer returns all features and not just categorical features.
-        if self.model.encode_categorical_values:
+        if self.model.categorical_features_exist and self.model.encode_categorical_values:
             data = self.label_encoding(data)
             # Okay this is a bit of hacky way to do things but --
             # Since the base model is already instantiated and the encode flag is set
