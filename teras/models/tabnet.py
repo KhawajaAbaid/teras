@@ -595,7 +595,6 @@ class TabNetPretrainer(keras.Model):
     def train_step(self, data):
         if isinstance(data, tuple):
             data = data[0]
-        batch_size = tf.shape(data)[0]
         if self._is_first_batch:
             if isinstance(data, dict):
                 self._is_data_in_dict_format = True
@@ -612,8 +611,10 @@ class TabNetPretrainer(keras.Model):
             # We need to concatenate numerical features to the categorical embeddings
             if self.model.numerical_features_exist:
                 if self._is_data_in_dict_format:
-                    numerical_features = [data[feature_name] for feature_name in self.numerical_feature_names]
+                    numerical_features = [tf.expand_dims(data[feature_name], axis=1)
+                                          for feature_name in self.numerical_feature_names]
                     numerical_features = tf.concat(numerical_features, axis=1)
+                    numerical_features = tf.cast(numerical_features, tf.float32)
                 else:
                     numerical_features = tf.gather(data,
                                                    indices=self.numerical_features_indices,
@@ -626,6 +627,7 @@ class TabNetPretrainer(keras.Model):
 
             embedded_inputs.set_shape((None, self.model.num_features))
             # Generate mask to create missing samples
+            batch_size = tf.shape(embedded_inputs)[0]
             mask = self.binary_mask_generator.sample(sample_shape=(batch_size, self.data_dim))
             tape.watch(mask)
             # Reconstruct samples
