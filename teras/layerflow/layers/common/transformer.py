@@ -1,15 +1,13 @@
 from tensorflow import keras
 from tensorflow.keras import layers, models
-from teras.layers.common.transformer import (Transformer as BaseTransformer,
-                                             Encoder as BaseEncoder,
-                                             RegressionHead as BaseRegressionHead,
-                                             ClassificationHead as BaseClassificationHead)
+from teras.layers.common.transformer import (Transformer as _BaseTransformer,
+                                             Encoder as _BaseEncoder)
 from typing import List
 
 LIST_OF_LAYERS = List[keras.layers.Layer]
 
 
-class Transformer(BaseTransformer):
+class Transformer(_BaseTransformer):
     """
     Transformer layer with LayerFlow design.
     It supposed to be used when user wants additional flexibility
@@ -36,7 +34,7 @@ class Transformer(BaseTransformer):
             self.feed_forward = feed_forward
 
 
-class Encoder(BaseEncoder):
+class Encoder(_BaseEncoder):
     """
     Encoder layer with LayerFlow design.
     It supposed to be used when user wants additional flexibility
@@ -57,10 +55,6 @@ class Encoder(BaseEncoder):
                 transformer_layers,
                 name="transformer_layers"
             )
-
-
-# TODO: Append these Base.* layer names with an underscore,
-#       so it becomes cleaner when the user tries to import layers
 
 
 # We don't need the common classification and regression heads for
