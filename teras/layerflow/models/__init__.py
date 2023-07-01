@@ -15,3 +15,10 @@
 
 # Simple Model
 from .simple import SimpleModel
+
+
+# TabTransfomer models
+from .tabtransformer import (TabTransformer,
+                             TabTransformerClassifier,
+                             TabTransformerRegressor,
+                             TabTransformerPretrainer)
