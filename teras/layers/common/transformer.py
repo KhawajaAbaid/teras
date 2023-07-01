@@ -211,7 +211,7 @@ class RegressionHead(layers.Layer):
                     self.hidden_block.add(get_normalization_layer(self.normalization))
                 self.hidden_block.add(layers.Dense(units,
                                                    activation=self.activation_hidden))
-        self.dense_out = layers.Dense(self.num_outputs)
+        self.output_layer = layers.Dense(self.num_outputs)
 
     # def build(self, input_shape):
     #     self.hidden_block.build(input_shape)
@@ -220,7 +220,7 @@ class RegressionHead(layers.Layer):
         x = inputs
         if self.hidden_block is not None:
             x = self.hidden_block(x)
-        outputs = self.dense_out(x)
+        outputs = self.output_layer(x)
         return outputs
 
 
@@ -267,12 +267,12 @@ class ClassificationHead(layers.Layer):
                     self.hidden_block.add(get_normalization_layer(self.normalization))
                 self.hidden_block.add(layers.Dense(units,
                                                    activation=self.activation_hidden))
-        self.dense_out = layers.Dense(self.num_classes,
+        self.output_layer = layers.Dense(self.num_classes,
                                       activation=self.activation_out)
 
     def call(self, inputs):
         x = inputs
         if self.hidden_block is not None:
             x = self.hidden_block(x)
-        outputs = self.dense_out(x)
+        outputs = self.output_layer(x)
         return outputs
