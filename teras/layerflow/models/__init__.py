@@ -18,7 +18,7 @@ from .simple import SimpleModel
 
 
 # TabTransfomer models
-from .tabtransformer import (TabTransformer,
-                             TabTransformerClassifier,
-                             TabTransformerRegressor,
-                             TabTransformerPretrainer)
+from teras.models.tabtransformer import (TabTransformer,
+                                         TabTransformerClassifier,
+                                         TabTransformerRegressor,
+                                         TabTransformerPretrainer)
