@@ -9,6 +9,7 @@ from teras.layers.tabnet import RegressionHead, ClassificationHead
 from teras.layers import CategoricalFeatureEmbedding
 from teras.config.tabnet import TabNetConfig
 from warnings import warn
+from teras.layerflow.models import SimpleModel
 
 
 LAYER_OR_MODEL = Union[keras.layers.Layer, keras.Model]
@@ -329,12 +330,12 @@ class TabNetClassifier(TabNet):
         num_classes = 1 if num_classes <= 2 else num_classes
         if activation_out is None:
             activation_out = "sigmoid" if num_classes == 1 else "softmax"
-        inputs = keras.layers.Input(shape=(pretrained_model.num_features,))
-        x = pretrained_model(inputs, training=False)
-        outputs = ClassificationHead(num_classes=num_classes,
-                                     activation_out=activation_out,
-                                     name="tabnet_classification_head")(x)
-        model = keras.models.Model(inputs=inputs, outputs=outputs)
+        head = ClassificationHead(num_classes=num_classes,
+                                  activation_out=activation_out,
+                                  name="tabnet_classification_head")
+        model = SimpleModel(body=pretrained_model,
+                            head=head,
+                            name="tabnet_classifier_pretrained")
         return model
 
     # def call(self, inputs):
@@ -463,11 +464,11 @@ class TabNetRegressor(TabNet):
         Returns:
             A TabNet Regressor instance based of the pretrained model.
         """
-        inputs = keras.layers.Input(shape=(pretrained_model.num_features,))
-        x = pretrained_model(inputs, training=False)
-        outputs = RegressionHead(num_outputs=num_outputs,
-                                   name="tabnet_regression_head")(x)
-        model = keras.models.Model(inputs=inputs, outputs=outputs)
+        head = RegressionHead(num_outputs=num_outputs,
+                              name="tabnet_regression_head")
+        model = SimpleModel(body=pretrained_model,
+                            head=head,
+                            name="tabnet_regressor_pretrained")
         return model
 
     # def call(self, inputs):
