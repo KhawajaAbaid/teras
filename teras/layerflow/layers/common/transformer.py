@@ -62,61 +62,16 @@ class Encoder(BaseEncoder):
 # TODO: Append these Base.* layer names with an underscore,
 #       so it becomes cleaner when the user tries to import layers
 
-class ClassificationHead(BaseClassificationHead):
-    """
-    ClassificationHead with LayerFlow design.
-    It's purposed to be used on top of the transformer based
-    architectures for classification.
 
-    Args:
-        hidden_block: `layers.Layer | models.Model`,
-            An instance of anything that can serve as the hidden block in the
-            classification head.
-            It can be as simple as a single dense layer, or a custom layer that
-            uses a bunch of other dense and other fancy layers,
-            or may as well be a keras model -- as long as it satisfies the input
-            output constraints. (All thanks to Keras and Francois Chollet :D)
-        output_layer: `layers.Layer`,
-            An instance of keras layer (Dense or a custom layer), with relevant
-            activation function for classification relevant to the task at hand.
-    """
-    def __init__(self,
-                 hidden_block: layers.Layer = None,
-                 output_layer: layers.Layer = None,
-                 **kwargs):
-        super().__init__(**kwargs)
-        if hidden_block is not None:
-            self.hidden_block = hidden_block
+# We don't need the common classification and regression heads for
+# the layerflow API, why? because in default API it makes sense to
+# have the common heads since they allow parameters values to customize
+# the structure and behavior for the given architecture,
+# but here, the common heads will have the exact same interface i.e.
+# the exact same two parameters as the architecture specific ones
+# NOT only does it not make sense to have them but ALSO there's
+# no way to customize these for the specific architectures.
+# The better solution is to use the architecture specific heads from
+# the default api as base for the architecture specific heads in the
+# layerflow api
 
-        if output_layer is not None:
-            self.output_layer = output_layer
-
-
-class RegressionHead(BaseRegressionHead):
-    """
-    RegressionHead with LayerFlow design.
-    It's purposed to be used on top of the transformer based
-    architectures for regression.
-
-    Args:
-        hidden_block: `layers.Layer | models.Model`,
-            An instance of anything that can serve as the hidden block in the
-            regression head.
-            It can be as simple as a single dense layer, or a custom layer that
-            uses a bunch of other dense and other fancy layers,
-            or may as well be a keras model -- as long as it satisfies the input
-            output constraints. (All thanks to Keras and Francois Chollet :D)
-        output_layer: `layers.Layer`,
-            An instance of keras layer (Dense or a custom layer),
-            for regression outputs relevant to the task at hand.
-    """
-    def __init__(self,
-                 hidden_block: layers.Layer = None,
-                 output_layer: layers.Layer = None,
-                 **kwargs):
-        super().__init__(**kwargs)
-        if hidden_block is not None:
-            self.hidden_block = hidden_block
-
-        if output_layer is not None:
-            self.output_layer = output_layer
