@@ -3,6 +3,7 @@ from teras.layers.tabtransformer import (ClassificationHead,
                                          RegressionHead)
 from teras.models import (TabTransformer as BaseTabTransformer,
                           TabTransformerPretrainer)
+from teras.layerflow.models import SimpleModel
 
 
 class TabTransformer(BaseTabTransformer):
@@ -136,6 +137,33 @@ class TabTransformerClassifier(TabTransformer):
                          head=head,
                          **kwargs)
 
+    @classmethod
+    def from_pretrained(cls,
+                        pretrained_model: TabTransformer,
+                        head: layers.Layer = None
+                        ):
+        """
+        Class method to create a TabTransformer Classifier model instance from
+        a pretrained base TabTransformer model instance.
+
+        Args:
+            pretrained_model: `TabTransformer`,
+                A pretrained base TabTransformer model instance.
+           head: `layers.Layer`,
+                An instance of ClassificationHead layer for the final outputs,
+                or any layer that can work in place of a ClassificationHead layer for that purpose.
+                If None, ClassificationHead layer with default values will be used.
+
+        Returns:
+            A TabTransformer Classifier instance based of the pretrained model.
+        """
+        if head is None:
+            head = ClassificationHead(name="tabtransformer_classification_head")
+        model = SimpleModel(body=pretrained_model,
+                            head=head,
+                            name="tabtransformer_classifier_pretrained")
+        return model
+
 
 class TabTransformerRegressor(TabTransformer):
     """
@@ -199,3 +227,30 @@ class TabTransformerRegressor(TabTransformer):
                          encoder=encoder,
                          head=head,
                          **kwargs)
+
+    @classmethod
+    def from_pretrained(cls,
+                        pretrained_model: TabTransformer,
+                        head: layers.Layer = None,
+                        ):
+        """
+        Class method to create a TabTransformer Regressor model instance from
+        a pretrained base TabTransformer model instance.
+
+        Args:
+            pretrained_model: `TabTransformer`,
+                A pretrained base TabTransformer model instance.
+            head: `layers.Layer`,
+                An instance of RegressionHead layer for the final outputs,
+                or any layer that can work in place of a RegressionHead layer for that purpose.
+                If None, RegressionHead layer with default values will be used.
+
+        Returns:
+            A TabTransformer Regressor instance based of the pretrained model.
+        """
+        if head is None:
+            head = RegressionHead(name="tabtransformer_regression_head")
+        model = SimpleModel(body=pretrained_model,
+                            head=head,
+                            name="tabtransformer_regressor_pretrained")
+        return model
