@@ -486,7 +486,7 @@ class Decoder(layers.Layer):
         self.residual_normalization_factor = residual_normalization_factor
 
         self.features_transformers_per_step = []
-        self.dense_layers_per_step = []
+        self.projection_layers_per_step = []
 
         # OKAY LISTEN: To be able to share the `shared_layers` across instances, we introduced
         # a class attribute called `shared_layers` in the FeatureTransformer class BUT here's the problem,
