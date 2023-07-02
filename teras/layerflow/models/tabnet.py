@@ -2,6 +2,7 @@ from tensorflow.keras import layers, models
 from teras.models.tabnet import (TabNet as _BaseTabNet,
                                  TabNetPretrainer as _BaseTabNetPretrainer)
 from teras.layerflow.layers.tabnet import ClassificationHead, RegressionHead
+from teras.layerflow.models import SimpleModel
 
 
 class TabNet(_BaseTabNet):
@@ -120,6 +121,33 @@ class TabNetClassifier(TabNet):
                          head=head,
                          **kwargs)
 
+    @classmethod
+    def from_pretrained(cls,
+                        pretrained_model: TabNet,
+                        head: layers.Layer = None
+                        ):
+        """
+        Class method to create a TabNet Classifier model instance from
+        a pretrained base TabNet model instance.
+
+        Args:
+            pretrained_model: `TabNet`,
+                A pretrained base TabNet model instance.
+           head: `layers.Layer`,
+                An instance of ClassificationHead layer for the final outputs,
+                or any layer that can work in place of a ClassificationHead layer for that purpose.
+                If None, ClassificationHead layer with default values will be used.
+
+        Returns:
+            A TabNet Classifier instance based of the pretrained model.
+        """
+        if head is None:
+            head = ClassificationHead(name="tabnet_classification_head")
+        model = SimpleModel(body=pretrained_model,
+                            head=head,
+                            name="tabnet_classifier_pretrained")
+        return model
+
 
 class TabNetRegressor(TabNet):
     """
@@ -177,6 +205,33 @@ class TabNetRegressor(TabNet):
                          encoder=encoder,
                          head=head,
                          **kwargs)
+
+    @classmethod
+    def from_pretrained(cls,
+                        pretrained_model: TabNet,
+                        head: layers.Layer = None
+                        ):
+        """
+        Class method to create a TabNet Regressor model instance from
+        a pretrained base TabNet model instance.
+
+        Args:
+            pretrained_model: `TabNet`,
+                A pretrained base TabNet model instance.
+           head: `layers.Layer`,
+                An instance of RegressionHead layer for the final outputs,
+                or any layer that can work in place of a RegressionHead layer for that purpose.
+                If None, RegressionHead layer with default values will be used.
+
+        Returns:
+            A TabNet Regressor instance based of the pretrained model.
+        """
+        if head is None:
+            head = ClassificationHead(name="tabnet_regression_head")
+        model = SimpleModel(body=pretrained_model,
+                            head=head,
+                            name="tabnet_regressor_pretrained")
+        return model
 
 
 class TabNetPretrainer(_BaseTabNetPretrainer):
