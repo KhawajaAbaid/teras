@@ -20,4 +20,5 @@ from .tabtransformer import ColumnEmbedding as TabTransformerColumnEmbedding
 # TabNet layers
 from .tabnet import (FeatureTransformerBlock as TabNetFeatureTransformerBlock,
                      FeatureTransformer as TabNetFeatureTransformer,
-                     Encoder as TabNetEncoder)
+                     Encoder as TabNetEncoder,
+                     Decoder as TabNetDecoder)
