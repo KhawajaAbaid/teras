@@ -2,6 +2,7 @@ from tensorflow.keras import layers, models
 from teras.layers.tabnet import AttentiveTransformer, FeatureTransformerBlock
 from teras.layers.tabnet import (FeatureTransformer as _BaseFeatureTransformer,
                                  Encoder as _BaseEncoder,
+                                 Decoder as _BaseDecoder,
                                  ClassificationHead as _BaseClassificationHead,
                                  RegressionHead as _BaseRegressionHead)
 from typing import List, Union
@@ -110,6 +111,54 @@ class Encoder(_BaseEncoder):
 
         if attentive_transformers_per_step is not None:
             self.attentive_transformers_per_step = attentive_transformers_per_step
+
+
+class Decoder(_BaseDecoder):
+    """
+    Decoder with LayerFlow design.
+    Decoder layer is part of the TabNet architecture and is used
+    by the TabNetPretrainer to reconstruct features,
+
+    TabNet is proposed by Sercan et al. in TabNet paper.
+
+    Reference(s):
+        https://arxiv.org/abs/1908.07442
+
+    Args:
+         feature_transformers_per_step: `List[layers.Layer]`,
+            A list of FeatureTransformer layers or any custom layer that can work
+            in its place. For each decision step, TabNet uses a separate instance
+            of FeatureTransformer layer, hence the number of layers in  the
+            `feature_transformers_per_step` determine the total number of decision
+            steps to be taken.
+        projection_layers_per_step: `List[layers.Layer]`,
+            A list of layers that map encoded representations back to the
+            dimensionality of the input data to reconstruct input features.
+            These can be as simple as a simple dense layer with dimensionality
+            of input dataset or any highly customized layer.
+            For each decision step, TabNet Decoder uses a separate instance
+            of projection layer, hence the number of layers in  the
+            `projection_layers_per_step` must be equal to the number of layers
+            in the `feature_transformers_per_step` list.
+    """
+    def __init__(self,
+                 feature_transformers_per_step: LAYERS_COLLECTION = None,
+                 projection_layers_per_step: LAYERS_COLLECTION = None,
+                 **kwargs):
+        if len(feature_transformers_per_step) != len(projection_layers_per_step):
+            raise ValueError("Number of layers in the feature_transformers_per_step and projection_layers_per_step "
+                             "must be equal as for each decision step, there must exist an instance of "
+                             "FeatureTransformer and Projection layer. \n"
+                             f"Received, "
+                             f"feature_transformers_per_step length: {len(feature_transformers_per_step)}  "
+                             f"projection_layers_per_step length: {len(projection_layers_per_step)}")
+        num_decision_steps = len(feature_transformers_per_step)
+        super().__init__(**kwargs)
+        if feature_transformers_per_step is not None:
+            self.features_transformers_per_step = feature_transformers_per_step
+
+        if projection_layers_per_step is not None:
+            self.projection_layers_per_step = projection_layers_per_step
 
 
 class ClassificationHead(_BaseClassificationHead):
