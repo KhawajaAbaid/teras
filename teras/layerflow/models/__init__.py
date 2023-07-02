@@ -18,10 +18,10 @@ from .simple import SimpleModel
 
 
 # TabTransfomer models
-from teras.models.tabtransformer import (TabTransformer,
-                                         TabTransformerClassifier,
-                                         TabTransformerRegressor,
-                                         TabTransformerPretrainer)
+from teras.layerflow.models.tabtransformer import (TabTransformer,
+                                                   TabTransformerClassifier,
+                                                   TabTransformerRegressor,
+                                                   TabTransformerPretrainer)
 
 # TabNet models
 from teras.layerflow.models.tabnet import (TabNet,
