@@ -485,10 +485,9 @@ class TabNetPretrainer(keras.Model):
     TabNetPretrainer model based on the architecture
     proposed by Sercan et al. in TabNet paper.
 
-    TabNetPretrainer subclasses the TabNet class since TabNet itself is just an encoder
-    model while the TabNet decoder is an encoder-decoder model, so instead of instantiating
-    everything encoder part specific here, we can just utilize the parent class i.e. TabNet
-    which already implements it all and will serve as a useful abstraction to keep things clean.
+    TabNetPretrainer is an encoder-decoder model based on the TabNet architecture,
+    where the TabNet model acts as an encoder while a separate decoder
+    is used to reconstruct the input features.
 
     Reference(s):
         https://arxiv.org/abs/1908.07442
