@@ -506,7 +506,7 @@ class Decoder(layers.Layer):
                                                         residual_normalization_factor=self.residual_normalization_factor,
                                                         name=f"step_{i}_feature_transformer"
                                                         ))
-            self.dense_layers_per_step.append(layers.Dense(self.data_dim))
+            self.projection_layers_per_step.append(layers.Dense(self.data_dim))
 
     def call(self, inputs, mask=None):
         """
@@ -521,7 +521,7 @@ class Decoder(layers.Layer):
 
         for i in range(self.num_decision_steps):
             feat_output = self.features_transformers_per_step[i](inputs)
-            reconstructed_features += self.dense_layers_per_step[i](feat_output)
+            reconstructed_features += self.projection_layers_per_step[i](feat_output)
 
         # The paper says,
         # the decoder’s last FC (dense) layer is multiplied with S (binary mask indicating which features are missing)
