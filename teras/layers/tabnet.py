@@ -422,7 +422,7 @@ class Encoder(layers.Layer):
 
 class Decoder(layers.Layer):
     """
-    Encoder as proposed by Sercan et al. in TabNet paper.
+    Decoder as proposed by Sercan et al. in TabNet paper.
 
     Reference(s):
         https://arxiv.org/abs/1908.07442
