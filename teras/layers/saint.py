@@ -387,6 +387,39 @@ class Encoder(layers.Layer):
         return outputs
 
 
+class ReconstructionBlock(layers.Layer):
+    """
+    ReconstructionBlock layer that is used in constructing ReconstructionHead.
+    One ReconstructionBlock is created for each feature in the dataset.
+
+    Args:
+        hidden_dim: `int`,
+            Dimensionality of the hidden layer.
+        hidden_activation:
+            Activation function to use in the hidden layer.
+        data_dim: `int`,
+            Dimensionality of the given input feature.
+            The inputs to this layer are first mapped to hidden dimensions
+            and then projected to the dimensionality of the feature.
+            For categorical features, it is equal to the number of classes
+            in the feature, and for numerical feautures, it is equal to 1.
+    """
+    def __init__(self,
+                 hidden_dim: int = None,
+                 hidden_activation="relu",
+                 data_dim: int = None,
+                 **kwargs):
+        super().__init__(**kwargs)
+        self.hidden_block = layers.Dense(hidden_dim,
+                                         activation=hidden_activation)
+        self.output_layer = layers.Dense(data_dim)
+
+    def call(self, inputs):
+        x = self.hidden_block(inputs)
+        outputs = self.output_layer(x)
+        return outputs
+
+
 class ReconstructionHead(layers.Layer):
     """
     ReconstructionHead layer for SAINTPretrainer model.
@@ -442,11 +475,9 @@ class ReconstructionHead(layers.Layer):
 
         # For the computation of denoising loss, we use a separate MLP block for each feature
         # we call the combined blocks, reconstruction heads
-        self.reconstruction_blocks = [models.Sequential([
-            layers.Dense(units=self.embedding_dim * 5,
-                         activation="relu"),
-            layers.Dense(units=dim)
-        ])
+        self.reconstruction_blocks = [
+            ReconstructionBlock(hidden_dim=self.embedding_dim * 5,
+                                data_dim=dim)
             for dim in feature_dims]
 
     def call(self, inputs):
