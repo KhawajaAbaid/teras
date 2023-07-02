@@ -1,5 +1,6 @@
 from tensorflow.keras import layers, models
-from teras.models.tabnet import TabNet as _BaseTabNet
+from teras.models.tabnet import (TabNet as _BaseTabNet,
+                                 TabNetPretrainer as _BaseTabNetPretrainer)
 from teras.layerflow.layers.tabnet import ClassificationHead, RegressionHead
 
 
@@ -176,3 +177,45 @@ class TabNetRegressor(TabNet):
                          encoder=encoder,
                          head=head,
                          **kwargs)
+
+
+class TabNetPretrainer(_BaseTabNetPretrainer):
+    """
+    TabNetPretrainer with LayerFlow desing.
+
+    It is an encoder-decoder model based on the TabNet architecture,
+    where the TabNet model acts as an encoder while a separate decoder
+    is used to reconstruct the input features.
+
+    It is proposed by Sercan et al. in TabNet paper.
+
+    Reference(s):
+        https://arxiv.org/abs/1908.07442
+
+    Args:
+        model: `TabNet`,
+            An instance of base `TabNet` model to pretrain.
+        decoder: `layers.Layer`,
+            An instance of `Decoder` layer or any custom layer
+            that can be used in its place to reconstruct the input
+            features from the encoded representations.
+            You can import the Decoder layer as
+            >>> from teras.layerflow.layers import TabNetDecoder
+        missing_feature_probability: `float`, default 3, Fraction of features to randomly mask
+            -- i.e. make them missing.
+            Missing features are introduced in the pretraining dataset and
+            the probability of missing features is controlled by the parameter.
+            The pretraining objective is to predict values for these missing features,
+            (pre)training the TabNet model in the process.
+    """
+    def __init__(self,
+                 model: TabNet,
+                 decoder: layers.Layer = None,
+                 missing_feature_probability: float = 0.3,
+                 **kwargs):
+        super().__init__(model=model,
+                         missing_feature_probability=missing_feature_probability,
+                         **kwargs)
+
+        if decoder is not None:
+            self.decoder = decoder
