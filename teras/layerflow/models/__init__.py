@@ -22,3 +22,8 @@ from teras.models.tabtransformer import (TabTransformer,
                                          TabTransformerClassifier,
                                          TabTransformerRegressor,
                                          TabTransformerPretrainer)
+
+# TabNet models
+from teras.layerflow.models.tabnet import (TabNet,
+                                           TabNetRegressor,
+                                           TabNetClassifier)
