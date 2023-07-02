@@ -15,3 +15,9 @@
 
 # TabTransformer layers
 from .tabtransformer import ColumnEmbedding as TabTransformerColumnEmbedding
+
+
+# TabNet layers
+from .tabnet import (FeatureTransformerBlock as TabNetFeatureTransformerBlock,
+                     FeatureTransformer as TabNetFeatureTransformer,
+                     Encoder as TabNetEncoder)
