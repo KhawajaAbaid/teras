@@ -1,5 +1,4 @@
 from tensorflow.keras import layers, models
-from teras.layers.tabnet import AttentiveTransformer, FeatureTransformerBlock
 from teras.layers.tabnet import (FeatureTransformer as _BaseFeatureTransformer,
                                  Encoder as _BaseEncoder,
                                  Decoder as _BaseDecoder,
@@ -23,21 +22,23 @@ class FeatureTransformer(_BaseFeatureTransformer):
 
     Args:
         shared_layers: `List[layers.Layer]`,
-            A list of FeatureTransformerBlock layers or any custom layer
-            that are to be used as the shared layers in the FeatureTransformer.
-            You can import the FeatureTransformerBlock as follows:
-            >>> from teras.layerflow.layers.tabnet import FeatureTransformerBlock
-            and customize the way you want.
+            A list of `TabNetFeatureTransformerBlock` layers or any custom layer
+            that are to be used as the shared layers in the `TabNetFeatureTransformerBlock`.
+            You can import the `TabNetFeatureTransformerBlock` as follows:
+                >>> from teras.layerflow.layers import TabNetFeatureTransformerBlock
+            and customize the way you want.\
+
             In TabNet architecture, shared layers precede the decision dependent
             layers, and hence if you pass shared_layers, the first layer should
             NOT use the residual batch normalization.
             If you don't want to use any shared layers, you should set
             `num_shared_layers` parameter to 0
+
         decision_dependent_layers: `List[layers.Layer]`,
-            A list of FeatureTransformerBlock layers or any custom layer
-            that are to be used as the decision depenedent layers in the FeatureTransformer.
-            You can import the FeatureTransformerBlock as follows:
-            >>> from teras.layerflow.layers.tabnet import FeatureTransformerBlock
+            A list of `TabNetFeatureTransformerBlock` layers or any custom layer
+            that are to be used as the decision depenedent layers in the `TabNetFeatureTransformerBlock`.
+            You can import the `TabNetFeatureTransformerBlock` as follows:
+                >>> from teras.layerflow.layers import TabNetFeatureTransformerBlock
             and customize the way you want.
     """
     def __init__(self,
@@ -79,17 +80,22 @@ class Encoder(_BaseEncoder):
 
     Args:
          feature_transformers_per_step: `List[layers.Layer]`,
-            A list of FeatureTransformer layers or any custom layer that can work
+            A list of `TabNetFeatureTransformer` layers or any custom layer that can work
             in its place. For each decision step, TabNet uses a separate instance
-            of FeatureTransformer layer, hence the number of layers in  the
+            of `TabNetFeatureTransformer` layer, hence the number of layers in  the
             `feature_transformers_per_step` determine the total number of decision
             steps to be taken.
+            You can import the `TabNetFeatureTransformer` layer as follows,
+                >>> from teras.layerflow.layers import TabNetFeatureTransformer
+
         attentive_transformers_per_step: `List[layers.Layer]`,
-            A list of AttentiveTransformer layers or any custom layer that can work
+            A list of ``TabNetAttentiveTransformer`` layers or any custom layer that can work
             in its place. For each decision step, TabNet uses a separate instance
-            of AttentiveTransformer layer, hence the number of layers in  the
+            of `TabNetAttentiveTransformer` layer, hence the number of layers in  the
             `attentive_transformers_per_step` must be equal to the number of layers
             in the `feature_transformers_per_step` list.
+            You can import the `TabNetAttentiveTransformer` as follows,
+                >>> from teras.layerflow.layers import TabNetAttentiveTransformer
     """
     def __init__(self,
                  feature_transformers_per_step: LAYERS_COLLECTION = None,
@@ -126,11 +132,14 @@ class Decoder(_BaseDecoder):
 
     Args:
          feature_transformers_per_step: `List[layers.Layer]`,
-            A list of FeatureTransformer layers or any custom layer that can work
+            A list of `TabNetFeatureTransformer` layers or any custom layer that can work
             in its place. For each decision step, TabNet uses a separate instance
-            of FeatureTransformer layer, hence the number of layers in  the
+            of `TabNetFeatureTransformer` layer, hence the number of layers in  the
             `feature_transformers_per_step` determine the total number of decision
             steps to be taken.
+            You can import the `TabNetFeatureTransformer` as follows,
+                >>> from teras.layerflow.layers import TabNetFeatureTransformer
+
         projection_layers_per_step: `List[layers.Layer]`,
             A list of layers that map encoded representations back to the
             dimensionality of the input data to reconstruct input features.
