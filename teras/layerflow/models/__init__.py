@@ -34,3 +34,9 @@ from teras.layerflow.models.saint import (SAINT,
                                           SAINTClassifier,
                                           SAINTRegressor,
                                           SAINTPretrainer)
+
+
+# FT Transformer models
+from teras.layerflow.models.ft_transformer import (FTTransformer,
+                                                   FTTransformerClassifier,
+                                                   FTTransformerRegressor)
