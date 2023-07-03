@@ -36,18 +36,26 @@ class TabTransformer(BaseTabTransformer):
                 >>> metadata_dict = get_features_metadata_for_embedding(dataframe,
                                                                         numerical_features,
                                                                         categorical_features)
-        categorical_features_embedding: `layers.Layer`,
-            An instance of CategoricalFeatureEmbedding layer to embedd categorical features
-            or any layer that can work in place of CategoricalFeatureEmbedding for that purpose.
-            If None, a CategoricalFeatureEmbedding layer with default values will be used.
+        categorical_feature_embedding: `layers.Layer`,
+            An instance of `CategoricalFeatureEmbedding` layer to embedd categorical features
+            or any layer that can work in place of `CategoricalFeatureEmbedding` for that purpose.
+            If None, a `CategoricalFeatureEmbedding` layer with default values will be used.
+            You can import the `CategoricalFeatureEmbedding` layer as follows,
+                >>> from teras.layerflow.layers import CategoricalFeatureEmbedding
+
         column_embedding: `layers.Layer`,
-            An instance of ColumnEmbedding layer to apply over categorical embeddings,
-            or any layer that can work in place of ColumnEmbedding for that purpose.
-            If None, a ColumnEmbedding layer with default values will be used.
+            An instance of `TabTransformerColumnEmbedding` layer to apply over categorical embeddings,
+            or any layer that can work in place of `TabTransformerColumnEmbedding` for that purpose.
+            If None, a `TabTransformerColumnEmbedding` layer with default values will be used.
+            You can import the `TabTransformerColumnEmbedding` layer as follows,
+                >>> from teras.layerflow.layers import TabTColumnEmbedding
+
         encoder: `layers.Layer`,
             An instance of Encoder layer to encode feature embeddings,
             or any layer that can work in place of Encoder for that purpose.
             If None, an Encoder layer with default values will be used.
+                >>> from teras.layerflow.layers import Encoder
+
         head: `layers.Layer`,
             An instance of ClassificationHead or RegressionHead layer for final outputs,
             or any layer that can work in place of a Head layer for that purpose.
@@ -103,22 +111,33 @@ class TabTransformerClassifier(TabTransformer):
                 >>> metadata_dict = get_features_metadata_for_embedding(dataframe,
                                                                         numerical_features,
                                                                         categorical_features)
-        categorical_features_embedding: `layers.Layer`,
-            An instance of CategoricalFeatureEmbedding layer to embedd categorical features
-            or any layer that can work in place of CategoricalFeatureEmbedding for that purpose.
-            If None, a CategoricalFeatureEmbedding layer with default values will be used.
+
+        categorical_feature_embedding: `layers.Layer`,
+            An instance of `CategoricalFeatureEmbedding` layer to embedd categorical features
+            or any layer that can work in place of `CategoricalFeatureEmbedding` for that purpose.
+            If None, a `CategoricalFeatureEmbedding` layer with default values will be used.
+            You can import the `CategoricalFeatureEmbedding` layer as follows,
+                >>> from teras.layerflow.layers import CategoricalFeatureEmbedding
+
         column_embedding: `layers.Layer`,
-            An instance of ColumnEmbedding layer to apply over categorical embeddings,
-            or any layer that can work in place of ColumnEmbedding for that purpose.
-            If None, a ColumnEmbedding layer with default values will be used.
+            An instance of `TabTransformerColumnEmbedding` layer to apply over categorical embeddings,
+            or any layer that can work in place of `TabTransformerColumnEmbedding` for that purpose.
+            If None, a `TabTransformerColumnEmbedding` layer with default values will be used.
+            You can import the `TabTransformerColumnEmbedding` layer as follows,
+                >>> from teras.layerflow.layers import TabTColumnEmbedding
+
         encoder: `layers.Layer`,
             An instance of Encoder layer to encode feature embeddings,
             or any layer that can work in place of Encoder for that purpose.
             If None, an Encoder layer with default values will be used.
+                >>> from teras.layerflow.layers import Encoder
+
         head: `layers.Layer`,
-            An instance of ClassificationHead layer for the final outputs,
-            or any layer that can work in place of a ClassificationHead layer for that purpose.
-            If None, ClassificationHead layer with default values will be used.
+            An instance of `TabTClassificationHead` layer for the final outputs,
+            or any layer that can work in place of a `TabTClassificationHead` layer for that purpose.
+            If None, `TabTClassificationHead` layer with default values will be used.
+            You can import the `TabTClassificationHead` as follows,
+                >>> from teras.layerflow.layers import TabTClassificationHead
     """
 
     def __init__(self,
@@ -150,9 +169,11 @@ class TabTransformerClassifier(TabTransformer):
             pretrained_model: `TabTransformer`,
                 A pretrained base TabTransformer model instance.
            head: `layers.Layer`,
-                An instance of ClassificationHead layer for the final outputs,
-                or any layer that can work in place of a ClassificationHead layer for that purpose.
-                If None, ClassificationHead layer with default values will be used.
+                An instance of `TabTClassificationHead` layer for the final outputs,
+                or any layer that can work in place of a `TabTClassificationHead` layer for that purpose.
+                If None, `TabTClassificationHead` layer with default values will be used.
+                You can import `TabTClassificationHead` as follows,
+                    >>> from teras.layerflow.layers import TabTClassificationHead
 
         Returns:
             A TabTransformer Classifier instance based of the pretrained model.
@@ -195,22 +216,32 @@ class TabTransformerRegressor(TabTransformer):
                 >>> metadata_dict = get_features_metadata_for_embedding(dataframe,
                                                                         numerical_features,
                                                                         categorical_features)
-        categorical_features_embedding: `layers.Layer`,
-            An instance of CategoricalFeatureEmbedding layer to embedd categorical features
-            or any layer that can work in place of CategoricalFeatureEmbedding for that purpose.
-            If None, a CategoricalFeatureEmbedding layer with default values will be used.
+        categorical_feature_embedding: `layers.Layer`,
+            An instance of `CategoricalFeatureEmbedding` layer to embedd categorical features
+            or any layer that can work in place of `CategoricalFeatureEmbedding` for that purpose.
+            If None, a `CategoricalFeatureEmbedding` layer with default values will be used.
+            You can import the `CategoricalFeatureEmbedding` layer as follows,
+                >>> from teras.layerflow.layers import CategoricalFeatureEmbedding
+
         column_embedding: `layers.Layer`,
-            An instance of ColumnEmbedding layer to apply over categorical embeddings,
-            or any layer that can work in place of ColumnEmbedding for that purpose.
-            If None, a ColumnEmbedding layer with default values will be used.
+            An instance of `TabTransformerColumnEmbedding` layer to apply over categorical embeddings,
+            or any layer that can work in place of `TabTransformerColumnEmbedding` for that purpose.
+            If None, a `TabTransformerColumnEmbedding` layer with default values will be used.
+            You can import the `TabTransformerColumnEmbedding` layer as follows,
+                >>> from teras.layerflow.layers import TabTColumnEmbedding
+
         encoder: `layers.Layer`,
             An instance of Encoder layer to encode feature embeddings,
             or any layer that can work in place of Encoder for that purpose.
             If None, an Encoder layer with default values will be used.
+                >>> from teras.layerflow.layers import Encoder
+
         head: `layers.Layer`,
-            An instance of RegressionHead layer for the final outputs,
-            or any layer that can work in place of a RegressionHead layer for that purpose.
-            If None, RegressionHead layer with default values will be used.
+            An instance of `TabTRegressionHead` layer for the final outputs,
+            or any layer that can work in place of a `TabTRegressionHead` layer for that purpose.
+            If None, `TabTRegressionHead` layer with default values will be used.
+            You can import `TabTRegressionHead` as follows,
+                >>> from teras.layerflow.layers import TabTRegressionHead
     """
     def __init__(self,
                  features_metadata: dict,
@@ -244,6 +275,8 @@ class TabTransformerRegressor(TabTransformer):
                 An instance of RegressionHead layer for the final outputs,
                 or any layer that can work in place of a RegressionHead layer for that purpose.
                 If None, RegressionHead layer with default values will be used.
+                You can import `TabTRegressionHead` as follows,
+                    >>> from teras.layerflow.layers import TabTRegressionHead
 
         Returns:
             A TabTransformer Regressor instance based of the pretrained model.
