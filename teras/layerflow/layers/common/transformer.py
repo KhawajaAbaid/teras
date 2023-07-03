@@ -53,6 +53,10 @@ class Transformer(_BaseTransformer):
         feed_forward: `layers.Layer`,
             An instance of FeedForward layer or any layer that
             can be used in place of FeedForward layer.
+            You can import the `FeedForward` layer as follows,
+                >>> from teras.layerflow.layers import FeedForward
+                or
+                >>> from teras.layers import FeedForward
     """
     def __init__(self,
                  multi_head_attention: layers.Layer = None,
@@ -75,8 +79,12 @@ class Encoder(_BaseEncoder):
 
     Args:
         transformer_layers: `List[layers.Layer]`,
-            A list of Transformer layers that make up the encoder
+            A list of `Transformer` layers that make up the encoder
             layer.
+            You can import the `Transformer` layer as follows,
+                >>> from teras.layerflow.layers import Transformer
+                or
+                >>> from teras.layers import Transformer
     """
     def __init__(self,
                  transformer_layers: LIST_OF_LAYERS = None,
