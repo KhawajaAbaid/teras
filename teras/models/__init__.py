@@ -35,7 +35,8 @@ from .dnfnet import (DNFNetRegressor,
 # SAINT models
 from .saint import (SAINT,
                     SAINTClassifier,
-                    SAINTRegressor)
+                    SAINTRegressor,
+                    SAINTPretrainer)
 
 
 # RTDL ResNet models
