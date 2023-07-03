@@ -46,16 +46,16 @@ class FeedForward(layers.Layer):
         self.multiplier = multiplier
         self.dropout = dropout
         self.activation = GEGLU() if activation.lower() == "geglu" else activation
-        self.dense_1 = layers.Dense(self.embedding_dim * self.multiplier,
-                                    activation=self.activation)
-        self.dropout = layers.Dropout(self.dropout)
-        self.dense_2 = layers.Dense(self.embedding_dim)
+        self.hidden_block = models.Sequential(name="feed_forward_hidden_block")
+        self.hidden_block.add(layers.Dense(self.embedding_dim * self.multiplier,
+                                           activation=self.activation))
+        self.hidden_block.add(layers.Dropout(self.dropout))
+        self.output_layer = layers.Dense(self.embedding_dim)
 
     def call(self, inputs):
-        x = self.dense_1(inputs)
-        x = self.dropout(x)
-        x = self.dense_2(x)
-        return x
+        x = self.hidden_block(inputs)
+        outputs = self.output_layer(x)
+        return outputs
 
 
 class Transformer(layers.Layer):
