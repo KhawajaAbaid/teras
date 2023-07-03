@@ -20,7 +20,9 @@ from teras.layers.embedding import (CategoricalFeatureEmbedding)
 
 
 # TabTransformer layers
-from .tabtransformer import ColumnEmbedding as TabTransformerColumnEmbedding
+from teras.layerflow.layers.tabtransformer import (ColumnEmbedding as TabTransformerColumnEmbedding,
+                                                   RegressionHead as TabTransformerRegressionHead,
+                                                   ClassificationHead as TabTransformerClassificationHead)
 
 
 # TabNet layers
