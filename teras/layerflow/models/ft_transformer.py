@@ -1,10 +1,6 @@
 from tensorflow.keras import layers, models
-from teras.layerflow.layers.ft_transformer import (NumericalFeatureEmbedding,
-                                                   CLSToken,
-                                                   ClassificationHead,
+from teras.layerflow.layers.ft_transformer import (ClassificationHead,
                                                    RegressionHead)
-from teras.layerflow.layers.common.transformer import Transformer, Encoder
-from teras.layerflow.layers import CategoricalFeatureEmbedding
 from teras.models import (FTTransformer as _BaseFTTransformer,
                           FTTransformerClassifier as _BaseFTTransformerClassifier,
                           FTTransformerRegressor as _BaseFTTransformerRegressor)
@@ -39,7 +35,6 @@ class FTTransformer(_BaseFTTransformer):
             If None, a `CategoricalFeatureEmbedding` layer with default values will be used.
             You can import the `CategoricalFeatureEmbedding` layer as follows,
                 >>> from teras.layerflow.layers import CategoricalFeatureEmbedding
-                >>> from teras.layers import CategoricalFeatureEmbedding
 
         numerical_feature_embedding: `layers.Layer`,
             An instance of `FTNumericalFeatureEmbedding` layer to embedd numerical features
@@ -47,15 +42,13 @@ class FTTransformer(_BaseFTTransformer):
             If None, a `FTNumericalFeatureEmbedding` layer with default values will be used.
             You can import the `FTNumericalFeatureEmbedding` layer as follows,
                 >>> from teras.layerflow.layers import FTNumericalFeatureEmbedding
-                >>> from teras.layers import FTNumericalFeatureEmbedding
 
         encoder: `layers.Layer`,
             An instance of `Encoder` layer to encode the features embeddings,
             or any layer that can work in place of `Encoder` for that purpose.
             If None, a `Encoder` layer with default values will be used.
             You can import the `Encoder` layer as follows,
-                >>> from teras.layerflow.layers.common.transformer import Encoder
-                >>> from teras.layers.common.transformer import Encoder
+                >>> from teras.layerflow.layers import Encoder
 
         head: `layers.Layer`,
             An instance of FTClassificationHead or FTRegressionHead layer for final outputs,
@@ -116,7 +109,6 @@ class FTTransformerClassifier(_BaseFTTransformerClassifier):
             If None, a `CategoricalFeatureEmbedding` layer with default values will be used.
             You can import the `CategoricalFeatureEmbedding` layer as follows,
                 >>> from teras.layerflow.layers import CategoricalFeatureEmbedding
-                >>> from teras.layers import CategoricalFeatureEmbedding
 
         numerical_feature_embedding: `layers.Layer`,
             An instance of `FTNumericalFeatureEmbedding` layer to embedd numerical features
@@ -124,24 +116,20 @@ class FTTransformerClassifier(_BaseFTTransformerClassifier):
             If None, a `FTNumericalFeatureEmbedding` layer with default values will be used.
             You can import the `FTNumericalFeatureEmbedding` layer as follows,
                 >>> from teras.layerflow.layers import FTNumericalFeatureEmbedding
-                >>> from teras.layers import FTNumericalFeatureEmbedding
 
         encoder: `layers.Layer`,
             An instance of `Encoder` layer to encode the features embeddings,
             or any layer that can work in place of `Encoder` for that purpose.
             If None, a `Encoder` layer with default values will be used.
             You can import the `Encoder` layer as follows,
-                >>> from teras.layerflow.layers.common.transformer import Encoder
-                >>> from teras.layers.common.transformer import Encoder
+                >>> from teras.layerflow.layers import Encoder
 
         head: `layers.Layer`,
             An instance of `FTClassificationHead` layer for the final outputs,
             or any layer that can work in place of a `FTClassificationHead` layer for that purpose.
             If None, `FTClassificationHead` layer with default values will be used.
             You can import the `FTClassificationHead` layer as follows,
-            >>> from teras.layerflow.layers import FTClassificationHead
-            or
-            >>> from teras.layers import FTClassificationHead
+                >>> from teras.layerflow.layers import FTClassificationHead
     """
     def __init__(self,
                  features_metadata: dict,
@@ -191,7 +179,6 @@ class FTTransformerRegressor(_BaseFTTransformerRegressor):
             If None, a `CategoricalFeatureEmbedding` layer with default values will be used.
             You can import the `CategoricalFeatureEmbedding` layer as follows,
                 >>> from teras.layerflow.layers import CategoricalFeatureEmbedding
-                >>> from teras.layers import CategoricalFeatureEmbedding
 
         numerical_feature_embedding: `layers.Layer`,
             An instance of `FTNumericalFeatureEmbedding` layer to embedd numerical features
@@ -199,24 +186,20 @@ class FTTransformerRegressor(_BaseFTTransformerRegressor):
             If None, a `FTNumericalFeatureEmbedding` layer with default values will be used.
             You can import the `FTNumericalFeatureEmbedding` layer as follows,
                 >>> from teras.layerflow.layers import FTNumericalFeatureEmbedding
-                >>> from teras.layers import FTNumericalFeatureEmbedding
 
         encoder: `layers.Layer`,
             An instance of `Encoder` layer to encode the features embeddings,
             or any layer that can work in place of `Encoder` for that purpose.
             If None, a `Encoder` layer with default values will be used.
             You can import the `Encoder` layer as follows,
-                >>> from teras.layerflow.layers.common.transformer import Encoder
-                >>> from teras.layers.common.transformer import Encoder
+                >>> from teras.layerflow.layers import Encoder
 
         head: `layers.Layer`,
             An instance of `FTRegressionHead` layer for the final outputs,
             or any layer that can work in place of a `FTRegressionHead` layer for that purpose.
             If None, `FTRegressionHead` layer with default values will be used.
             You can import the `FTRegressionHead` layer as follows,
-            >>> from teras.layerflow.layers import FTRegressionHead
-            or
-            >>> from teras.layers import FTRegressionHead
+                >>> from teras.layerflow.layers import FTRegressionHead
     """
     def __init__(self,
                  features_metadata: dict,
