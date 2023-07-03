@@ -34,29 +34,24 @@ class SAINT(_BaseSAINT):
                                                                         categorical_features)
         categorical_feature_embedding: `layers.Layer`,
             An instance of `CategoricalFeatureEmbedding` layer to embedd categorical features
-            or any layer that can work in place of CategoricalFeatureEmbedding for that purpose.
-            If None, a CategoricalFeatureEmbedding layer with default values will be used.
+            or any layer that can work in place of `CategoricalFeatureEmbedding` for that purpose.
+            If None, a `CategoricalFeatureEmbedding` layer with default values will be used.
             You can import the `CategoricalFeatureEmbedding` layer as follows,
-            >>> from teras.layerflow.layers import CategoricalFeatureEmbedding
-            or
-            >>> from teras.layers import CategoricalFeatureEmbedding
+                >>> from teras.layerflow.layers import CategoricalFeatureEmbedding
 
-        saint_numerical_feature_embedding: `layers.Layer`,
+        numerical_feature_embedding: `layers.Layer`,
             An instance of `SAINTNumericalFeatureEmbedding` layer to embedd numerical features
-            or any layer that can work in place of SAINTNumericalFeatureEmbedding for that purpose.
-            If None, a SAINTNumericalFeatureEmbedding layer with default values will be used.
+            or any layer that can work in place of `SAINTNumericalFeatureEmbedding` for that purpose.
+            If None, a `SAINTNumericalFeatureEmbedding` layer with default values will be used.
             You can import the `SAINTNumericalFeatureEmbedding` layer as follows,
-            >>> from teras.layerflow.layers import SAINTNumericalFeatureEmbedding
-            or
-            >>> from teras.layers import SAINTNumericalFeatureEmbedding
-        saint_encoder: `layers.Layer`,
+                >>> from teras.layerflow.layers import SAINTNumericalFeatureEmbedding
+        encoder: `layers.Layer`,
             An instance of `SAINTEncoder` layer to encode the features embeddings,
-            or any layer that can work in place of SAINTEncoder for that purpose.
-            If None, a SAINTEncoder layer with default values will be used.
+            or any layer that can work in place of `SAINTEncoder` for that purpose.
+            If None, a `SAINTEncoder` layer with default values will be used.
             You can import the `SAINTEncoder` layer as follows,
-            >>> from teras.layerflow.layers import SAINTEncoder
-            or
-            >>> from teras.layers import SAINTEncoder
+                >>> from teras.layerflow.layers import SAINTEncoder
+
         head: `layers.Layer`,
             An instance of ClassificationHead or RegressionHead layer for final outputs,
             or any layer that can work in place of a Head layer for that purpose.
@@ -111,37 +106,31 @@ class SAINTClassifier(_BaseSAINTClassifier):
                                                                         categorical_features)
         categorical_feature_embedding: `layers.Layer`,
             An instance of `CategoricalFeatureEmbedding` layer to embedd categorical features
-            or any layer that can work in place of CategoricalFeatureEmbedding for that purpose.
-            If None, a CategoricalFeatureEmbedding layer with default values will be used.
+            or any layer that can work in place of `CategoricalFeatureEmbedding` for that purpose.
+            If None, a `CategoricalFeatureEmbedding` layer with default values will be used.
             You can import the `CategoricalFeatureEmbedding` layer as follows,
-            >>> from teras.layerflow.layers import CategoricalFeatureEmbedding
-            or
-            >>> from teras.layers import CategoricalFeatureEmbedding
+                >>> from teras.layerflow.layers import CategoricalFeatureEmbedding
 
-        saint_numerical_feature_embedding: `layers.Layer`,
+        numerical_feature_embedding: `layers.Layer`,
             An instance of `SAINTNumericalFeatureEmbedding` layer to embedd numerical features
-            or any layer that can work in place of SAINTNumericalFeatureEmbedding for that purpose.
-            If None, a SAINTNumericalFeatureEmbedding layer with default values will be used.
+            or any layer that can work in place of `SAINTNumericalFeatureEmbedding` for that purpose.
+            If None, a `SAINTNumericalFeatureEmbedding` layer with default values will be used.
             You can import the `SAINTNumericalFeatureEmbedding` layer as follows,
-            >>> from teras.layerflow.layers import SAINTNumericalFeatureEmbedding
-            or
-            >>> from teras.layers import SAINTNumericalFeatureEmbedding
-        saint_encoder: `layers.Layer`,
+                >>> from teras.layerflow.layers import SAINTNumericalFeatureEmbedding
+
+        encoder: `layers.Layer`,
             An instance of `SAINTEncoder` layer to encode the features embeddings,
-            or any layer that can work in place of SAINTEncoder for that purpose.
-            If None, a SAINTEncoder layer with default values will be used.
+            or any layer that can work in place of `SAINTEncoder` for that purpose.
+            If None, a `SAINTEncoder` layer with default values will be used.
             You can import the `SAINTEncoder` layer as follows,
-            >>> from teras.layerflow.layers import SAINTEncoder
-            or
-            >>> from teras.layers import SAINTEncoder
+                >>> from teras.layerflow.layers import SAINTEncoder
+
         head: `layers.Layer`,
             An instance of `SAINTClassificationHead` layer for the final outputs,
             or any layer that can work in place of a `SAINTClassificationHead` layer for that purpose.
             If None, `SAINTClassificationHead` layer with default values will be used.
             You can import the `SAINTClassificationHead` layer as follows,
-            >>> from teras.layerflow.layers import SAINTClassificationHead
-            or
-            >>> from teras.layers import SAINTClassificationHead
+                >>> from teras.layerflow.layers import SAINTClassificationHead
     """
     def __init__(self,
                  features_metadata: dict,
@@ -188,37 +177,32 @@ class SAINTRegressor(_BaseSAINTRegressor):
                                                                         categorical_features)
         categorical_feature_embedding: `layers.Layer`,
             An instance of `CategoricalFeatureEmbedding` layer to embedd categorical features
-            or any layer that can work in place of CategoricalFeatureEmbedding for that purpose.
-            If None, a CategoricalFeatureEmbedding layer with default values will be used.
+            or any layer that can work in place of `CategoricalFeatureEmbedding` for that purpose.
+            If None, a `CategoricalFeatureEmbedding` layer with default values will be used.
             You can import the `CategoricalFeatureEmbedding` layer as follows,
-            >>> from teras.layerflow.layers import CategoricalFeatureEmbedding
-            or
-            >>> from teras.layers import CategoricalFeatureEmbedding
+                >>> from teras.layerflow.layers import CategoricalFeatureEmbedding
 
-        saint_numerical_feature_embedding: `layers.Layer`,
+        numerical_feature_embedding: `layers.Layer`,
             An instance of `SAINTNumericalFeatureEmbedding` layer to embedd numerical features
-            or any layer that can work in place of SAINTNumericalFeatureEmbedding for that purpose.
-            If None, a SAINTNumericalFeatureEmbedding layer with default values will be used.
+            or any layer that can work in place of `SAINTNumericalFeatureEmbedding` for that purpose.
+            If None, a `SAINTNumericalFeatureEmbedding` layer with default values will be used.
             You can import the `SAINTNumericalFeatureEmbedding` layer as follows,
-            >>> from teras.layerflow.layers import SAINTNumericalFeatureEmbedding
-            or
-            >>> from teras.layers import SAINTNumericalFeatureEmbedding
-        saint_encoder: `layers.Layer`,
+                >>> from teras.layerflow.layers import SAINTNumericalFeatureEmbedding
+
+        encoder: `layers.Layer`,
             An instance of `SAINTEncoder` layer to encode the features embeddings,
-            or any layer that can work in place of SAINTEncoder for that purpose.
-            If None, a SAINTEncoder layer with default values will be used.
+            or any layer that can work in place of `SAINTEncoder` for that purpose.
+            If None, a `SAINTEncoder` layer with default values will be used.
             You can import the `SAINTEncoder` layer as follows,
-            >>> from teras.layerflow.layers import SAINTEncoder
-            or
-            >>> from teras.layers import SAINTEncoder
+                >>> from teras.layerflow.layers import SAINTEncoder
+
         head: `layers.Layer`,
             An instance of `SAINTRegressionHead` layer for the final outputs,
             or any layer that can work in place of a `SAINTRegressionHead` layer for that purpose.
             If None, `SAINTRegressionHead` layer with default values will be used.
             You can import the `SAINTRegressionHead` layer as follows,
-            >>> from teras.layerflow.layers import SAINTRegressionHead
-            or
-            >>> from teras.layers import SAINTRegressionHead
+                >>> from teras.layerflow.layers import SAINTRegressionHead
+
     """
     def __init__(self,
                  features_metadata: dict,
@@ -258,36 +242,31 @@ class SAINTPretrainer(_BaseSAINTPretrainer):
             An instance of `MixUp` layer or any custom layer that can work
             in its place.
             You can import the `MixUp` layer as follows,
-            >>> from teras.layerflow.layers import MixUp
-            or,
-            >>> from teras.layers import MixUp
+                >>> from teras.layerflow.layers import MixUp
+
         cutmix: `layers.Layer`,
             An instance of `CutMix` layer or any custom layer that can work
             in its place.
             You can import the `CutMix` layer as follows,
-            >>> from teras.layerflow.layers import CutMix
-            or,
-            >>> from teras.layers import CutMix
+                >>> from teras.layerflow.layers import CutMix
+
         projection_head_1: `layers.Layer`,
             An instance of `ProjectionHead` layer that is used to project embeddings
             of *real* samples to a lower dimensionality before reconstructing the inputs.
             You can import the `ProjectionHead` layer as follows,
-            >>> from teras.layerflow.layers.saint import ProjectionHead
-            or,
-            >>> from teras.layers.saint import ProjectionHead
+                >>> from teras.layerflow.layers.saint import ProjectionHead
+
         projection_head_2: `layers.Layer`,
             An instance of `ProjectionHead` layer that is used to project embeddings
             of *augmented* samples to a lower dimensionality before reconstructing the inputs.
             You can import the `ProjectionHead` layer as follows,
-            >>> from teras.layerflow.layers.saint import ProjectionHead
-            or,
-            >>> from teras.layers.saint import ProjectionHead
+                >>> from teras.layerflow.layers.saint import ProjectionHead
+
         reconstruction_head: `layers.Layer`,
             An instance of `ReconstructionHead` which applies a separate ReconstructionHeadBlock
             to reconstruct the input features.
-            >>> from teras.layerflow.layers.saint import ReconstructionHead
-            or,
-            >>> from teras.layers.saint import ReconstructionHead
+                >>> from teras.layerflow.layers.saint import ReconstructionHead
+
         temperature: `float`, default 0.7,
             Temperature value used in the computation of the InfoNCE contrastive loss.
         lambda_: `float`, default 10,
