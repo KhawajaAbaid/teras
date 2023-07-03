@@ -27,3 +27,10 @@ from teras.layerflow.models.tabtransformer import (TabTransformer,
 from teras.layerflow.models.tabnet import (TabNet,
                                            TabNetRegressor,
                                            TabNetClassifier)
+
+
+# SAINT models
+from teras.layerflow.models.saint import (SAINT,
+                                          SAINTClassifier,
+                                          SAINTRegressor,
+                                          SAINTPretrainer)
