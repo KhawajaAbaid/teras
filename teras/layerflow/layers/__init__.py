@@ -18,28 +18,38 @@ from teras.layers.regularization import (MixUp,
                                          CutMix)
 from teras.layers.embedding import (CategoricalFeatureEmbedding)
 
+# --> Common transformer layers
+from teras.layerflow.layers.common.transformer import (FeedForward,
+                                                       Transformer,
+                                                       Encoder)
+
+
 
 # TabTransformer layers
-from teras.layerflow.layers.tabtransformer import (ColumnEmbedding as TabTransformerColumnEmbedding,
-                                                   RegressionHead as TabTransformerRegressionHead,
-                                                   ClassificationHead as TabTransformerClassificationHead)
+from teras.layerflow.layers.tabtransformer import (RegressionHead as TabTRegressionHead,
+                                                   ClassificationHead as TabTClassificationHead)
+from teras.layers.tabtransformer import (ColumnEmbedding as TabTColumnEmbedding)
 
 
 # TabNet layers
-from .tabnet import (FeatureTransformerBlock as TabNetFeatureTransformerBlock,
-                     FeatureTransformer as TabNetFeatureTransformer,
-                     Encoder as TabNetEncoder,
-                     Decoder as TabNetDecoder,
-                     ClassificationHead as TabNetClassificationHead,
-                     RegressionHead as TabNetRegressionHead)
+from teras.layerflow.layers.tabnet import (FeatureTransformer as TabNetFeatureTransformer,
+                                           Encoder as TabNetEncoder,
+                                           Decoder as TabNetDecoder,
+                                           ClassificationHead as TabNetClassificationHead,
+                                           RegressionHead as TabNetRegressionHead)
+from teras.layers.tabnet import (FeatureTransformerBlock as TabNetFeatureTransformerBlock,
+                                 AttentiveTransformer as TabNetAttentiveTransformer)
+
 
 # SAINT layeres
-from teras.layerflow.layers.saint import (NumericalFeatureEmbedding as SAINTNumericalFeatureEmbedding,
-                                          MultiHeadInterSampleAttention,
-                                          SAINTTransformer,
+from teras.layerflow.layers.saint import (SAINTTransformer,
                                           Encoder as SAINTEncoder,
+                                          ReconstructionHead as SAINTReconstructionHead,
                                           ClassificationHead as SAINTClassificationHead,
                                           RegressionHead as SAINTRegressionHead)
+from teras.layers.saint import (NumericalFeatureEmbedding as SAINTNumericalFeatureEmbedding,
+                                MultiHeadInterSampleAttention,
+                                ReconstructionBlock as SAINTReconstructionBlock)
 
 
 # FT-Transformer layers
