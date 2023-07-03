@@ -13,6 +13,12 @@
 # limitations under the License.
 
 
+# Atomic layers not specific to a model architecture
+from teras.layers.regularization import (MixUp,
+                                         CutMix)
+from teras.layers.embedding import (CategoricalFeatureEmbedding)
+
+
 # TabTransformer layers
 from .tabtransformer import ColumnEmbedding as TabTransformerColumnEmbedding
 
@@ -22,3 +28,11 @@ from .tabnet import (FeatureTransformerBlock as TabNetFeatureTransformerBlock,
                      FeatureTransformer as TabNetFeatureTransformer,
                      Encoder as TabNetEncoder,
                      Decoder as TabNetDecoder)
+
+# SAINT layeres
+from teras.layerflow.layers.saint import (SAINTNumericalFeatureEmbedding,
+                                          MultiHeadInterSampleAttention,
+                                          SAINTTransformer,
+                                          Encoder as SAINTEncoder,
+                                          ClassificationHead as SAINTClassificationHead,
+                                          RegressionHead as SAINTRegressionHead)
