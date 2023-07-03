@@ -9,6 +9,7 @@ from teras.layers.tabnet import RegressionHead, ClassificationHead
 from teras.layers import CategoricalFeatureEmbedding
 from teras.config.tabnet import TabNetConfig
 from warnings import warn
+from teras.layerflow.models import SimpleModel
 
 
 LAYER_OR_MODEL = Union[keras.layers.Layer, keras.Model]
@@ -329,12 +330,12 @@ class TabNetClassifier(TabNet):
         num_classes = 1 if num_classes <= 2 else num_classes
         if activation_out is None:
             activation_out = "sigmoid" if num_classes == 1 else "softmax"
-        inputs = keras.layers.Input(shape=(pretrained_model.num_features,))
-        x = pretrained_model(inputs, training=False)
-        outputs = ClassificationHead(num_classes=num_classes,
-                                     activation_out=activation_out,
-                                     name="tabnet_classification_head")(x)
-        model = keras.models.Model(inputs=inputs, outputs=outputs)
+        head = ClassificationHead(num_classes=num_classes,
+                                  activation_out=activation_out,
+                                  name="tabnet_classification_head")
+        model = SimpleModel(body=pretrained_model,
+                            head=head,
+                            name="tabnet_classifier_pretrained")
         return model
 
     # def call(self, inputs):
@@ -463,11 +464,11 @@ class TabNetRegressor(TabNet):
         Returns:
             A TabNet Regressor instance based of the pretrained model.
         """
-        inputs = keras.layers.Input(shape=(pretrained_model.num_features,))
-        x = pretrained_model(inputs, training=False)
-        outputs = RegressionHead(num_outputs=num_outputs,
-                                   name="tabnet_regression_head")(x)
-        model = keras.models.Model(inputs=inputs, outputs=outputs)
+        head = RegressionHead(num_outputs=num_outputs,
+                              name="tabnet_regression_head")
+        model = SimpleModel(body=pretrained_model,
+                            head=head,
+                            name="tabnet_regressor_pretrained")
         return model
 
     # def call(self, inputs):
@@ -484,10 +485,9 @@ class TabNetPretrainer(keras.Model):
     TabNetPretrainer model based on the architecture
     proposed by Sercan et al. in TabNet paper.
 
-    TabNetPretrainer subclasses the TabNet class since TabNet itself is just an encoder
-    model while the TabNet decoder is an encoder-decoder model, so instead of instantiating
-    everything encoder part specific here, we can just utilize the parent class i.e. TabNet
-    which already implements it all and will serve as a useful abstraction to keep things clean.
+    TabNetPretrainer is an encoder-decoder model based on the TabNet architecture,
+    where the TabNet model acts as an encoder while a separate decoder
+    is used to reconstruct the input features.
 
     Reference(s):
         https://arxiv.org/abs/1908.07442
@@ -594,7 +594,6 @@ class TabNetPretrainer(keras.Model):
     def train_step(self, data):
         if isinstance(data, tuple):
             data = data[0]
-        batch_size = tf.shape(data)[0]
         if self._is_first_batch:
             if isinstance(data, dict):
                 self._is_data_in_dict_format = True
@@ -611,8 +610,10 @@ class TabNetPretrainer(keras.Model):
             # We need to concatenate numerical features to the categorical embeddings
             if self.model.numerical_features_exist:
                 if self._is_data_in_dict_format:
-                    numerical_features = [data[feature_name] for feature_name in self.numerical_feature_names]
+                    numerical_features = [tf.expand_dims(data[feature_name], axis=1)
+                                          for feature_name in self.numerical_feature_names]
                     numerical_features = tf.concat(numerical_features, axis=1)
+                    numerical_features = tf.cast(numerical_features, tf.float32)
                 else:
                     numerical_features = tf.gather(data,
                                                    indices=self.numerical_features_indices,
@@ -625,6 +626,7 @@ class TabNetPretrainer(keras.Model):
 
             embedded_inputs.set_shape((None, self.model.num_features))
             # Generate mask to create missing samples
+            batch_size = tf.shape(embedded_inputs)[0]
             mask = self.binary_mask_generator.sample(sample_shape=(batch_size, self.data_dim))
             tape.watch(mask)
             # Reconstruct samples

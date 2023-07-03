@@ -39,8 +39,8 @@ features_metadata = get_features_metadata_for_embedding(gem_df,
 training_df, pretrain_df = train_test_split(gem_df, test_size=0.25, shuffle=True, random_state=1337)
 
 pretrain_df.pop("price")
-X_ds = dataframe_to_tf_dataset(training_df, 'price', batch_size=1024, as_dict=False)
-pretrain_ds = dataframe_to_tf_dataset(pretrain_df, batch_size=1024, as_dict=False)
+X_ds = dataframe_to_tf_dataset(training_df, 'price', batch_size=1024, as_dict=True)
+pretrain_ds = dataframe_to_tf_dataset(pretrain_df, batch_size=1024, as_dict=True)
 
 # NEW DISCOVERY: If the categorical values have been encoded, you MUST set the encode_categorical_values param to False
 # other otherwise it the string lookup layer will throw an error.
@@ -48,8 +48,10 @@ pretrain_ds = dataframe_to_tf_dataset(pretrain_df, batch_size=1024, as_dict=Fals
 tabnet = TabNet(features_metadata=features_metadata,
                           encode_categorical_values=False,
                           virtual_batch_size=4)
+
 tabnet_pretrainer = TabNetPretrainer(model=tabnet)
 tabnet_pretrainer.compile()
+print("pretraining...")
 tabnet_pretrainer.fit(pretrain_ds, epochs=3)
 
 # Retrieve the pretrained instance
@@ -64,11 +66,13 @@ tabnet_regressor = TabNetRegressor.from_pretrained(pretrained_model=pretrained_t
 # freeze compile train, unfreeze compile train, you know the typical fine-tuning workflow.
 
 # First we'll train the head and keep the base freezed
+print("Training the top/head layer...")
 pretrained_tabent.trainable = False
 tabnet_regressor.compile(loss="mse", metrics=["mae"])
 tabnet_regressor.fit(X_ds, epochs=3)
 
 # Then we'll unfreeze the base and train the whole model
+print("Finetuning the whole model together...")
 pretrained_tabent.trainable = True
 tabnet_regressor.compile(loss="mse", metrics=["mae"])
 tabnet_regressor.fit(X_ds, epochs=3)

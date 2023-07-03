@@ -38,7 +38,9 @@ from .tabnet import (AttentiveTransformer as TabNetAttentiveTransformer,
 
 
 # TabTransformer layers
-from .tabtransformer import ColumnEmbedding as TabTransformerColumnEmbedding
+from .tabtransformer import (ColumnEmbedding as TabTColumnEmbedding,
+                             ClassificationHead as TabTClassificationHead,
+                             RegressionHead as TabTRegressionHead)
 
 
 # DNFNet layers
@@ -50,7 +52,9 @@ from .dnfnet import (DNNF,
 # SAINT layers
 from .saint import (NumericalFeatureEmbedding as SAINTNumericalFeatureEmbedding,
                     MultiHeadInterSampleAttention as SAINTMultiHeadInterSampleAttention,
-                    Encoder as SAINTEncoder)
+                    Encoder as SAINTEncoder,
+                    ClassificationHead as SAINTClassificationHead,
+                    RegressionHead as SAINTRegressionHead)
 
 
 # RTDL ResNet layers
@@ -61,7 +65,9 @@ from teras.layers.rtdl_resnet import (ResNetBlock as RTDLResNetBlock,
 
 # RTDL FTTransformer layers
 from teras.layers.ft_transformer import (NumericalFeatureEmbedding as FTNumericalFeatureEmbedding,
-                                         CLSToken as FTCLSToken)
+                                         CLSToken as FTCLSToken,
+                                         ClassificationHead as FTClassificationHead,
+                                         RegressionHead as FTRegressionHead)
 
 
 # VIME layers
@@ -88,3 +94,8 @@ from teras.layers.regularization import (MixUp,
 # Encoding layers
 from teras.layers.encoding import LabelEncoding
 
+
+# Common Transformer layers
+from teras.layers.common.transformer import (FeedForward,
+                                             Transformer,
+                                             Encoder)

@@ -211,24 +211,45 @@ class SAINTTransformer(layers.Layer):
         self.apply_attention_to_rows = apply_attention_to_rows
         self.num_embedded_features = num_embedded_features
 
+        # To make this layer compatible with the layerflow version of this layer,
+        # we instantiate some layers as self attributes
+        self.multihead_inter_sample_attention = MultiHeadInterSampleAttention(
+                                                    num_heads=self.num_inter_sample_attention_heads,
+                                                    key_dim=self.embedding_dim * self.num_embedded_features,
+                                                    dropout=self.inter_sample_attention_dropout,
+                                                    name="inter_sample_multihead_attention"
+                                                    )
+        self.feed_forward = FeedForward(embedding_dim=self.embedding_dim,
+                                        multiplier=self.feedforward_multiplier,
+                                        dropout=feedforward_dropout)
+        self.transformer = Transformer(embedding_dim=self.embedding_dim,
+                                       num_attention_heads=self.num_attention_heads,
+                                       attention_dropout=self.attention_dropout,
+                                       feedforward_dropout=self.feedforward_dropout,
+                                       feedforward_multiplier=self.feedforward_multiplier,
+                                       norm_epsilon=self.norm_epsilon,
+                                       name="inner_trasnformer_block_for_features")
+
+        # by default we make call to the _build_saint_inner_transformer_block function
+        # when the SAINTTransformer gets constructed but when this class is used as a
+        # parent to the layerflow version of this, we want to be able to reconstruct
+        # the functional model using the user passed layers for attention/transformer etc.
+        self._build_saint_inner_transformer_block()
+
+    def _build_saint_inner_transformer_block(self):
         # We build the inner SAINT Transformer block using keras Functional API
 
         # Inter Sample Attention Block: this attention is applied to rows.
         inputs = layers.Input(shape=(self.num_embedded_features, self.embedding_dim))
         intermediate_outputs = inputs
+
         if self.apply_attention_to_rows:
             residual = inputs
-            x = MultiHeadInterSampleAttention(num_heads=self.num_inter_sample_attention_heads,
-                                              key_dim=self.embedding_dim * self.num_embedded_features,
-                                              dropout=self.inter_sample_attention_dropout,
-                                              name="inter_sample_multihead_attention"
-                                              )(inputs)
+            x = self.multihead_inter_sample_attention(inputs)
             x = layers.Add()([x, residual])
             x = layers.LayerNormalization(epsilon=self.norm_epsilon)(x)
             residual = x
-            x = FeedForward(embedding_dim=self.embedding_dim,
-                            multiplier=self.feedforward_multiplier,
-                            dropout=feedforward_dropout)(x)
+            x = self.feed_forward(x)
             x = layers.Add()([x, residual])
             intermediate_outputs = layers.LayerNormalization(epsilon=self.norm_epsilon)(x)
             final_outputs = intermediate_outputs
@@ -242,13 +263,7 @@ class SAINTTransformer(layers.Layer):
             # Since the common Transformer layer applies MutliHeadAttention over features
             # as well as takes care of applying all the preceding and following layers,
             # so we'll just use that here.
-            final_outputs = Transformer(embedding_dim=self.embedding_dim,
-                                        num_attention_heads=self.num_attention_heads,
-                                        attention_dropout=self.attention_dropout,
-                                        feedforward_dropout=self.feedforward_dropout,
-                                        feedforward_multiplier=self.feedforward_multiplier,
-                                        norm_epsilon=self.norm_epsilon,
-                                        name="inner_trasnformer_block_for_features")(intermediate_outputs)
+            final_outputs = self.transformer(intermediate_outputs)
 
         self.transformer_block = keras.Model(inputs=inputs,
                                              outputs=final_outputs,
@@ -352,23 +367,100 @@ class Encoder(layers.Layer):
         self.apply_attention_to_rows = apply_attention_to_rows
         self.num_embedded_features = num_embedded_features
 
-        self.transformer_layers = keras.models.Sequential(name="transformer_layers")
+        self.saint_transformer_layers = keras.models.Sequential(name="saint_transformer_layers")
         for i in range(self.num_transformer_layers):
-            self.transformer_layers.add(SAINTTransformer(
-                                            embedding_dim=self.embedding_dim,
-                                            num_attention_heads=self.num_attention_heads,
-                                            num_inter_sample_attention_heads=self.num_inter_sample_attention_heads,
-                                            attention_dropout=self.attention_dropout,
-                                            inter_sample_attention_dropout=self.inter_sample_attention_dropout,
-                                            feedforward_dropout=self.feedforward_dropout,
-                                            feedforward_multiplier=self.feedforward_multiplier,
-                                            apply_attention_to_features=self.apply_attention_to_features,
-                                            apply_attention_to_rows=self.apply_attention_to_rows,
-                                            num_embedded_features=self.num_embedded_features,
-                                            name=f"saint_transformer_layer_{i}"))
+            self.saint_transformer_layers.add(SAINTTransformer(
+                embedding_dim=self.embedding_dim,
+                num_attention_heads=self.num_attention_heads,
+                num_inter_sample_attention_heads=self.num_inter_sample_attention_heads,
+                attention_dropout=self.attention_dropout,
+                inter_sample_attention_dropout=self.inter_sample_attention_dropout,
+                feedforward_dropout=self.feedforward_dropout,
+                feedforward_multiplier=self.feedforward_multiplier,
+                apply_attention_to_features=self.apply_attention_to_features,
+                apply_attention_to_rows=self.apply_attention_to_rows,
+                num_embedded_features=self.num_embedded_features,
+                name=f"saint_transformer_layer_{i}"))
 
     def call(self, inputs):
-        outputs = self.transformer_layers(inputs)
+        outputs = self.saint_transformer_layers(inputs)
+        return outputs
+
+
+class ProjectionHead(layers.Layer):
+    """
+    ProjectionHead layer that is used in the contrastive learning phase of
+    the SAINTPretrainer to project embeddings to a lower dimension.
+    According to the SAINT paper,
+    "The use of a projection head to reduce dimensionality before computing
+    contrastive loss is common in vision and indeed also improves results
+    on tabular data."
+
+    Reference(s):
+    https://arxiv.org/abs/2106.01342
+
+    Args:
+        hidden_dim: `int`,
+            Dimensionality of the hidden layer.
+            In the official implementation, it is computed as follows,
+            `hidden_dim = 6 * embedding_dim * number_of_features // 5`
+        hidden_activation, default "relu":
+            Activation function to use in the hidden layer.
+        output_dim: `int`,
+            Dimensionality of the output layer.
+            In the official implementation, it is computed as follows,
+            `output_dim = embedding_dim * number_of_featuers // 5`
+    """
+    def __init__(self,
+                 hidden_dim: int = None,
+                 hidden_activation="relu",
+                 output_dim: int = None,
+                 **kwargs):
+        super().__init__(**kwargs)
+        self.hidden_dim = hidden_dim
+        self.hidden_activation = hidden_activation
+        self.output_dim = output_dim
+
+        self.hidden_block = layers.Dense(units=self.hidden_dim,
+                                         activation=self.hidden_activation)
+        self.output_layer = layers.Dense(units=self.output_dim)
+
+    def call(self, inputs):
+        x = self.hidden_block(inputs)
+        outputs = self.output_layer(x)
+        return outputs
+
+
+class ReconstructionBlock(layers.Layer):
+    """
+    ReconstructionBlock layer that is used in constructing ReconstructionHead.
+    One ReconstructionBlock is created for each feature in the dataset.
+
+    Args:
+        hidden_dim: `int`,
+            Dimensionality of the hidden layer.
+        hidden_activation:
+            Activation function to use in the hidden layer.
+        data_dim: `int`,
+            Dimensionality of the given input feature.
+            The inputs to this layer are first mapped to hidden dimensions
+            and then projected to the dimensionality of the feature.
+            For categorical features, it is equal to the number of classes
+            in the feature, and for numerical feautures, it is equal to 1.
+    """
+    def __init__(self,
+                 hidden_dim: int = None,
+                 hidden_activation="relu",
+                 data_dim: int = None,
+                 **kwargs):
+        super().__init__(**kwargs)
+        self.hidden_block = layers.Dense(hidden_dim,
+                                         activation=hidden_activation)
+        self.output_layer = layers.Dense(data_dim)
+
+    def call(self, inputs):
+        x = self.hidden_block(inputs)
+        outputs = self.output_layer(x)
         return outputs
 
 
@@ -427,11 +519,9 @@ class ReconstructionHead(layers.Layer):
 
         # For the computation of denoising loss, we use a separate MLP block for each feature
         # we call the combined blocks, reconstruction heads
-        self.reconstruction_blocks = [models.Sequential([
-            layers.Dense(units=self.embedding_dim * 5,
-                         activation="relu"),
-            layers.Dense(units=dim)
-        ])
+        self.reconstruction_blocks = [
+            ReconstructionBlock(hidden_dim=self.embedding_dim * 5,
+                                data_dim=dim)
             for dim in feature_dims]
 
     def call(self, inputs):

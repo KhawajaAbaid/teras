@@ -3,7 +3,7 @@ from tensorflow import keras
 from tensorflow.keras import layers, models
 from teras.layers import CategoricalFeatureEmbedding
 from teras.layers import SAINTNumericalFeatureEmbedding, SAINTEncoder
-from teras.layers.saint import ReconstructionHead, ClassificationHead, RegressionHead
+from teras.layers.saint import ReconstructionHead, ClassificationHead, RegressionHead, ProjectionHead
 from teras.config.saint import SAINTConfig
 from teras.layers.regularization import MixUp, CutMix
 from teras.layers.encoding import LabelEncoding
@@ -490,21 +490,14 @@ class SAINTPretrainer(keras.Model):
         # official implementation
         projection_head_hidden_dim = 6 * self.model.embedding_dim * self.model.num_features // 5
         projection_head_output_dim = self.model.embedding_dim * self.model.num_features // 2
-        self.projection_head_1 = models.Sequential(
-            [
-                layers.Dense(units=projection_head_hidden_dim, activation="relu"),
-                layers.Dense(units=projection_head_output_dim)
-            ],
-            name="projection_head_for_original_data"
-        )
 
-        self.projection_head_2 = models.Sequential(
-            [
-                layers.Dense(units=projection_head_hidden_dim, activation="relu"),
-                layers.Dense(units=projection_head_output_dim)
-            ],
-            name="projection_head_for_augmented_data"
-        )
+        self.projection_head_1 = ProjectionHead(hidden_dim=projection_head_hidden_dim,
+                                                output_dim=projection_head_output_dim,
+                                                name="projection_head_for_original_data")
+
+        self.projection_head_2 = ProjectionHead(hidden_dim=projection_head_hidden_dim,
+                                                output_dim=projection_head_output_dim,
+                                                name="projection_head_for_augmented_data")
 
         self.reconstruction_head = ReconstructionHead(features_metadata=self.model.features_metadata,
                                                       embedding_dim=self.model.embedding_dim)

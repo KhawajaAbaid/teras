@@ -46,16 +46,16 @@ class FeedForward(layers.Layer):
         self.multiplier = multiplier
         self.dropout = dropout
         self.activation = GEGLU() if activation.lower() == "geglu" else activation
-        self.dense_1 = layers.Dense(self.embedding_dim * self.multiplier,
-                                    activation=self.activation)
-        self.dropout = layers.Dropout(self.dropout)
-        self.dense_2 = layers.Dense(self.embedding_dim)
+        self.hidden_block = models.Sequential(name="feed_forward_hidden_block")
+        self.hidden_block.add(layers.Dense(self.embedding_dim * self.multiplier,
+                                           activation=self.activation))
+        self.hidden_block.add(layers.Dropout(self.dropout))
+        self.output_layer = layers.Dense(self.embedding_dim)
 
     def call(self, inputs):
-        x = self.dense_1(inputs)
-        x = self.dropout(x)
-        x = self.dense_2(x)
-        return x
+        x = self.hidden_block(inputs)
+        outputs = self.output_layer(x)
+        return outputs
 
 
 class Transformer(layers.Layer):
@@ -211,7 +211,7 @@ class RegressionHead(layers.Layer):
                     self.hidden_block.add(get_normalization_layer(self.normalization))
                 self.hidden_block.add(layers.Dense(units,
                                                    activation=self.activation_hidden))
-        self.dense_out = layers.Dense(self.num_outputs)
+        self.output_layer = layers.Dense(self.num_outputs)
 
     # def build(self, input_shape):
     #     self.hidden_block.build(input_shape)
@@ -220,7 +220,7 @@ class RegressionHead(layers.Layer):
         x = inputs
         if self.hidden_block is not None:
             x = self.hidden_block(x)
-        outputs = self.dense_out(x)
+        outputs = self.output_layer(x)
         return outputs
 
 
@@ -267,12 +267,12 @@ class ClassificationHead(layers.Layer):
                     self.hidden_block.add(get_normalization_layer(self.normalization))
                 self.hidden_block.add(layers.Dense(units,
                                                    activation=self.activation_hidden))
-        self.dense_out = layers.Dense(self.num_classes,
+        self.output_layer = layers.Dense(self.num_classes,
                                       activation=self.activation_out)
 
     def call(self, inputs):
         x = inputs
         if self.hidden_block is not None:
             x = self.hidden_block(x)
-        outputs = self.dense_out(x)
+        outputs = self.output_layer(x)
         return outputs
