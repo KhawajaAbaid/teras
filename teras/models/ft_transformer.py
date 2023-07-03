@@ -90,12 +90,12 @@ class FTTransformer(keras.Model):
         self._num_categorical_features = len(self._categorical_features_metadata)
         self._num_numerical_features = len(self._numerical_features_metadata)
 
-        self._numerical_features_exists = self._num_numerical_features > 0
+        self._numerical_features_exist = self._num_numerical_features > 0
         self._categorical_features_exist = self._num_categorical_features > 0
 
         # Numerical/Continuous Features Embedding
         self.numerical_feature_embedding = None
-        if self._numerical_features_exists:
+        if self._numerical_features_exist:
             self.numerical_feature_embedding = FTNumericalFeatureEmbedding(
                                                     numerical_features_metadata=self._numerical_features_metadata,
                                                     embedding_dim=self.embedding_dim)
@@ -122,10 +122,10 @@ class FTTransformer(keras.Model):
 
     def call(self, inputs):
         features = None
-        if self.categorical_feature_embedding is not None:
+        if self._categorical_features_exist:
             categorical_features = self.categorical_feature_embedding(inputs)
             features = categorical_features
-        if self.numerical_feature_embedding is not None:
+        if self._numerical_features_exist:
             numerical_features = self.numerical_feature_embedding(inputs)
             if features is not None:
                 features = tf.concat([features, numerical_features],
