@@ -63,7 +63,9 @@ from teras.layers.rtdl_resnet import (ResNetBlock as RTDLResNetBlock,
 
 # RTDL FTTransformer layers
 from teras.layers.ft_transformer import (NumericalFeatureEmbedding as FTNumericalFeatureEmbedding,
-                                         CLSToken as FTCLSToken)
+                                         CLSToken as FTCLSToken,
+                                         ClassificationHead as FTClassificationHead,
+                                         RegressionHead as FTRegressionHead)
 
 
 # VIME layers
