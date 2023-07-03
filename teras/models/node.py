@@ -8,7 +8,7 @@ import tensorflow_addons as tfa
 
 class NODE(keras.Model):
     """
-    Neural Oblivious Decision Tree (NODE) Regressor model
+    Neural Oblivious Decision Tree (NODE) model
     based on the NODE architecture proposed by Sergei Popov et al.
     in paper Neural Oblivious Decision Ensembles for Deep Learning on Tabular Data
 
