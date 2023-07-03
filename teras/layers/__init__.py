@@ -48,7 +48,7 @@ from .dnfnet import (DNNF,
 
 
 # SAINT layers
-from .saint import (SAINTNumericalFeatureEmbedding,
+from .saint import (NumericalFeatureEmbedding as SAINTNumericalFeatureEmbedding,
                     MultiHeadInterSampleAttention as SAINTMultiHeadInterSampleAttention,
                     Encoder as SAINTEncoder,
                     ClassificationHead as SAINTClassificationHead,

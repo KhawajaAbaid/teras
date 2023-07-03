@@ -27,10 +27,12 @@ from .tabtransformer import ColumnEmbedding as TabTransformerColumnEmbedding
 from .tabnet import (FeatureTransformerBlock as TabNetFeatureTransformerBlock,
                      FeatureTransformer as TabNetFeatureTransformer,
                      Encoder as TabNetEncoder,
-                     Decoder as TabNetDecoder)
+                     Decoder as TabNetDecoder,
+                     ClassificationHead as TabNetClassificationHead,
+                     RegressionHead as TabNetRegressionHead)
 
 # SAINT layeres
-from teras.layerflow.layers.saint import (SAINTNumericalFeatureEmbedding,
+from teras.layerflow.layers.saint import (NumericalFeatureEmbedding as SAINTNumericalFeatureEmbedding,
                                           MultiHeadInterSampleAttention,
                                           SAINTTransformer,
                                           Encoder as SAINTEncoder,

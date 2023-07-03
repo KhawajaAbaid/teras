@@ -1,5 +1,5 @@
 from tensorflow.keras import layers, models
-from teras.layers.saint import (SAINTNumericalFeatureEmbedding,
+from teras.layers.saint import (NumericalFeatureEmbedding,
                                 MultiHeadInterSampleAttention,
                                 SAINTTransformer as _BaseSAINTTransformer,
                                 Encoder as _BaseEncoder,

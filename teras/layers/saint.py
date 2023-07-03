@@ -12,7 +12,7 @@ LIST_OR_TUPLE = Union[List[int], Tuple[int]]
 LAYER_OR_STR = Union[keras.layers.Layer, str]
 
 
-class SAINTNumericalFeatureEmbedding(layers.Layer):
+class NumericalFeatureEmbedding(layers.Layer):
     """
     Numerical Feature Embedding layer based on the architecture proposed
     by Gowthami Somepalli et al. in the paper
