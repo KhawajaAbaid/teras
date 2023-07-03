@@ -33,7 +33,8 @@ from .dnfnet import (DNFNetRegressor,
                      DNFNetClassifier)
 
 # SAINT models
-from .saint import (SAINTClassifier,
+from .saint import (SAINT,
+                    SAINTClassifier,
                     SAINTRegressor)
 
 
