@@ -1,9 +1,6 @@
 from tensorflow.keras import layers, models
-from teras.layers.saint import (NumericalFeatureEmbedding,
-                                MultiHeadInterSampleAttention,
-                                SAINTTransformer as _BaseSAINTTransformer,
+from teras.layers.saint import (SAINTTransformer as _BaseSAINTTransformer,
                                 Encoder as _BaseEncoder,
-                                ReconstructionBlock,
                                 ProjectionHead as _BaseProjectionHead,
                                 ReconstructionHead as _BaseReconstructionHead,
                                 ClassificationHead as _BaseClassificationHead,
@@ -32,17 +29,19 @@ class SAINTTransformer(_BaseSAINTTransformer):
             An instance of `MultiHeadInterSampleAttention` layer or any other custom
             layer that can work in its place.
             You can import this layer as follows,
-            >>> from teras.layerflow.layers.saint import MultiHeadInterSampleAttention
+                >>> from teras.layerflow.layers import MultiHeadInterSampleAttention
+
         feed_forward: `layers.Layer`,
             An instance of `FeedForward` layer or any custom layer that can work
             in its place.
             You can import this layer as follows,
-            >>> from teras.layerflow.layers import FeedForward
+                >>> from teras.layerflow.layers import FeedForward
+
         transformer: `layers.Layer`,
             An instance of the regular `Transformer` layer, or any custom layer
             that can work in its place.
             You can import this layer as follows,
-            >>> from teras.layerflow.layers import Transformer
+                >>> from teras.layerflow.layers import Transformer
     """
     def __init__(self,
                  multihead_inter_sample_attention: layers.Layer = None,
@@ -82,10 +81,10 @@ class Encoder(_BaseEncoder):
 
     Args:
         saint_transformer_layers: `List[layers.Layer]`,
-             A list of `SAINTTransformer` layers or custom layers
-             that can work in their place.
-             You can import this layer as follows,
-            >>> from teras.layerflow.layers.saint import SAINTTransformer
+            A list of `SAINTTransformer` layers or custom layers
+            that can work in their place.
+            You can import this layer as follows,
+                >>> from teras.layerflow.layers.saint import SAINTTransformer
     """
     def __init__(self,
                  saint_transformer_layers: LIST_OF_LAYERS = None,
@@ -118,10 +117,15 @@ class ReconstructionHead(_BaseReconstructionHead):
                 >>> metadata_dict = get_features_metadata_for_embedding(dataframe,
                                                                         numerical_features,
                                                                         categorical_features)
-        reconstruction_blocks: `List[layers.Layer`,
-            A list of ReconstructionBlock layers - one for each feature.
-             You can import this layer as follows,
-            >>> from teras.layerflow.layers.saint import ReconstructionBlock
+        reconstruction_blocks: `List[layers.Layer]`,
+            A list of `SAINTReconstructionBlock` layers - one for each feature,
+            where the SAINTReconstructionBlock has dimensionality equal to the cardinality
+            of that feature.
+            For instance, for a categorical feature, the dimensionality of `SAINTReconstructionBlock`
+            will be equal to the number of classes in that feature, while for a numerical feature
+            it is just equal to 1.
+            You can import the `SAINTReconstructionBlock` layer as follows,
+                >>> from teras.layerflow.layers import SAINTReconstructionBlock
     """
     def __init__(self,
                  features_metadata: dict,
