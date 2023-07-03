@@ -44,7 +44,8 @@ from teras.models.rtdl_resnet import (ResNetClassifier as RTDLResNetClassifier,
                                       ResNetRegressor as RTDLResNetRegressor)
 
 # RTDL FTTransformer models
-from teras.models.ft_transformer import (FTTransformerClassifier,
+from teras.models.ft_transformer import (FTTransformer,
+                                         FTTransformerClassifier,
                                          FTTransformerRegressor)
 
 # VIME models
