@@ -387,6 +387,50 @@ class Encoder(layers.Layer):
         return outputs
 
 
+class ProjectionHead(layers.Layer):
+    """
+    ProjectionHead layer that is used in the contrastive learning phase of
+    the SAINTPretrainer to project embeddings to a lower dimension.
+    According to the SAINT paper,
+    "The use of a projection head to reduce dimensionality before computing
+    contrastive loss is common in vision and indeed also improves results
+    on tabular data."
+
+    Reference(s):
+    https://arxiv.org/abs/2106.01342
+
+    Args:
+        hidden_dim: `int`,
+            Dimensionality of the hidden layer.
+            In the official implementation, it is computed as follows,
+            `hidden_dim = 6 * embedding_dim * number_of_features // 5`
+        hidden_activation, default "relu":
+            Activation function to use in the hidden layer.
+        output_dim: `int`,
+            Dimensionality of the output layer.
+            In the official implementation, it is computed as follows,
+            `output_dim = embedding_dim * number_of_featuers // 5`
+    """
+    def __init__(self,
+                 hidden_dim: int = None,
+                 hidden_activation="relu",
+                 output_dim: int = None,
+                 **kwargs):
+        super().__init__(**kwargs)
+        self.hidden_dim = hidden_dim
+        self.hidden_activation = hidden_activation
+        self.output_dim = output_dim
+
+        self.hidden_block = layers.Dense(units=self.hidden_dim,
+                                         activation=self.hidden_activation)
+        self.output_layer = layers.Dense(units=self.output_dim)
+
+    def call(self, inputs):
+        x = self.hidden_block(inputs)
+        outputs = self.output_layer(x)
+        return outputs
+
+
 class ReconstructionBlock(layers.Layer):
     """
     ReconstructionBlock layer that is used in constructing ReconstructionHead.
