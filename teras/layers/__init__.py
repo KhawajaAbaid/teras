@@ -50,7 +50,9 @@ from .dnfnet import (DNNF,
 # SAINT layers
 from .saint import (SAINTNumericalFeatureEmbedding,
                     MultiHeadInterSampleAttention as SAINTMultiHeadInterSampleAttention,
-                    Encoder as SAINTEncoder)
+                    Encoder as SAINTEncoder,
+                    ClassificationHead as SAINTClassificationHead,
+                    RegressionHead as SAINTRegressionHead)
 
 
 # RTDL ResNet layers
