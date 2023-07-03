@@ -36,3 +36,10 @@ from teras.layerflow.layers.saint import (SAINTNumericalFeatureEmbedding,
                                           Encoder as SAINTEncoder,
                                           ClassificationHead as SAINTClassificationHead,
                                           RegressionHead as SAINTRegressionHead)
+
+
+# FT-Transformer layers
+from teras.layerflow.layers.ft_transformer import (NumericalFeatureEmbedding as FTNumericalFeatureEmbedding,
+                                                   CLSToken as FTCLSToken,
+                                                   ClassificationHead as FTClassificationHead,
+                                                   RegressionHead as FTRegressionHead)
