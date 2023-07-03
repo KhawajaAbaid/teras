@@ -1,9 +1,6 @@
 from tensorflow.keras import layers, models
-from teras.layers.embedding import CategoricalFeatureEmbedding
-from teras.layers.common.transformer import Transformer, Encoder
 from teras.layers.tabtransformer import (ClassificationHead as _BaseClassificationHead,
                                          RegressionHead as _BaseRegressionHead)
-from teras.layers.tabtransformer import ColumnEmbedding
 
 
 class ClassificationHead(_BaseClassificationHead):
