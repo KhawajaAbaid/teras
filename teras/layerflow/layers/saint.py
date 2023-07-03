@@ -4,6 +4,7 @@ from teras.layers.saint import (NumericalFeatureEmbedding,
                                 SAINTTransformer as _BaseSAINTTransformer,
                                 Encoder as _BaseEncoder,
                                 ReconstructionBlock,
+                                ProjectionHead as _BaseProjectionHead,
                                 ReconstructionHead as _BaseReconstructionHead,
                                 ClassificationHead as _BaseClassificationHead,
                                 RegressionHead as _BaseRegressionHead)
@@ -181,6 +182,46 @@ class RegressionHead(_BaseRegressionHead):
             An instance of keras layer (Dense or a custom layer),
             for regression outputs relevant to the task at hand.
             If None, a default relevant output layer will be used.
+    """
+    def __init__(self,
+                 hidden_block: layers.Layer = None,
+                 output_layer: layers.Layer = None,
+                 **kwargs):
+        super().__init__(**kwargs)
+        if hidden_block is not None:
+            self.hidden_block = hidden_block
+
+        if output_layer is not None:
+            self.output_layer = output_layer
+
+
+class ProjectionHead(_BaseProjectionHead):
+    """
+    ProjectionHead layer with LayerFlow design.
+    It is used in the contrastive learning phase of
+    the SAINTPretrainer to project embeddings to a lower dimension.
+    According to the SAINT paper,
+    "The use of a projection head to reduce dimensionality before computing
+    contrastive loss is common in vision and indeed also improves results
+    on tabular data."
+
+    Reference(s):
+    https://arxiv.org/abs/2106.01342
+
+    Args:
+        hidden_block: `layers.Layer`,
+            Hidden block to use in the projection head.
+            It can be as simple as a single dense layer with "relu" activation,
+            (which is the default) or as complex as you want.
+            If None, a default output_layer is used where its dimensionality is
+            computed as below,
+            `hidden_dim = 6 * embedding_dim * number_of_features // 5`
+        output_layer: `layers.Layer`,
+            Output layer to use in the projection head.
+            It should be a simple dense layer that project data to a lower dimension.
+            If None, a default output_layer is used where its dimensionality is
+            computed as below,
+            `output_dim = embedding_dim * number_of_features // 5`
     """
     def __init__(self,
                  hidden_block: layers.Layer = None,
