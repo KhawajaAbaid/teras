@@ -34,24 +34,24 @@ def binary_activation(x):
 @tf.function
 def generate_random_mask(input_dim,
                          keep_feature_prob_arr=None,
-                         n_literals_per_formula_arr=None,
-                         n_formulas=None):
+                         num_literals_per_formula_arr=None,
+                         num_formulas=None):
     literals_random_mask = tf.TensorArray(size=0, dynamic_size=True, dtype=tf.float32)
-    formulas_random_mask = tf.TensorArray(size=n_formulas, dtype=tf.float32)
+    formulas_random_mask = tf.TensorArray(size=num_formulas, dtype=tf.float32)
 
     arr_literal_index = 0
     p_index = 0
-    for i in range(n_formulas):
-        if i % tf.shape(n_literals_per_formula_arr)[0] == 0 and i != 0:
+    for i in range(num_formulas):
+        if i % tf.shape(num_literals_per_formula_arr)[0] == 0 and i != 0:
             p_index = (p_index + 1) % tf.shape(keep_feature_prob_arr)[0]
 
         p_i = tf.gather(keep_feature_prob_arr, p_index)
         mask = tf_random_choice([1., 0.], input_dim, p=[p_i, 1 - p_i])
         while tf.math.reduce_sum(mask) == 0:
             mask = tf_random_choice([1., 0.], input_dim, p=[p_i, 1 - p_i])
-        n_literals_in_formula = tf.gather(n_literals_per_formula_arr, i % tf.shape(n_literals_per_formula_arr)[0])
+        num_literals_in_formula = tf.gather(num_literals_per_formula_arr, i % tf.shape(num_literals_per_formula_arr)[0])
         formulas_random_mask.write(i, tf.identity(mask))
-        for _ in range(n_literals_in_formula):
+        for _ in range(num_literals_in_formula):
             literals_random_mask.write(arr_literal_index, tf.identity(mask))
             arr_literal_index += 1
 
@@ -65,13 +65,13 @@ def generate_random_mask(input_dim,
 
 @tf.function
 def extension_matrix(v,
-                     n_formulas,
-                     n_literals_per_formula_arr):
+                     num_formulas,
+                     num_literals_per_formula_arr):
     formula_index = 0
     mat = tf.TensorArray(size=0, dynamic_size=True, dtype=tf.float32)
     arr_mat_index = 0
-    for i in range(n_formulas):
-        n_nodes_in_tree = tf.gather(n_literals_per_formula_arr, i % tf.shape(n_literals_per_formula_arr)[0])
+    for i in range(num_formulas):
+        n_nodes_in_tree = tf.gather(num_literals_per_formula_arr, i % tf.shape(num_literals_per_formula_arr)[0])
         v[formula_index].assign(1.)
         for _ in range(n_nodes_in_tree):
             mat.write(arr_mat_index, tf.identity(v))
@@ -107,13 +107,13 @@ def create_conjunctions_indicator_matrix(b,
 
 @tf.function
 def create_formulas_indicator_matrix(c,
-                                     n_formulas,
-                                     n_conjunctions_arr,
+                                     num_formulas,
+                                     num_conjunctions_arr,
                                      ):
-    result = tf.TensorArray(size=n_formulas, dtype=tf.bool)
+    result = tf.TensorArray(size=num_formulas, dtype=tf.bool)
     base = 0
-    for i in range(n_formulas):
-        n_conjunctions = tf.gather(n_conjunctions_arr, i % tf.shape(n_conjunctions_arr)[0])
+    for i in range(num_formulas):
+        n_conjunctions = tf.gather(num_conjunctions_arr, i % tf.shape(num_conjunctions_arr)[0])
         c[base: base + n_conjunctions].assign(True)
         result.write(i, tf.identity(c))
         c[:].assign(False)
@@ -123,26 +123,26 @@ def create_formulas_indicator_matrix(c,
 
 
 @tf.function
-def compute_total_number_of_literals(n_formulas,
-                                     n_conjunctions_arr,
-                                     conjunctions_depth_arr):
-    return (tf.reduce_sum(n_conjunctions_arr) * tf.reduce_sum(conjunctions_depth_arr) * n_formulas) // (
-                tf.shape(conjunctions_depth_arr)[0] * tf.shape(n_conjunctions_arr)[0])
+def compute_total_number_of_literals(num_formulas,
+                                     num_conjunctions_arr,
+                                     conjunctions_depth_arrconjunctions_depth_arr):
+    return (tf.reduce_sum(num_conjunctions_arr) * tf.reduce_sum(conjunctions_depth_arr) * num_formulas) // (
+                tf.shape(conjunctions_depth_arr)[0] * tf.shape(num_conjunctions_arr)[0])
 
 
 @tf.function
-def compute_total_number_of_conjunctions(n_formulas, n_conjunctions_arr):
-    return (n_formulas // tf.shape(n_conjunctions_arr)[0]) * tf.reduce_sum(n_conjunctions_arr)
+def compute_total_number_of_conjunctions(num_formulas, num_conjunctions_arr):
+    return (num_formulas // tf.shape(num_conjunctions_arr)[0]) * tf.reduce_sum(num_conjunctions_arr)
 
 
 @tf.function
-def compute_n_literals_per_formula(n_conjunctions_arr,
+def compute_num_literals_per_formula(num_conjunctions_arr,
                                    conjunctions_depth_arr):
-    n_literals_per_formula_arr = []
-    for n_conjunctions in n_conjunctions_arr:
-        n_literals_per_formula_arr.append(
+    num_literals_per_formula_arr = []
+    for n_conjunctions in num_conjunctions_arr:
+        num_literals_per_formula_arr.append(
             (n_conjunctions // tf.shape(conjunctions_depth_arr)[0]) * tf.reduce_sum(conjunctions_depth_arr))
-    return n_literals_per_formula_arr
+    return num_literals_per_formula_arr
 
 
 # General Functions
