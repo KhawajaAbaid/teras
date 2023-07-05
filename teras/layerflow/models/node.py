@@ -1,9 +1,9 @@
 from tensorflow.keras import layers, models
 from teras.models import NODE as _BaseNODE
 from teras.layerflow.layers import NODEClassificationHead, NODERegressionHead
-from typing import List, Union
+from typing import List
 
-LIST_OF_LAYERS = Union[List[layers.Layer], models.Model]
+LIST_OF_LAYERS = List[layers.Layer]
 
 
 class NODE(_BaseNODE):
