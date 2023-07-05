@@ -1,12 +1,13 @@
 from tensorflow.keras import layers
-from typing import Union
 from teras.utils import get_normalization_layer
+from teras.layers.common.transformer import (ClassificationHead as _BaseClassificationHead,
+                                             RegressionHead as _BaseRegressionHead)
+from typing import Union
+
+LIST_OR_TUPLE = Union[list, tuple]
+LAYER_OR_STR = Union[layers.Layer, str]
 
 
-LayerType = Union[str, layers.Layer]
-
-
-# LAYER
 class ResNetBlock(layers.Layer):
     """
     The ResNet block proposed by Yury Gorishniy et al.
@@ -37,9 +38,9 @@ class ResNetBlock(layers.Layer):
                  units: int = None,
                  dropout_hidden: float = 0.,
                  dropout_out: float = 0.,
-                 activation_hidden: LayerType = "relu",
-                 activation_out: LayerType = "relu",
-                 normalization: LayerType = "BatchNormalization",
+                 activation_hidden="relu",
+                 activation_out="relu",
+                 normalization: LAYER_OR_STR = "BatchNormalization",
                  use_skip_connection: bool = True,
                  **kwargs):
         super().__init__(**kwargs)
@@ -82,84 +83,83 @@ class ResNetBlock(layers.Layer):
         return x
 
 
-class ClassificationHead(layers.Layer):
+class ClassificationHead(_BaseClassificationHead):
     """
-    The ResNet classification head based on the architecture
-    implemented and proposed by the Yury Gorishniy et al.
-    in the paper Revisiting Deep Learning Models for Tabular Data.
+    Classification Head layer for the RTDLResNetClassifier.
+    It is based on the ResNet architecture proposed by the Yury Gorishniy et al.
+    in the paper,
+    Revisiting Deep Learning Models for Tabular Data.
 
     Reference(s):
         https://arxiv.org/abs/2106.11959
 
     Args:
         num_classes: `int`, default 2,
-            Number of classes to predict
-        activation_out:
-            Output activation to use.
-            By default, "sigmoid" is used for binary
-            while "softmax" is used for multiclass classification.
-        normalization: default "BatchNormalization",
-            Normalization layer to apply over the inputs.
+            Number of classes to predict.
+        units_values: `List[int] | Tuple[int]`, default `None`,
+            If specified, for each value in the sequence
+            a hidden layer of that dimension preceded by a normalization layer (if specified) is
+            added to the ClassificationHead.
+        activation_hidden: default `None`,
+            Activation function to use in hidden dense layers.
+        activation_out: default `None`,
+            Activation function to use for the output layer.
+            If not specified, `sigmoid` is used for binary and `softmax` is used for
+            multiclass classification.
+        normalization: `Layer | str`, default `None`,
+            Normalization layer to use.
+            If specified a normalization layer is applied after each hidden layer.
+            If None, no normalization layer is applied.
+            You can either pass a keras normalization layer or name for a layer implemented by keras.
     """
     def __init__(self,
-                 num_classes: int = None,
-                 activation_out: LayerType = None,
-                 normalization: LayerType = "BatchNormalization",
+                 num_classes: int = 2,
+                 units_values: LIST_OR_TUPLE = None,
+                 activation_hidden=None,
+                 activation_out=None,
+                 normalization: LAYER_OR_STR = None,
                  **kwargs):
-        super().__init__(**kwargs)
-        self.num_classes = 1 if num_classes <= 2 else num_classes
-        self.activation_out = activation_out
-        self.normalization = normalization
-
-        if self.normalization is not None:
-            self.norm = get_normalization_layer(self.normalization)
-
-        if self.activation_out is None:
-            self.activation_out = 'sigmoid' if self.num_classes == 1 else 'softmax'
-
-        self.output_layer = layers.Dense(num_classes,
-                                         activation=activation_out)
-
-    def call(self, inputs):
-        x = inputs
-        if self.normalization:
-            x = self.norm(x)
-        x = self.output_layer(x)
-        return x
+        super().__init__(num_classes=num_classes,
+                         units_values=units_values,
+                         activation_hidden=activation_hidden,
+                         activation_out=activation_out,
+                         normalization=normalization,
+                         **kwargs)
 
 
-class RegressionHead(layers.Layer):
+class RegressionHead(_BaseRegressionHead):
     """
-    The ResNet regression head based on the architecture
-    implemented and proposed by the Yury Gorishniy et al.
-    in the paper Revisiting Deep Learning Models for Tabular Data.
+    Regression Head for the RTDLResNetRegressor.
+    It is based on the ResNet architecture proposed by the Yury Gorishniy et al.
+    in the paper,
+    Revisiting Deep Learning Models for Tabular Data.
 
     Reference(s):
         https://arxiv.org/abs/2106.11959
 
     Args:
         num_outputs: `int`, default 1,
-            Number of regression outputs
-        normalization: default "BatchNormalization",
-            Normalization layer to apply over the inputs.
+            Number of regression outputs to predict.
+        units_values: `List[int] | Tuple[int]`, default `None`,
+            If specified, for each value in the sequence
+            a hidden layer of that dimension preceded by a normalization layer (if specified) is
+            added to the RegressionHead.
+        activation_hidden: default `None`,
+            Activation function to use in hidden dense layers.
+        normalization: `Layer | str`, default `None`,
+            Normalization layer to use.
+            If specified a normalization layer is applied after each hidden layer.
+            If None, no normalization layer is applied.
+            You can either pass a keras normalization layer or name for a layer implemented by keras.
     """
-
     def __init__(self,
                  num_outputs: int = 1,
-                 normalization: LayerType = "BatchNormalization",
+                 units_values: LIST_OR_TUPLE = None,
+                 activation_hidden=None,
+                 normalization: LAYER_OR_STR = None,
                  **kwargs):
-        super().__init__(**kwargs)
-        self.num_outputs = num_outputs
-        self.normalization = normalization
-
-        if self.normalization is not None:
-            self.norm = get_normalization_layer(self.normalization)
-
-        self.output_layer = layers.Dense(self.num_outputs)
-
-    def call(self, inputs):
-        x = inputs
-        if self.normalization:
-            x = self.norm(x)
-        x = self.output_layer(x)
-        return x
+        super().__init__(num_outputs=num_outputs,
+                         units_values=units_values,
+                         activation_hidden=activation_hidden,
+                         normalization=normalization,
+                         **kwargs)
