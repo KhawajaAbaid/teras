@@ -15,7 +15,8 @@
 
 
 # NODE models
-from .node import (NODEClassifier,
+from .node import (NODE,
+                   NODEClassifier,
                    NODERegressor)
 
 # TabNet models
