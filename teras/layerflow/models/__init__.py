@@ -45,3 +45,9 @@ from teras.layerflow.models.ft_transformer import (FTTransformer,
 from teras.layerflow.models.dnfnet import (DNFNet,
                                            DNFNetClassifier,
                                            DNFNetRegressor)
+
+
+# NODE models
+from teras.layerflow.models.node import (NODE,
+                                         NODEClassifier,
+                                         NODERegressor)
