@@ -75,4 +75,4 @@ from teras.layerflow.layers.node import (ClassificationHead as NODEClassificatio
 # RTDLResNet layers
 from teras.layerflow.layers.rtdl_resnet import (ClassificationHead as RTDLResNetClassificationHead,
                                                 RegressionHead as RTDLResNetRegressionHead)
-from teras.layers.rtdl_resnet import ResNetBlock
+from teras.layers.rtdl_resnet import ResNetBlock as RTDLResNetBlock
