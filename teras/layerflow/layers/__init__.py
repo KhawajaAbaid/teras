@@ -61,15 +61,15 @@ from teras.layerflow.layers.ft_transformer import (NumericalFeatureEmbedding as 
 
 # DNFNet layers
 from teras.layers.dnfnet import (FeatureSelection as DNFNetFeatureSelection,
-                                 Localization as DNFNetLocalization,
-                                 DNNF,
-                                 ClassificationHead as DNFNetClassificationHead,
-                                 RegressionHead as DNFNetRegressionHead)
+                                 Localization as DNFNetLocalization)
+from teras.layerflow.layers.dnfnet import (DNNF,
+                                           ClassificationHead as DNFNetClassificationHead,
+                                           RegressionHead as DNFNetRegressionHead)
 
 # NODE layers
-from teras.layers.node import (ObliviousDecisionTree,
-                               ClassificationHead as NODEClassificationHead,
-                               RegressionHead as NODERegressionHead)
+from teras.layers.node import (ObliviousDecisionTree)
+from teras.layerflow.layers.node import (ClassificationHead as NODEClassificationHead,
+                                         RegressionHead as NODERegressionHead)
 
 
 # RTDLResNet layers
