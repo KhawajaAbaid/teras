@@ -19,14 +19,16 @@ from .node import (NODEClassifier,
                    NODERegressor)
 
 # TabNet models
-from .tabnet import (TabNetClassifier,
-                     TabNetRegressor)
+from teras.models.tabnet import (TabNet,
+                                 TabNetClassifier,
+                                 TabNetRegressor,
+                                 TabNetPretrainer)
 
 # TabTransformer models
-from .tabtransformer import (TabTransformer,
-                             TabTransformerClassifier,
-                             TabTransformerRegressor,
-                             TabTransformerPretrainer)
+from teras.models.tabtransformer import (TabTransformer,
+                                         TabTransformerClassifier,
+                                         TabTransformerRegressor,
+                                         TabTransformerPretrainer)
 
 # DNFNet models
 from .dnfnet import (DNFNetRegressor,
@@ -40,8 +42,8 @@ from .saint import (SAINT,
 
 
 # RTDL ResNet models
-from teras.models.rtdl_resnet import (ResNetClassifier as RTDLResNetClassifier,
-                                      ResNetRegressor as RTDLResNetRegressor)
+from teras.models.rtdl_resnet import (RTDLResNetClassifier,
+                                      RTDLResNetRegressor)
 
 # RTDL FTTransformer models
 from teras.models.ft_transformer import (FTTransformer,

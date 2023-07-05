@@ -1,15 +1,14 @@
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
-from teras.layers import TabNetEncoder, TabNetDecoder
-from typing import Union, List
 import tensorflow_probability as tfp
+from teras.layers.tabnet import Encoder as TabNetEncoder, Decoder as TabNetDecoder
 from teras.losses.tabnet import reconstruction_loss
 from teras.layers.tabnet import RegressionHead, ClassificationHead
-from teras.layers import CategoricalFeatureEmbedding
+from teras.layers.embedding import CategoricalFeatureEmbedding
 from teras.config.tabnet import TabNetConfig
+from typing import Union, List
 from warnings import warn
-from teras.layerflow.models import SimpleModel
 
 
 LAYER_OR_MODEL = Union[keras.layers.Layer, keras.Model]
@@ -333,6 +332,7 @@ class TabNetClassifier(TabNet):
         head = ClassificationHead(num_classes=num_classes,
                                   activation_out=activation_out,
                                   name="tabnet_classification_head")
+        from teras.layerflow.models.simple import SimpleModel
         model = SimpleModel(body=pretrained_model,
                             head=head,
                             name="tabnet_classifier_pretrained")
@@ -466,6 +466,7 @@ class TabNetRegressor(TabNet):
         """
         head = RegressionHead(num_outputs=num_outputs,
                               name="tabnet_regression_head")
+        from teras.layerflow.models.simple import SimpleModel
         model = SimpleModel(body=pretrained_model,
                             head=head,
                             name="tabnet_regressor_pretrained")

@@ -1,15 +1,13 @@
-import tensorflow as tf
-from tensorflow import keras
 from tensorflow.keras import layers
 from typing import Union
 from teras.utils import get_normalization_layer
 
 
-LayerType = Union[str, keras.layers.Layer]
+LayerType = Union[str, layers.Layer]
 
 
 # LAYER
-class ResNetBlock(keras.layers.Layer):
+class ResNetBlock(layers.Layer):
     """
     The ResNet block proposed by Yury Gorishniy et al.
     in the paper Revisiting Deep Learning Models for Tabular Data.
@@ -18,58 +16,57 @@ class ResNetBlock(keras.layers.Layer):
         https://arxiv.org/abs/2106.11959
 
     Args:
-        main_dim: Main dimensionality. This is the dimensionality of the inputs
-            expected by the ResNet block and the output of this block will be of this dimensionality.
-        hidden_dim: Dimensionality of the hidden layer in the ResNet block.
-        dropout_main: Dropout rate to use for the dropout layer that is applied
+        units: `int`, default 64,
+            Dimensionality of the hidden layer in the ResNet block.
+        dropout_hidden: `float`, default 0.,
+            Dropout rate to use for the dropout layer that is applied
             after the hidden dense layer.
-        dropout_main: Dropout rate to use for the dropout layer that is applied
-            after the second and last 'main' dense layer.
-        bias_hidden: Whether to use bias in the hidden dense layer
-        bias_main: Whether to use bias in the output or main dense layer.
-        activation_hidden: Activation to use bias in the hidden dense layer
-        activation_main: Activation to use bias in the main dense layer
-        normalization: Normalization layer to normalize
-            he inputs to the RestNet block. Defaults to BatchNormalization.
-        use_skip_connection: Whether to use the skip connection
+        dropout_out: `float`, default 0.,
+            Dropout rate to use for the dropout layer that is applied
+            after the output dense layer.
+        activation_hidden: default "relu",
+            Activation function to use in the hidden layer.
+        activation_out: default "relu",
+            Activation function to use in the output layer.
+        normalization: default "BatchNormalization",
+            Normalization layer to normalize the inputs to the RestNet block.
+        use_skip_connection: `bool`, default True,
+            Whether to use the skip connection.
     """
     def __init__(self,
-                 main_dim: int = None,
-                 hidden_dim: int = None,
+                 units: int = None,
                  dropout_hidden: float = 0.,
-                 dropout_main: float = 0.,
-                 bias_hidden: bool = True,
-                 bias_main: bool = True,
+                 dropout_out: float = 0.,
                  activation_hidden: LayerType = "relu",
-                 activation_main: LayerType = "relu",
+                 activation_out: LayerType = "relu",
                  normalization: LayerType = "BatchNormalization",
                  use_skip_connection: bool = True,
                  **kwargs):
         super().__init__(**kwargs)
-        self.main_dim = main_dim
-        self.hidden_dim = hidden_dim
-        self.hidden_dropout_rate = dropout_hidden
-        self.main_dropout_rate = dropout_main
-        self.bias_hidden = bias_hidden
-        self.bias_main = bias_main
+        self.units = units
+        self.dropout_hidden = dropout_hidden
+        self.dropout_out = dropout_out
         self.activation_hidden = activation_hidden
-        self.activation_main = activation_main
+        self.activation_out = activation_out
         self.normalization = normalization
         self.use_skip_connection = use_skip_connection
 
         if self.normalization is not None:
             self.norm = get_normalization_layer(self.normalization)
-        self.dense_hidden = layers.Dense(units=self.hidden_dim,
-                                               activation=self.activation_hidden,
-                                               name="resnet_block_dense_hidden")
+        self.dense_hidden = layers.Dense(units=self.units,
+                                         activation=self.activation_hidden,
+                                         name="resnet_block_dense_hidden")
         self.dropout_hidden = layers.Dropout(self.hidden_dropout_rate,
                                              name="resnet_block_dropout_hidden")
-        self.dense_main = layers.Dense(units=self.main_dim,
-                                       activation=self.activation_main,
-                                       name="resnet_block_dense_main")
-        self.dropout_main = layers.Dropout(self.main_dropout_rate,
-                                           name="resnet_block_dropout_main")
+        self.dropout_out = layers.Dropout(self.dropout_out,
+                                          name="resnet_block_dropout_out")
         self.add = layers.Add(name="resnet_block_add")
+
+    def build(self, input_shape):
+        input_dim = input_shape[1]
+        self.dense_out = layers.Dense(units=input_dim,
+                                      activation=self.activation_out,
+                                      name="resnet_block_dense_out")
 
     def call(self, inputs):
         residual = inputs
@@ -78,14 +75,14 @@ class ResNetBlock(keras.layers.Layer):
             x = self.norm(x)
         x = self.dense_hidden(x)
         x = self.dropout_hidden(x)
-        x = self.dense_main(x)
-        x = self.dropout_main(x)
+        x = self.dense_out(x)
+        x = self.dropout_out(x)
         if self.use_skip_connection:
             x = self.add([x, residual])
         return x
 
 
-class ClassificationHead(keras.layers.Layer):
+class ClassificationHead(layers.Layer):
     """
     The ResNet classification head based on the architecture
     implemented and proposed by the Yury Gorishniy et al.
@@ -95,24 +92,23 @@ class ClassificationHead(keras.layers.Layer):
         https://arxiv.org/abs/2106.11959
 
     Args:
-        num_classes: Number of classes to predict
-        activation_out: Output activation to use.
-            By default, sigmoid will be use for binary
-            while softmax will be use for multiclass classification.
-        use_bias: Whether to use bias in the output dense layer
-        normalization: Normalization layer to apply over the inputs.
-            Defaults to BatchNormalization.
+        num_classes: `int`, default 2,
+            Number of classes to predict
+        activation_out:
+            Output activation to use.
+            By default, "sigmoid" is used for binary
+            while "softmax" is used for multiclass classification.
+        normalization: default "BatchNormalization",
+            Normalization layer to apply over the inputs.
     """
     def __init__(self,
                  num_classes: int = None,
                  activation_out: LayerType = None,
-                 use_bias: bool = True,
                  normalization: LayerType = "BatchNormalization",
                  **kwargs):
         super().__init__(**kwargs)
         self.num_classes = 1 if num_classes <= 2 else num_classes
         self.activation_out = activation_out
-        self.use_bias = use_bias
         self.normalization = normalization
 
         if self.normalization is not None:
@@ -121,19 +117,18 @@ class ClassificationHead(keras.layers.Layer):
         if self.activation_out is None:
             self.activation_out = 'sigmoid' if self.num_classes == 1 else 'softmax'
 
-        self.dense_out = keras.layers.Dense(num_classes,
-                                            use_bias=self.use_bias,
-                                            activation=activation_out)
+        self.output_layer = layers.Dense(num_classes,
+                                         activation=activation_out)
 
     def call(self, inputs):
         x = inputs
         if self.normalization:
             x = self.norm(x)
-        x = self.dense_out(x)
+        x = self.output_layer(x)
         return x
 
 
-class RegressionHead(keras.layers.Layer):
+class RegressionHead(layers.Layer):
     """
     The ResNet regression head based on the architecture
     implemented and proposed by the Yury Gorishniy et al.
@@ -143,31 +138,28 @@ class RegressionHead(keras.layers.Layer):
         https://arxiv.org/abs/2106.11959
 
     Args:
-        units_out: Number of regression outputs
-        use_bias: Whether to use bias in the output dense layer
-        normalization: Normalization layer to apply over the inputs.
-            Defaults to BatchNormalization.
+        num_outputs: `int`, default 1,
+            Number of regression outputs
+        normalization: default "BatchNormalization",
+            Normalization layer to apply over the inputs.
     """
 
     def __init__(self,
-                 units_out: int = 1,
-                 use_bias: bool = True,
+                 num_outputs: int = 1,
                  normalization: LayerType = "BatchNormalization",
                  **kwargs):
         super().__init__(**kwargs)
-        self.units_out = units_out
-        self.use_bias = use_bias
+        self.num_outputs = num_outputs
         self.normalization = normalization
 
         if self.normalization is not None:
             self.norm = get_normalization_layer(self.normalization)
 
-        self.dense_out = keras.layers.Dense(units_out,
-                                            use_bias=self.use_bias)
+        self.output_layer = layers.Dense(self.num_outputs)
 
     def call(self, inputs):
         x = inputs
         if self.normalization:
             x = self.norm(x)
-        x = self.dense_out(x)
+        x = self.output_layer(x)
         return x
