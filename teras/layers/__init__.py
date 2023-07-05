@@ -24,7 +24,9 @@ from .embedding import CategoricalFeatureEmbedding
 
 
 # NODE layers
-from .node import ObliviousDecisionTree
+from .node import (ObliviousDecisionTree,
+                   ClassificationHead as NODEClassificationHead,
+                   RegressionHead as NODERegressionHead)
 
 
 # TabNet layers
