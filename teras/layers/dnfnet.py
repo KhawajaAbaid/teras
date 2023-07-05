@@ -14,10 +14,15 @@ from teras.utils.dnfnet import (compute_total_number_of_literals,
                                 generate_random_mask,
                                 extension_matrix,
                                 binary_threshold)
-from typing import List
+# TODO move the base ClassificationHead layer to common/common.py from common/transformer.py
+from teras.layers.common.transformer import (ClassificationHead as _BaseClassificationHead,
+                                             RegressionHead as _BaseRegressionHead)
+from typing import List, Union
 
 LIST_OF_INT = List[int]
 LIST_OF_FLOAT = List[float]
+LIST_OR_TUPLE = Union[list, tuple]
+LAYER_OR_STR = Union[keras.layers.Layer, str]
 
 
 class FeatureSelection(keras.layers.Layer):
@@ -262,3 +267,72 @@ class DNNF(keras.layers.Layer):
         out_DNNFs = tf.multiply(out_DNNFs, loc)
         return out_DNNFs
 
+
+class ClassificationHead(_BaseClassificationHead):
+    """
+    Classification head for DNFNet Classifier model.
+
+    Args:
+        num_classes: `int`, default 2,
+            Number of classes to predict.
+        units_values: `List[int] | Tuple[int]`, default `None`,
+            If specified, for each value in the sequence
+            a hidden layer of that dimension preceded by a normalization layer (if specified) is
+            added to the ClassificationHead.
+        activation_hidden: default `None`,
+            Activation function to use in hidden dense layers.
+        activation_out: default `None`,
+            Activation function to use for the output layer.
+            If not specified, `sigmoid` is used for binary and `softmax` is used for
+            multiclass classification.
+        normalization: `Layer | str`, default `None`,
+            Normalization layer to use.
+            If specified a normalization layer is applied after each hidden layer.
+            If None, no normalization layer is applied.
+            You can either pass a keras normalization layer or name for a layer implemented by keras.
+    """
+    def __init__(self,
+                 num_classes: int = 2,
+                 units_values: LIST_OR_TUPLE = None,
+                 activation_hidden=None,
+                 activation_out=None,
+                 normalization: LAYER_OR_STR = None,
+                 **kwargs):
+        super().__init__(num_classes=num_classes,
+                         units_values=units_values,
+                         activation_hidden=activation_hidden,
+                         activation_out=activation_out,
+                         normalization=normalization,
+                         **kwargs)
+
+
+class RegressionHead(_BaseRegressionHead):
+    """
+    Regression head for the DNFNet Regressor model.
+
+    Args:
+        num_outputs: `int`, default 1,
+            Number of regression outputs to predict.
+        units_values: `List[int] | Tuple[int]`, default `None`,
+            If specified, for each value in the sequence
+            a hidden layer of that dimension preceded by a normalization layer (if specified) is
+            added to the RegressionHead.
+        activation_hidden: default `None`,
+            Activation function to use in hidden dense layers.
+        normalization: `Layer | str`, default `None`,
+            Normalization layer to use.
+            If specified a normalization layer is applied after each hidden layer.
+            If None, no normalization layer is applied.
+            You can either pass a keras normalization layer or name for a layer implemented by keras.
+    """
+    def __init__(self,
+                 num_outputs: int = 1,
+                 units_values: LIST_OR_TUPLE = None,
+                 activation_hidden=None,
+                 normalization: LAYER_OR_STR = None,
+                 **kwargs):
+        super().__init__(num_outputs=num_outputs,
+                         units_values=units_values,
+                         activation_hidden=activation_hidden,
+                         normalization=normalization,
+                         **kwargs)
