@@ -65,3 +65,9 @@ from teras.layers.dnfnet import (FeatureSelection as DNFNetFeatureSelection,
                                  DNNF,
                                  ClassificationHead as DNFNetClassificationHead,
                                  RegressionHead as DNFNetRegressionHead)
+
+# NODE layers
+from teras.layers.node import (ObliviousDecisionTree,
+                               ClassificationHead as NODEClassificationHead,
+                               RegressionHead as NODERegressionHead)
+
