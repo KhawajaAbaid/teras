@@ -9,7 +9,6 @@ from typing import List, Union, Tuple
 from teras.config.tabtransformer import TabTransformerConfig
 from teras.utils import convert_dict_to_array_tensor
 from teras.layers.encoding import LabelEncoding
-from teras.layerflow.models import SimpleModel
 
 
 LIST_OR_TUPLE_OF_INT = Union[List[int], Tuple[int]]
@@ -368,6 +367,7 @@ class TabTransformerClassifier(TabTransformer):
                                   units_values=head_units_values,
                                   activation_out=activation_out,
                                   name="tabtransformer_classification_head")
+        from teras.layerflow.models.simple import SimpleModel
         model = SimpleModel(body=pretrained_model,
                             head=head,
                             name="tabtransformer_classifier_pretrained")
@@ -513,6 +513,7 @@ class TabTransformerRegressor(TabTransformer):
         head = RegressionHead(num_outputs=num_outputs,
                               units_values=head_units_values,
                               name="tabtransformer_regression_head")
+        from teras.layerflow.models.simple import SimpleModel
         model = SimpleModel(body=pretrained_model,
                             head=head,
                             name="tabtransformer_regressor_pretrained")
