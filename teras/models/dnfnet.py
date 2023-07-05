@@ -1,5 +1,5 @@
 from tensorflow.keras import layers, models
-from teras.layers import DNNF
+from teras.layers import DNNF, DNFNetClassificationHead, DNFNetRegressionHead
 from typing import List
 
 LIST_OF_INT = List[int]
@@ -142,7 +142,7 @@ class DNFNetRegressor(DNFNet):
                          temperature=temperature,
                          **kwargs)
         self.num_outputs = num_outputs
-        self.head = layers.Dense(self.num_outputs)
+        self.head = DNFNetRegressionHead(num_outputs=self.num_outputs)
 
 
 class DNFNetClassifier(DNFNet):
@@ -209,10 +209,7 @@ class DNFNetClassifier(DNFNet):
                          binary_threshold_eps=binary_threshold_eps,
                          temperature=temperature,
                          **kwargs)
-        self.num_classes = 1 if num_classes <= 2 else num_classes
+        self.num_classes = num_classes
         self.activation_out = activation_out
-        if self.activation_out is None:
-            self.activation_out = "sigmoid" if self.num_classes == 1 else "softmax"
-
-        self.head = layers.Dense(num_classes,
-                                 activation=self.activation_out)
+        self.head = DNFNetClassificationHead(num_classes=self.num_classes,
+                                             activation_out=self.activation_out)

@@ -57,3 +57,22 @@ from teras.layerflow.layers.ft_transformer import (NumericalFeatureEmbedding as 
                                                    CLSToken as FTCLSToken,
                                                    ClassificationHead as FTClassificationHead,
                                                    RegressionHead as FTRegressionHead)
+
+
+# DNFNet layers
+from teras.layers.dnfnet import (FeatureSelection as DNFNetFeatureSelection,
+                                 Localization as DNFNetLocalization)
+from teras.layerflow.layers.dnfnet import (DNNF,
+                                           ClassificationHead as DNFNetClassificationHead,
+                                           RegressionHead as DNFNetRegressionHead)
+
+# NODE layers
+from teras.layers.node import (ObliviousDecisionTree)
+from teras.layerflow.layers.node import (ClassificationHead as NODEClassificationHead,
+                                         RegressionHead as NODERegressionHead)
+
+
+# RTDLResNet layers
+from teras.layerflow.layers.rtdl_resnet import (ClassificationHead as RTDLResNetClassificationHead,
+                                                RegressionHead as RTDLResNetRegressionHead)
+from teras.layers.rtdl_resnet import ResNetBlock as RTDLResNetBlock

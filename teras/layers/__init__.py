@@ -24,7 +24,9 @@ from .embedding import CategoricalFeatureEmbedding
 
 
 # NODE layers
-from .node import ObliviousDecisionTree
+from .node import (ObliviousDecisionTree,
+                   ClassificationHead as NODEClassificationHead,
+                   RegressionHead as NODERegressionHead)
 
 
 # TabNet layers
@@ -45,8 +47,10 @@ from .tabtransformer import (ColumnEmbedding as TabTColumnEmbedding,
 
 # DNFNet layers
 from .dnfnet import (DNNF,
-                     FeatureSelection,
-                     Localization)
+                     FeatureSelection as DNFNetFeatureSelection,
+                     Localization as DNFNetLocalization,
+                     ClassificationHead as DNFNetClassificationHead,
+                     RegressionHead as DNFNetRegressionHead)
 
 
 # SAINT layers

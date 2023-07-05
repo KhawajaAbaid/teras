@@ -15,7 +15,8 @@
 
 
 # NODE models
-from .node import (NODEClassifier,
+from .node import (NODE,
+                   NODEClassifier,
                    NODERegressor)
 
 # TabNet models
@@ -31,7 +32,8 @@ from teras.models.tabtransformer import (TabTransformer,
                                          TabTransformerPretrainer)
 
 # DNFNet models
-from .dnfnet import (DNFNetRegressor,
+from .dnfnet import (DNFNet,
+                     DNFNetRegressor,
                      DNFNetClassifier)
 
 # SAINT models
