@@ -51,3 +51,9 @@ from teras.layerflow.models.dnfnet import (DNFNet,
 from teras.layerflow.models.node import (NODE,
                                          NODEClassifier,
                                          NODERegressor)
+
+
+# RTDLResNet models
+from teras.layerflow.models.rtdl_resnet import (RTDLResNet,
+                                                RTDLResNetClassifier,
+                                                RTDLResNetRegressor)
