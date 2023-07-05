@@ -40,3 +40,8 @@ from teras.layerflow.models.saint import (SAINT,
 from teras.layerflow.models.ft_transformer import (FTTransformer,
                                                    FTTransformerClassifier,
                                                    FTTransformerRegressor)
+
+# DNFNet models
+from teras.layerflow.models.dnfnet import (DNFNet,
+                                           DNFNetClassifier,
+                                           DNFNetRegressor)
