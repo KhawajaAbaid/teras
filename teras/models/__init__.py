@@ -31,7 +31,8 @@ from teras.models.tabtransformer import (TabTransformer,
                                          TabTransformerPretrainer)
 
 # DNFNet models
-from .dnfnet import (DNFNetRegressor,
+from .dnfnet import (DNFNet,
+                     DNFNetRegressor,
                      DNFNetClassifier)
 
 # SAINT models
