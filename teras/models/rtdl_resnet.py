@@ -144,7 +144,7 @@ class RTDLResNetClassifier(RTDLResNet):
                                                  name="rtdl_resnet_classification_head")
 
 
-class ResNetRegressor(keras.Model):
+class RTDLResNetRegressor(keras.Model):
     """
     The ResNet Regressor model based on the ResNet architecture
     proposed by Yury Gorishniy et al.
