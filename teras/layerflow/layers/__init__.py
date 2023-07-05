@@ -71,3 +71,8 @@ from teras.layers.node import (ObliviousDecisionTree,
                                ClassificationHead as NODEClassificationHead,
                                RegressionHead as NODERegressionHead)
 
+
+# RTDLResNet layers
+from teras.layerflow.layers.rtdl_resnet import (ClassificationHead as RTDLResNetClassificationHead,
+                                                RegressionHead as RTDLResNetRegressionHead)
+from teras.layers.rtdl_resnet import ResNetBlock
