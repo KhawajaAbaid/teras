@@ -57,3 +57,11 @@ from teras.layerflow.layers.ft_transformer import (NumericalFeatureEmbedding as 
                                                    CLSToken as FTCLSToken,
                                                    ClassificationHead as FTClassificationHead,
                                                    RegressionHead as FTRegressionHead)
+
+
+# DNFNet layers
+from teras.layers.dnfnet import (FeatureSelection as DNFNetFeatureSelection,
+                                 Localization as DNFNetLocalization,
+                                 DNNF,
+                                 ClassificationHead as DNFNetClassificationHead,
+                                 RegressionHead as DNFNetRegressionHead)
