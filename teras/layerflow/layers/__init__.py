@@ -81,3 +81,9 @@ from teras.layers.rtdl_resnet import ResNetBlock as RTDLResNetBlock
 # GAIN layers
 from teras.layers.gain import (GeneratorBlock as GAINGeneratorBlock,
                                DiscriminatorBlock as GAINDiscriminatorBlock)
+
+
+# PCGAIN layers
+# PCGAIN uses same blocks as GAIN
+from teras.layers.gain import (GeneratorBlock as PCGAINGeneratorBlock,
+                               DiscriminatorBlock as PCGAINGeneratorBlock)
