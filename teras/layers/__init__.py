@@ -103,3 +103,12 @@ from teras.layers.encoding import LabelEncoding
 from teras.layers.common.transformer import (FeedForward,
                                              Transformer,
                                              Encoder)
+
+# GAIN layers
+from teras.layers.gain import (GeneratorBlock as GAINGeneratorBlock,
+                               DiscriminatorBlock as GAINDiscriminatorBlock)
+
+
+# PCGAIN layers
+from teras.layers.pcgain import (GeneratorBlock as PCGAINGeneratorBlock,
+                                 DiscriminatorBlock as PCGAINDiscriminatorBlock)
