@@ -63,3 +63,9 @@ from teras.layerflow.models.rtdl_resnet import (RTDLResNet,
 from teras.layerflow.models.gain import (Generator as GAINGenerator,
                                          Discriminator as GAINDiscriminator,
                                          GAIN)
+
+# PCGAIN models
+from teras.layerflow.models.gain import (Generator as PCGAINGenerator,
+                                         Discriminator as PCGAINDiscriminator)
+from teras.layerflow.models.pcgain import (Classifier as PCGAINClassifier,
+                                           PCGAIN)
