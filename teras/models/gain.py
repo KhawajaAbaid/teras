@@ -207,21 +207,6 @@ class GAIN(keras.Model):
         https://arxiv.org/abs/1806.02920
 
     Args:
-        generator: `keras.Model`, a customized Generator model that can
-            fit right in with the architecture.
-            If specified, it will replace the default generator instance
-            created by the model.
-            This allows you to take full control over the Generator architecture.
-            Note that, you import the standalone `Generator` model
-            `from teras.models.gain import Generator` customize it through
-            available params, subclass it or construct your own Generator
-            from scratch given that it can fit within the architecture,
-            for instance, satisfy the input/output requirements.
-        discriminator: `keras.Model`, a customized Discriminator model that
-            can fit right in with the architecture.
-            Everything specified about generator above applies here as well.
-        num_discriminator_steps: `int`, default 1, Number of discriminator training steps
-            per CTGAN training step.
         data_dim: `int`, dimensionality of the input dataset.
             Note the dimensionality must be equal to the dimensionality of dataset
             that is passed to the fit method and not necessarily the dimensionality
@@ -229,11 +214,39 @@ class GAIN(keras.Model):
             dimensionality of the dataset.
             This parameter can be left None if instances of Generator and Discriminator
             are passed, otherwise it must be specified.
-        hint_rate: Hint rate will be used to sample binary vectors for
+        generator_units_values: `List[int]` or `Tuple[int]`,
+            A list or tuple of units for constructing hidden block for the Generator.
+            For each value, a `GAINDiscriminatorBlock`
+            (`from teras.layers import GAINGeneratorBlock`)
+            of that dimensionality (units) is added to the generator to form the
+            `hidden block` of the generator.
+            By default, generator_units_values = [data_dim, data_dim].
+        discriminator_units_values: `List[int]` or `Tuple[int]`,
+            A list or tuple of units for constructing hidden block for the Discriminator.
+            For each value, a `GAINDiscriminatorBlock`
+            (`from teras.layers import GAINDiscriminatorBlock`)
+            of that dimensionality (units) is added to the discriminator
+            to form the `hidden block` of the discriminator.
+            By default, discriminator_units_values = [data_dim, data_dim].
+        generator_activation_hidden: default "relu",
+            Activation function to use for the hidden layers in the hidden block
+            for the Generator.
+        discriminator_activation_hidden: default "relu",
+            Activation function to use for the hidden layers in the hidden block
+            for the Discriminator.
+        generator_activation_out: default "sigmoid",
+            Activation function to use for the output layer of the Generator.
+        discriminator_activation_out: default "sigmoid",
+            Activation function to use for the output layer of the Discriminator.
+        num_discriminator_steps: `int`, default 1,
+            Number of discriminator training steps per GAIN training step.
+        hint_rate: `float`, default 0.9,
+            Hint rate will be used to sample binary vectors for
             `hint vectors` generation. Must be between 0. and 1.
             Hint vectors ensure that generated samples follow the
             underlying data distribution.
-        alpha: Hyper parameter for the generator loss computation that
+        alpha: `float`, default 100,
+            Hyper parameter for the generator loss computation that
             controls how much weight should be given to the MSE loss.
             Precisely, `generator_loss` = `cross_entropy_loss` + `alpha` * `mse_loss`
             The higher the `alpha`, the more the mse_loss will affect the
@@ -284,36 +297,37 @@ class GAIN(keras.Model):
         ```
     """
     def __init__(self,
-                 generator: keras.Model = None,
-                 discriminator: keras.Model = None,
+                 data_dim: int,
+                 generator_units_values: LIST_OR_TUPLE = None,
+                 discriminator_units_values: LIST_OR_TUPLE = None,
+                 generator_activation_hidden="relu",
+                 discriminator_activation_hidden="relu",
+                 generator_activation_out="sigmoid",
+                 discriminator_activation_out="sigmoid",
                  num_discriminator_steps: int = 1,
-                 data_dim: int = None,
                  hint_rate: float = 0.9,
                  alpha: float = 100,
                  **kwargs):
         super().__init__(**kwargs)
-
-        if data_dim is None and (generator is None and discriminator is None):
-            raise ValueError(f"""`data_dim` is required to instantiate the Generator and Discriminator objects.
-                    But {data_dim} was passed.
-                    You can either pass the value for `data_dim` -- which can be accessed through `.data_dim`
-                    attribute of DataSampler instance if you don't know the data dimensions --
-                    or you can instantiate and pass your own Generator and Discriminator instances,
-                    in which case you can leave the `data_dim` parameter as None.""")
-
-        self.generator = generator
-        self.discriminator = discriminator
-        self.num_discriminator_steps = num_discriminator_steps
         self.data_dim = data_dim
+        self.generator_units_values = generator_units_values
+        self.discriminator_units_values = discriminator_units_values
+        self.generator_activation_hidden = generator_activation_hidden
+        self.discriminator_activation_hidden = discriminator_activation_hidden
+        self.generator_activation_out = generator_activation_out
+        self.discriminator_activation_out = discriminator_activation_out
+        self.num_discriminator_steps = num_discriminator_steps
         self.hint_rate = hint_rate
         self.alpha = alpha
 
-        if self.generator is None:
-            self.generator = Generator(data_dim=self.data_dim)
-
-        if self.discriminator is None:
-            self.discriminator = Discriminator(data_dim=self.data_dim)
-
+        self.generator = Generator(data_dim=self.data_dim,
+                                   units_values=self.generator_units_values,
+                                   activation_hidden=self.generator_activation_hidden,
+                                   activation_out=self.generator_activation_out)
+        self.discriminator = Discriminator(data_dim=self.data_dim,
+                                           units_values=self.discriminator_units_values,
+                                           activation_hidden=self.discriminator_activation_hidden,
+                                           activation_out=self.discriminator_activation_out)
         self.z_sampler = tfp.distributions.Uniform(low=0.,
                                                    high=0.01,
                                                    name="z_sampler")
@@ -483,10 +497,14 @@ class GAIN(keras.Model):
 
     def get_config(self):
         config = super(GAIN, self).get_config()
-        config.update({'generator': self.generator,
-                       'discriminator': self.discriminator,
+        config.update({'data_dim': self.data_dim,
+                       "generator_units_values": self.generator_units_values,
+                       "discriminator_units_values": self.discriminator_units_values,
+                       "generator_activation_hidden": self.generator_activation_hidden,
+                       "discriminator_activation_hidden": self.discriminator_activation_hidden,
+                       "generator_activation_out": self.generator_activation_out,
+                       "discriminator_activation_out":  self.discriminator_activation_out,
                        'num_discriminator_steps': self.num_discriminator_steps,
-                       'data_dim': self.data_dim,
                        'hint_rate': self.hint_rate,
                        'alpha': self.alpha,
                        })
