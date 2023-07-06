@@ -25,39 +25,48 @@ class Classifier(keras.Model):
         https://arxiv.org/abs/2011.07770
 
     Args:
-        units_values: A list/tuple of units for hidden block.
-            For each element, a new hidden layer will be added.
-            In official implementation, `units` for every hidden
-            layer is equal to `input_dim`,
-            and the number of hidden layers is 2.
-            So, if None, by default we use [input_dim, input_dim].
-        num_classes: Number of classes to predict.
+        data_dim: `int`,
+            The dimensionality of the input dataset.
+            Note the dimensionality must be equal to the dimensionality of dataset
+            that is passed to the fit method and not necessarily the dimensionality
+            of the raw input dataset as sometimes data transformation alters the
+            dimensionality of the dataset.
+        num_classes: `int`,
+            Number of classes to predict.
             It should be equal to the `num_clusters`,
             computed during the pseudo label generation.
+        units_values: `List[int]` or `Tuple[int]`,
+            A list/tuple of units to construct hidden block of classifier.
+            For each element, a new hidden layer will be added.
+            By default, `units_values` = [`data_dim`, `data_dim`]
+        activation_hidden: default "relu",
+            Activation function to use for the hidden layers in the classifier.
+        activation_out: default "softmax",
+            Activation function to use for the output layer of classifier.
     """
     def __init__(self,
                  data_dim: int,
                  num_classes: int = None,
                  units_values: LIST_OR_TUPLE = None,
-                 hidden_block: HIDDEN_BLOCK_TYPE = None,
-                 output_layer: keras.layers.Layer = None,
+                 activation_hidden="relu",
+                 activation_out="softmax",
                  **kwargs):
         super().__init__(**kwargs)
         self.num_classes = num_classes
         self.units_values = units_values
-        self.hidden_block = hidden_block
-        self.output_layer = output_layer
+        self.activation_hidden = activation_hidden
+        self.activation_out = activation_out
 
-        if self.hidden_block is None:
-            self.hidden_block = keras.models.Sequential(name="classifier_hidden_block")
-            if self.units_values is None:
-                self.units_values = [data_dim] * 2
-            for units in self.units_values:
-                self.hidden_block.add(keras.layers.Dense(units,
-                                                         activation="relu"))
+        if self.units_values is None:
+            self.units_values = [data_dim] * 2
 
-        if self.output_layer is None:
-            self.output_layer = keras.layers.Dense(num_classes, activation="softmax")
+        self.hidden_block = models.Sequential(name="classifier_hidden_block")
+        for units in self.units_values:
+            self.hidden_block.add(layers.Dense(units,
+                                               activation=self.activation_hidden))
+
+        self.output_layer = layers.Dense(self.num_classes,
+                                         activation=self.activation_out)
 
     def call(self, inputs):
         x = self.hidden_block(inputs)
@@ -78,121 +87,118 @@ class PCGAIN(keras.Model):
         https://arxiv.org/abs/2011.07770
 
     Args:
-        generator: A customized Generator model that can fit right in
-            with the architecture.
-            If specified, it will replace the default generator instance
-            created by the model.
-            This allows you to take full control over the Generator architecture.
-            Note that, you import the standalone `Generator` model
-            `from teras.models.gain import Generator` customize it through
-            available params, subclass it or construct your own Generator
-            from scratch given that it can fit within the architecture,
-            for instance, satisfy the input/output requirements.
-        discriminator: A customized Discriminator model that can fit right in
-            with the architecture.
-            Everything specified about generator above applies here as well.
-        num_discriminator_steps: default 1, Number of discriminator training steps
-            per PCGAIN training step.
-        data_dim: `int`, dimensionality of the input dataset.
+        data_dim: `int`,
+            The dimensionality of the input dataset.
             Note the dimensionality must be equal to the dimensionality of dataset
             that is passed to the fit method and not necessarily the dimensionality
             of the raw input dataset as sometimes data transformation alters the
             dimensionality of the dataset.
-            This parameter can be left None if instances of Generator and Discriminator
-            are passed, otherwise it must be specified.
-        hint_rate: Hint rate will be used to sample binary vectors for
-            `hint vectors` generation. Should be between 0. and 1.
-            Hint vectors ensure that generated samples follow the
-            underlying data distribution.
-        alpha: Hyper parameter for the generator loss computation that
-            controls how much weight should be given to the MSE loss.
-            Precisely, `generator_loss` = `cross_entropy_loss` + `alpha` * `mse_loss`
-            The higher the `alpha`, the more the mse_loss will affect the
-            overall generator loss.
-            Defaults to 200.
-        beta: Hyper parameter for generator loss computation that
-            controls the contribution of the classifier's loss to the
-            overall generator loss.
-            Defaults to 100.
-        num_clusters: Number of clusters to cluster the imputed data
-            that is generated during pretraining.
-            These clusters serve as pseudo labels for training of classifier.
-            Defaults to 5.
-        clustering_method: Should be one of the following,
-            ["Agglomerative", "KMeans", "MiniBatchKMeans", "Spectral", "SpectralBiclustering"]
-            The names are case in-sensitive.
-            Defaults to "kmeans"
-        pretrainer: `keras.Model`, by default GAIN is used as a pretrainer model,
-            but you can pass your own pretrainer model.
-            It is used to pretrain the Generator and Discriminators, and to impute
-            the pretraining dataset, which is then clustered to generated pseudo labels
-            which combined with the imputed data are used to train the classifier.
-        classifier: `keras.Model`, It is used in the training of the Generator component
-            of the PCGAIN architecture after it has been pretrained by the `pretrainer`.
-            The classifier itself is trained on the imputed data in the pretraining step
-            combined with the pseudo labels generated for the imputed data by clustering.
+       generator_units_values: `List[int]` or `Tuple[int]`,
+            A list or tuple of units for constructing hidden block for the Generator.
+            For each value, a `GAINDiscriminatorBlock`
+            (`from teras.layers import GAINGeneratorBlock`)
+            of that dimensionality (units) is added to the generator to form the
+            `hidden block` of the generator.
+            By default, generator_units_values = [data_dim, data_dim].
+       discriminator_units_values: `List[int]` or `Tuple[int]`,
+           A list or tuple of units for constructing hidden block for the Discriminator.
+           For each value, a `GAINDiscriminatorBlock`
+           (`from teras.layers import GAINDiscriminatorBlock`)
+           of that dimensionality (units) is added to the discriminator
+           to form the `hidden block` of the discriminator.
+           By default, discriminator_units_values = [data_dim, data_dim].
+       generator_activation_hidden: default "relu",
+           Activation function to use for the hidden layers in the hidden block
+           for the Generator.
+       discriminator_activation_hidden: default "relu",
+           Activation function to use for the hidden layers in the hidden block
+           for the Discriminator.
+       generator_activation_out: default "sigmoid",
+           Activation function to use for the output layer of the Generator.
+       discriminator_activation_out: default "sigmoid",
+           Activation function to use for the output layer of the Discriminator.
+       num_discriminator_steps: `int`, default 1,
+           Number of discriminator training steps per PCGAIN training step.
+       hint_rate: `float`, default 0.9,
+           Hint rate will be used to sample binary vectors for
+           `hint vectors` generation. Should be between 0. and 1.
+           Hint vectors ensure that generated samples follow the
+           underlying data distribution.
+       alpha: `float`, default 200.,
+           Hyper parameter for the generator loss computation that
+           controls how much weight should be given to the MSE loss.
+           Precisely, `generator_loss` = `cross_entropy_loss` + `alpha` * `mse_loss`
+           The higher the `alpha`, the more the mse_loss will affect the
+           overall generator loss.
+       beta: `float`, default 100.,
+           Hyper parameter for generator loss computation that
+           controls the contribution of the classifier's loss to the
+           overall generator loss.
+               num_clusters: `int`, default 5,
+       Number of clusters to cluster the imputed data
+           that is generated during pretraining.
+           These clusters serve as pseudo labels for training of classifier.
+       clustering_method: `str`, default "kmeans",
+           Should be one of the following,
+           ["Agglomerative", "KMeans", "MiniBatchKMeans", "Spectral", "SpectralBiclustering"]
+           The names are case in-sensitive.
     """
     def __init__(self,
-                 generator: keras.Model = None,
-                 discriminator: keras.Model = None,
+                 data_dim: int,
+                 generator_units_values: LIST_OR_TUPLE = None,
+                 discriminator_units_values: LIST_OR_TUPLE = None,
+                 generator_activation_hidden="relu",
+                 discriminator_activation_hidden="relu",
+                 generator_activation_out="sigmoid",
+                 discriminator_activation_out="sigmoid",
                  num_discriminator_steps: int = 1,
-                 data_dim: int = None,
                  hint_rate: float = 0.9,
-                 alpha: INT_OR_FLOAT = 200,
-                 beta: INT_OR_FLOAT = 100,
+                 alpha: float = 200.,
+                 beta: float = 100.,
                  num_clusters: int = 5,
                  clustering_method: str = "kmeans",
-                 pretrainer: keras.Model = None,
-                 classifier: keras.Model = None,
                  **kwargs):
         super().__init__(**kwargs)
-
-        if data_dim is None and (generator is None and discriminator is None):
-            raise ValueError(f"""`data_dim` is required to instantiate the Generator, Discriminator and Classifier objects.
-                    But {data_dim} was passed.
-                    You can either pass the value for `data_dim` -- which can be accessed through `.data_dim`
-                    attribute of DataSampler instance if you don't know the data dimensions --
-                    or you can instantiate and pass your own Generator, Discriminator and Classifier instances,
-                    in which case you can leave the `data_dim` parameter as None.""")
-
         if not 0. <= hint_rate <= 1.0:
             raise ValueError("`hint_rate` should be between 0. and 1. "
                              f"Received {hint_rate}.")
-
-        self.generator = generator
-        self.discriminator = discriminator
-        self.num_discriminator_steps = num_discriminator_steps
         self.data_dim = data_dim
+        self.generator_units_values = generator_units_values
+        self.discriminator_units_values = discriminator_units_values
+        self.generator_activation_hidden = generator_activation_hidden
+        self.discriminator_activation_hidden = discriminator_activation_hidden
+        self.generator_activation_out = generator_activation_out
+        self.discriminator_activation_out = discriminator_activation_out
+        self.num_discriminator_steps = num_discriminator_steps
         self.hint_rate = hint_rate
         self.alpha = alpha
         self.beta = beta
         self.num_clusters = num_clusters
         self.clustering_method = clustering_method
-        self.pretrainer = pretrainer
-        self.classifier = classifier
 
-        if self.generator is None:
-            self.generator = Generator(self.data_dim)
-        if self.discriminator is None:
-            self.discriminator = Discriminator(self.data_dim)
+        self.generator = Generator(data_dim=self.data_dim,
+                                   units_values=self.generator_units_values,
+                                   activation_hidden=self.generator_activation_hidden,
+                                   activation_out=self.generator_activation_out)
+        self.discriminator = Discriminator(data_dim=self.data_dim,
+                                           units_values=self.discriminator_units_values,
+                                           activation_hidden=self.discriminator_activation_hidden,
+                                           activation_out=self.discriminator_activation_out)
 
         # Since we pretrain using the EXACT SAME architecture as GAIN
-        # so here we simply use the GAIN model, which acts as `pretrainer`,
-        # in case the user does not specify a custom pretrainer model.
-        # And since it accepts generators and discriminator models,
-        # we can instantiate/customize those here and pass it to GAIN and
+        # so here we simply use the GAIN model, which acts as `pretrainer`.
+        # And since it instantiates generators and discriminator models,
+        # we can pass them to GAIN which acts as a proxy pretrainer and
         # have it pretrain them, and then we can access those pretrained models
         # and use them here in our PC-GAIN architecture.
-        if self.pretrainer is None:
-            self.pretrainer = GAIN(generator=self.generator,
-                                   discriminator=self.discriminator,
-                                   data_dim=self.data_dim,
-                                   hint_rate=self.hint_rate,
-                                   alpha=self.alpha
+        self.pretrainer = GAIN(generator=self.generator,
+                               discriminator=self.discriminator,
+                               data_dim=self.data_dim,
+                               hint_rate=self.hint_rate,
+                               alpha=self.alpha
                                    )
-        if self.classifier is None:
-            self.classifier = Classifier(data_dim=self.data_dim,
-                                         num_classes=self.num_clusters)
+        self.classifier = Classifier(data_dim=self.data_dim,
+                                     num_classes=self.num_clusters)
 
         self.z_sampler = tfp.distributions.Uniform(low=0.,
                                                    high=0.01,
@@ -295,10 +301,10 @@ class PCGAIN(keras.Model):
         if self._first_batch:
             if not self._pretrained:
                 raise AssertionError("The model has not yet been pretrained. "
-                                      "PC-GAIN requires Generator and Discriminator "
-                                      "to be pretrained before the main training. "
-                                      "You must call the `pretrain` method before "
-                                      "calling the `fit` method.")
+                                     "PC-GAIN requires Generator and Discriminator "
+                                     "to be pretrained before the main training. "
+                                     "You must call the `pretrain` method before "
+                                     "calling the `fit` method.")
             self._first_batch = False
 
         # data is a tuple of x_generator and x_discriminator batches
