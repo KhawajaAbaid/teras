@@ -66,3 +66,15 @@ from .ctgan import (CTGAN,
 
 # TVAE models
 from .tvae import TVAE
+
+
+# GAIN models
+from teras.models.gain import (Generator as GAINGenerator,
+                               Discriminator as GAINDiscriminator,
+                               GAIN)
+
+# PCGAIN models
+from teras.models.pcgain import (Generator as PCGAINGenerator,
+                                 Discriminator as PCGAINDiscriminator,
+                                 Classifier as PCGAINClassifier,
+                                 PCGAIN)
