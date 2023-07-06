@@ -208,7 +208,7 @@ class GAIN(keras.Model):
                  hint_rate: float = 0.9,
                  alpha: float = 100,
                  **kwargs):
-        if (generator is None and discriminator is None) and data_dim is None :
+        if (generator is None and discriminator is None) and data_dim is None:
             raise ValueError(f"""`data_dim` is required to instantiate the Generator and Discriminator objects,
             if the `generator` and `discriminator` arguments are not specified.
             You can either pass the value for `data_dim` -- which can be accessed through `.data_dim`
