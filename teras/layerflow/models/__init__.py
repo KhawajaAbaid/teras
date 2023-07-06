@@ -57,3 +57,9 @@ from teras.layerflow.models.node import (NODE,
 from teras.layerflow.models.rtdl_resnet import (RTDLResNet,
                                                 RTDLResNetClassifier,
                                                 RTDLResNetRegressor)
+
+
+# GAIN models
+from teras.layerflow.models.gain import (Generator as GAINGenerator,
+                                         Discriminator as GAINDiscriminator,
+                                         GAIN)

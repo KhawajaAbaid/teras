@@ -76,3 +76,8 @@ from teras.layerflow.layers.node import (ClassificationHead as NODEClassificatio
 from teras.layerflow.layers.rtdl_resnet import (ClassificationHead as RTDLResNetClassificationHead,
                                                 RegressionHead as RTDLResNetRegressionHead)
 from teras.layers.rtdl_resnet import ResNetBlock as RTDLResNetBlock
+
+
+# GAIN layers
+from teras.layers.gain import (GeneratorBlock as GAINGeneratorBlock,
+                               DiscriminatorBlock as GAINDiscriminatorBlock)
