@@ -33,26 +33,6 @@ class Generator(keras.Model):
             that is passed to the fit method and not necessarily the dimensionality
             of the raw input dataset as sometimes data transformation alters the
             dimensionality of the dataset.
-        units_values: default [256, 256], A list or tuple of units.
-            For each value, a `GeneratorBlock`
-            (`from teras.layers.ctgan import GeneratorBlock`)
-            of that dimensionality (units) is added to the generator
-            to form the `hidden block` of the generator.
-        hidden_block: `layers.Layer` or `keras.Model`. If you want more control
-            over the hidden block than simply altering the units values,
-            you can create your own hidden block and pass it as argument.
-            In this case, you have full control of the hidden block.
-            Note that if you specify a hidden block, the `units_values` parameter
-            will be ignored.
-            If `None`, a hidden block is constructed with `GeneratorBlock`
-            (`from teras.layers.ctgan import GeneratorBlock`)
-            where the number and dimensionality of blocks is determined by the
-            `units_values` argument.
-        output_layer: `layers.Layer`. If you want full control over the
-            output_layer you can create your own custom layer and
-            pass it as argument.
-            By default, a simple `Dense` layer of `data_dim` dimensionality
-            with no activation is used as the output layer.
         meta_data: `namedtuple`. The Generator in CTGAN architecture,
             applies different activation functions to the output of Generator,
             depending on the type of features.
@@ -62,6 +42,11 @@ class Generator(keras.Model):
             It can be accessed through the `.get_meta_data()` method of the DataTransformer
             instance which was used to transform the raw input data.
             It must NOT be None.
+        units_values: default [256, 256], A list or tuple of units.
+            For each value, a `GeneratorBlock`
+            (`from teras.layers.ctgan import GeneratorBlock`)
+            of that dimensionality (units) is added to the generator
+            to form the `hidden block` of the generator.
     """
     def __init__(self,
                  data_dim: int,
@@ -171,21 +156,6 @@ class Discriminator(keras.Model):
             (`from teras.layers.ctgan import DiscriminatorBlock`)
             of that dimensionality (units) is added to the discriminator
             to form the `hidden block` of the discriminator.
-        hidden_block: `layers.Layer` or `keras.Model`. If you want more control
-            over the hidden block than simply altering the units values,
-            you can create your own hidden block and pass it as argument.
-            In this case, you have full control of the hidden block.
-            Note that if you specify a hidden block, the `units_values` parameter
-            will be ignored.
-            If `None`, a hidden block is constructed with `DiscriminatorBlock`
-            (`from teras.layers.ctgan import DiscriminatorBlock`)
-            where the number and dimensionality of blocks is determined by the
-            `units_values` argument.
-        output_layer: `layers.Layer`. If you want full control over the
-            output_layer you can create your own custom layer and
-            pass it as argument.
-            By default, a simple `Dense` layer of `1` dimensionality
-            with no activation is used as the output layer.
         packing_degree: `int`, default 8, Packing degree - taken from the PacGAN paper.
             The number of samples concatenated or "packed" together.
             It must be a factor of the batch_size.
