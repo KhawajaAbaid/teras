@@ -6,10 +6,8 @@ from tensorflow.keras import optimizers
 from teras.layers.ctgan import GeneratorBlock, DiscriminatorBlock
 from teras.layers.activations import GumbelSoftmax
 from teras.losses.ctgan import generator_loss, discriminator_loss
-from teras.preprocessing.ctgan import DataTransformer, DataSampler
 from typing import List, Union, Tuple
 from tqdm import tqdm
-from warnings import warn
 
 
 LIST_OR_TUPLE = Union[List[int], Tuple[int]]
@@ -26,14 +24,22 @@ class Generator(keras.Model):
         https://arxiv.org/abs/1907.00503
 
     Args:
-        data_dim: `int`, dimensionality of the dataset.
+        units_values: default [256, 256],
+            A list or tuple of units.
+            For each value, a `GeneratorBlock`
+            (`from teras.layers.ctgan import GeneratorBlock`)
+            of that dimensionality (units) is added to the generator
+            to form the `hidden block` of the generator.
+        data_dim: `int`,
+            The dimensionality of the dataset.
             It will also be the dimensionality of the output produced
             by the generator.
             Note the dimensionality must be equal to the dimensionality of dataset
             that is passed to the fit method and not necessarily the dimensionality
             of the raw input dataset as sometimes data transformation alters the
             dimensionality of the dataset.
-        meta_data: `namedtuple`. The Generator in CTGAN architecture,
+        meta_data: `dict`,
+            The Generator in CTGAN architecture,
             applies different activation functions to the output of Generator,
             depending on the type of features.
             And to determine the feature types and for other computation during
@@ -42,16 +48,11 @@ class Generator(keras.Model):
             It can be accessed through the `.get_meta_data()` method of the DataTransformer
             instance which was used to transform the raw input data.
             It must NOT be None.
-        units_values: default [256, 256], A list or tuple of units.
-            For each value, a `GeneratorBlock`
-            (`from teras.layers.ctgan import GeneratorBlock`)
-            of that dimensionality (units) is added to the generator
-            to form the `hidden block` of the generator.
     """
     def __init__(self,
-                 data_dim: int,
-                 meta_data=None,
                  units_values: LIST_OR_TUPLE = (256, 256),
+                 data_dim: int = None,
+                 meta_data: dict = None,
                  **kwargs):
         super().__init__(**kwargs)
 
@@ -59,6 +60,11 @@ class Generator(keras.Model):
             raise ValueError(f"""`units_values` must be a list or tuple of units which determines
                         the number of Generator residual blocks and the dimensionality of those blocks.
                         But {units_values} was passed.""")
+
+        if data_dim is None:
+            raise ValueError(f"""`data_dim` cannot be None.
+                    You must pass the value for `data_dim`, which can be accessed through `.data_dim`
+                    attribute of DataSampler instance if you don't know the data dimensions.""")
 
         if meta_data is None:
             raise ValueError(f"""`meta_data`, which is computed during the data transformation step,
@@ -151,12 +157,14 @@ class Discriminator(keras.Model):
         https://arxiv.org/abs/1907.00503
 
     Args:
-        units_values: default [256, 256], A list or tuple of units.
+        units_values: default [256, 256],
+            A list or tuple of units.
             For each value, a `DiscriminatorBlock`
             (`from teras.layers.ctgan import DiscriminatorBlock`)
             of that dimensionality (units) is added to the discriminator
             to form the `hidden block` of the discriminator.
-        packing_degree: `int`, default 8, Packing degree - taken from the PacGAN paper.
+        packing_degree: `int`, default 8,
+            Packing degree - taken from the PacGAN paper.
             The number of samples concatenated or "packed" together.
             It must be a factor of the batch_size.
             Packing degree is borrowed from the PacGAN [Diederik P. Kingma et al.] architecture,
@@ -164,7 +172,8 @@ class Discriminator(keras.Model):
             jointly classified as real or fake by the discriminator in order to tackle the
             issue of mode collapse inherent in the GAN based architectures.
             The number of samples passed jointly `m`, is termed as the `packing degree`.
-        gradient_penalty_lambda: default 10, Controls the strength of gradient penalty.
+        gradient_penalty_lambda: `float`, default 10,
+                Controls the strength of gradient penalty.
                 lambda value is directly proportional to the strength of gradient penalty.
                 Gradient penalty penalizes the discriminator for large weights in an attempt
                 to combat Discriminator becoming too confident and overfitting.
@@ -191,7 +200,7 @@ class Discriminator(keras.Model):
     def __init__(self,
                  units_values: LIST_OR_TUPLE = (256, 256),
                  packing_degree: int = 8,
-                 gradient_penalty_lambda=10,
+                 gradient_penalty_lambda: float = 10,
                  **kwargs):
         super().__init__(**kwargs)
 
@@ -264,40 +273,15 @@ class CTGAN(keras.Model):
         https://arxiv.org/abs/1907.00503
 
     Args:
-        generator: `keras.Model`, a customized Generator model that can
-            fit right in with the architecture.
-            If specified, it will replace the default generator instance
-            created by the model.
-            This allows you to take full control over the Generator architecture.
-            Note that, you import the standalone `Generator` model
-            `from teras.models.gain import Generator` customize it through
-            available params, subclass it or construct your own Generator
-            from scratch given that it can fit within the architecture,
-            for instance, satisfy the input/output requirements.
-        discriminator: `keras.Model`, a customized Discriminator model that
-            can fit right in with the architecture.
-            Everything specified about generator above applies here as well.
-        num_discriminator_steps: `int`, default 1, Number of discriminator training steps
-            per CTGAN training step.
-        data_dim: `int`, dimensionality of the input dataset.
+        data_dim: `int`,
+            The dimensionality of the input dataset.
             Note the dimensionality must be equal to the dimensionality of dataset
             that is passed to the fit method and not necessarily the dimensionality
             of the raw input dataset as sometimes data transformation alters the
             dimensionality of the dataset.
-            This parameter can be left None if instances of Generator and Discriminator
-            are passed, otherwise it must be specified.
-        latent_dim: `int`, default 128, Dimensionality of noise or `z` that serves as
-            input to Generator to generate samples.
-        packing_degree: `int`, default 8, Packing degree - taken from the PacGAN paper.
-            The number of samples concatenated or "packed" together.
-            It must be a factor of the batch_size.
-            Packing degree is borrowed from the PacGAN [Diederik P. Kingma et al.] architecture,
-            which proposes passing `m` samples at once to discriminator instead of `1` to be
-            jointly classified as real or fake by the discriminator in order to tackle the
-            issue of mode collapse inherent in the GAN based architectures.
-            The number of samples passed jointly `m`, is termed as the `packing degree`.
-        meta_data: `namedtuple`. Simply pass the result of `.get_meta_data()`
-            method of the DataTransformer instance which was used to transform the raw input data.
+        meta_data: `dict`,
+            Simply pass the result of `.get_meta_data()` method of the DataTransformer instance
+            which was used to transform the raw input data.
             The Generator in CTGAN architecture applies different activation functions
             to the output of Generator, depending on the type of features.
             And to determine the feature types and for other computation during
@@ -307,44 +291,75 @@ class CTGAN(keras.Model):
             Hence, it cannot be None.
             It can be accessed through the `.get_meta_data()` method of the DataTransformer
             instance which was used to transform the raw input data.
+        generator_units_values: `List[int]` or `Tuple[int]`, default [256, 256],
+            A list or tuple of units.
+            For each value, a `CTGANGeneratorBlock`
+            (`from teras.layers import CTGANGeneratorBlock`)
+            of that dimensionality (units) is added to the generator
+            to form the `hidden block` of the generator.
+        discriminator_units_values: `List[int]` or `Tuple[int]`, default [256, 256],
+            A list or tuple of units values.
+            For each value, a `CTGANDiscriminatorBlock`
+            (`from teras.layers import CTGANDiscriminatorBlock`)
+            of that dimensionality (units) is added to the discriminator
+            to form the `hidden block` of the discriminator.
+        num_discriminator_steps: `int`, default 1,
+            Number of discriminator training steps per CTGAN training step.
+        latent_dim: `int`, default 128,
+            Dimensionality of noise or `z` that serves as input to Generator
+            to generate samples.
+        packing_degree: `int`, default 8,
+            Packing degree - taken from the PacGAN paper.
+            The number of samples concatenated or "packed" together.
+            It must be a factor of the batch_size.
+            Packing degree is borrowed from the PacGAN [Diederik P. Kingma et al.] architecture,
+            which proposes passing `m` samples at once to discriminator instead of `1` to be
+            jointly classified as real or fake by the discriminator in order to tackle the
+            issue of mode collapse inherent in the GAN based architectures.
+            The number of samples passed jointly `m`, is termed as the `packing degree`.
+        gradient_penalty_lambda: `float`, default 10,
+            Controls the strength of gradient penalty in the Discriminator.
+            lambda value is directly proportional to the strength of gradient penalty.
+            Gradient penalty penalizes the discriminator for large weights in an attempt
+            to combat Discriminator becoming too confident and overfitting.
     """
     def __init__(self,
-                 generator: keras.Model = None,
-                 discriminator: keras.Model = None,
-                 num_discriminator_steps: int = 1,
                  data_dim: int = None,
+                 meta_data: dict = None,
+                 generator_units_values: LIST_OR_TUPLE = (256, 256),
+                 discriminator_units_values: LIST_OR_TUPLE = (256, 256),
+                 num_discriminator_steps: int = 1,
                  latent_dim: int = 128,
-                 packing_degree=8,
-                 meta_data=None,
+                 packing_degree: int =8,
+                 gradient_penalty_lambda: float = 10,
                  **kwargs):
         super().__init__(**kwargs)
 
-        if data_dim is None and (generator is None and discriminator is None):
-            raise ValueError(f"""`data_dim` is required to instantiate the Generator and Discriminator objects.
+        if data_dim is None:
+            raise ValueError(f"""`data_dim` is required to instantiate the Generator.
                     But {data_dim} was passed.
-                    You can either pass the value for `data_dim` -- which can be accessed through `.data_dim`
-                    attribute of DataSampler instance if you don't know the data dimensions --
-                    or you can instantiate and pass your own Generator and Discriminator instances,
-                    in which case you can leave the `data_dim` parameter as None.""")
-
-        self.generator = generator
-        self.discriminator = discriminator
-        self.num_discriminator_steps = num_discriminator_steps
+                    You must pass the value for `data_dim`, which can be accessed through `.data_dim`
+                    attribute of DataSampler instance if you don't know the data dimensions.""")
+        if meta_data is None:
+            raise ValueError("`meta_data` cannot be None. "
+                             "You can access the `meta_data` through `.get_meta_data()` method of DataTransformer "
+                             "instance.")
         self.data_dim = data_dim
+        self.meta_data = meta_data
+        self.generator_units_values = generator_units_values
+        self.discriminator_units_values = discriminator_units_values
+        self.num_discriminator_steps = num_discriminator_steps
         self.latent_dim = latent_dim
         self.packing_degree = packing_degree
-        self.meta_data = meta_data
+        self.gradient_penalty_lambda = gradient_penalty_lambda
 
-        # If user specifies a custom generator, we won't instantiate Generator.
-        if self.generator is None:
-            # Instantiate Generator
-            self.generator = Generator(data_dim=self.data_dim,
-                                       meta_data=self.meta_data)
+        self.generator = Generator(data_dim=self.data_dim,
+                                   meta_data=self.meta_data,
+                                   units_values=self.generator_units_values)
 
-        # If user specifies a custom discriminator, we won't instantiate Discriminator.
-        if discriminator is None:
-            # Instantiate discriminator
-            self.discriminator = Discriminator()
+        self.discriminator = Discriminator(units_values=self.discriminator_units_values,
+                                           packing_degree=self.packing_degree,
+                                           gradient_penalty_lambda=self.gradient_penalty_lambda)
 
         # Loss trackers
         self.generator_loss_tracker = keras.metrics.Mean(name="generator_loss")
