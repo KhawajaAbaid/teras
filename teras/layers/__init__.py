@@ -112,3 +112,7 @@ from teras.layers.gain import (GeneratorBlock as GAINGeneratorBlock,
 # PCGAIN layers
 from teras.layers.pcgain import (GeneratorBlock as PCGAINGeneratorBlock,
                                  DiscriminatorBlock as PCGAINDiscriminatorBlock)
+
+# CTGAN layers
+from teras.layers.ctgan import (GeneratorBlock as CTGANGeneratorBlock,
+                                DiscriminatorBlock as CTGANDiscriminatorBlock)
