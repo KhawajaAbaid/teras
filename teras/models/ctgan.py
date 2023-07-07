@@ -65,21 +65,15 @@ class Generator(keras.Model):
     """
     def __init__(self,
                  data_dim: int,
-                 units_values: LIST_OR_TUPLE = (256, 256),
-                 hidden_block: HIDDEN_BLOCK_TYPE = None,
-                 output_layer: keras.layers.Layer = None,
                  meta_data=None,
+                 units_values: LIST_OR_TUPLE = (256, 256),
                  **kwargs):
         super().__init__(**kwargs)
 
-        if units_values is not None and not isinstance(units_values, (list, tuple)):
+        if not isinstance(units_values, (list, tuple)):
             raise ValueError(f"""`units_values` must be a list or tuple of units which determines
                         the number of Generator residual blocks and the dimensionality of those blocks.
                         But {units_values} was passed.""")
-
-        if hidden_block is not None and units_values is not None:
-            warn(f"A custom hidden block was specified, the `units_values` {units_values} "
-                 f"will be ignored.")
 
         if meta_data is None:
             raise ValueError(f"""`meta_data`, which is computed during the data transformation step,
@@ -90,18 +84,14 @@ class Generator(keras.Model):
                     """)
 
         self.data_dim = data_dim
-        self.units_values = units_values
-        self.hidden_block = hidden_block
-        self.output_layer = output_layer
         self.meta_data = meta_data
+        self.units_values = units_values
 
-        if self.hidden_block is None:
-            self.hidden_block = models.Sequential(name="generator_hidden_block")
-            for units in self.units_values:
-                self.hidden_block.add(GeneratorBlock(units))
+        self.hidden_block = models.Sequential(name="generator_hidden_block")
+        for units in self.units_values:
+            self.hidden_block.add(GeneratorBlock(units))
 
-        if self.output_layer is None:
-            self.output_layer = layers.Dense(self.data_dim, name="generator_output_layer")
+        self.output_layer = layers.Dense(self.data_dim, name="generator_output_layer")
 
         self.gumbel_softmax = GumbelSoftmax()
 
@@ -230,35 +220,25 @@ class Discriminator(keras.Model):
     """
     def __init__(self,
                  units_values: LIST_OR_TUPLE = (256, 256),
-                 hidden_block: HIDDEN_BLOCK_TYPE = None,
-                 output_layer: keras.layers.Layer = None,
                  packing_degree: int = 8,
                  gradient_penalty_lambda=10,
                  **kwargs):
         super().__init__(**kwargs)
 
-        if units_values is not None and not isinstance(units_values, (list, tuple)):
+        if not isinstance(units_values, (list, tuple)):
             raise ValueError(f"""`units_values` must be a list or tuple of units which determines
                         the number of Discriminator blocks and the dimensionality of those blocks.
                         But {units_values} was passed""")
 
-        if hidden_block is not None and units_values is not None:
-            warn(f"A custom hidden block was specified, the `units_values` {units_values} "
-                 f"will be ignored.")
-
         self.units_values = units_values
-        self.hidden_block = hidden_block
-        self.output_layer = output_layer
         self.packing_degree = packing_degree
         self.gradient_penalty_lambda = gradient_penalty_lambda
 
-        if self.hidden_block is None:
-            self.hidden_block = models.Sequential(name="discriminator_hidden_block")
-            for units in self.units_values:
-                self.hidden_block.add(DiscriminatorBlock(units))
+        self.hidden_block = models.Sequential(name="discriminator_hidden_block")
+        for units in self.units_values:
+            self.hidden_block.add(DiscriminatorBlock(units))
 
-        if self.output_layer is None:
-            self.output_layer = layers.Dense(1, name="discriminator_output_layer")
+        self.output_layer = layers.Dense(1, name="discriminator_output_layer")
 
     @tf.function
     def gradient_penalty(self,
