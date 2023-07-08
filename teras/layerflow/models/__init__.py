@@ -75,3 +75,9 @@ from teras.layerflow.models.pcgain import (Classifier as PCGAINClassifier,
 from teras.layerflow.models.ctgan import (Generator as CTGANGenerator,
                                           Discriminator as CTGANDiscriminator,
                                           CTGAN)
+
+
+# TVAE models
+from teras.layerflow.models.tvae import (Encoder as TVAEEncoder,
+                                         Decoder as TVAEDecoder,
+                                         TVAE)
