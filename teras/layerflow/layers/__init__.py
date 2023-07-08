@@ -87,3 +87,8 @@ from teras.layers.gain import (GeneratorBlock as GAINGeneratorBlock,
 # PCGAIN uses same blocks as GAIN
 from teras.layers.gain import (GeneratorBlock as PCGAINGeneratorBlock,
                                DiscriminatorBlock as PCGAINGeneratorBlock)
+
+
+# CTGAN layers
+from teras.layers.ctgan import (GeneratorBlock as CTGANGeneratorBlock,
+                                DiscriminatorBlock as CTGANDiscriminatorBlock)
