@@ -69,3 +69,9 @@ from teras.layerflow.models.gain import (Generator as PCGAINGenerator,
                                          Discriminator as PCGAINDiscriminator)
 from teras.layerflow.models.pcgain import (Classifier as PCGAINClassifier,
                                            PCGAIN)
+
+
+# CTGAN models
+from teras.layerflow.models.ctgan import (Generator as CTGANGenerator,
+                                          Discriminator as CTGANDiscriminator,
+                                          CTGAN)
