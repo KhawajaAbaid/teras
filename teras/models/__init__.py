@@ -65,7 +65,9 @@ from .ctgan import (CTGAN,
 
 
 # TVAE models
-from .tvae import TVAE
+from .tvae import (Encoder as TVAEEncoder,
+                   Decoder as TVAEDecoder,
+                   TVAE)
 
 
 # GAIN models
