@@ -72,7 +72,7 @@ class Generator(_BaseGenerator):
                          meta_data=meta_data,
                          **kwargs)
 
-        if self.hidden_block is not None:
+        if hidden_block is not None:
             if isinstance(hidden_block, (layers.Layer, models.Model)):
                 # leave it as is
                 hidden_block = hidden_block
@@ -153,7 +153,7 @@ class Discriminator(_BaseDiscriminator):
                          gradient_penalty_lambda=gradient_penalty_lambda,
                          **kwargs)
 
-        if self.hidden_block is not None:
+        if hidden_block is not None:
             if isinstance(hidden_block, (layers.Layer, models.Model)):
                 # leave it as is
                 hidden_block = hidden_block
