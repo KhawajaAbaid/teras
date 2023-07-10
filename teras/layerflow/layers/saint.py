@@ -1,3 +1,4 @@
+from tensorflow import keras
 from tensorflow.keras import layers, models
 from teras.layers.saint import (SAINTTransformer as _BaseSAINTTransformer,
                                 Encoder as _BaseEncoder,
@@ -6,6 +7,7 @@ from teras.layers.saint import (SAINTTransformer as _BaseSAINTTransformer,
                                 ClassificationHead as _BaseClassificationHead,
                                 RegressionHead as _BaseRegressionHead)
 from typing import List, Union
+from teras.utils import serialize_layers_collection
 
 LIST_OF_LAYERS = List[layers.Layer]
 LAYER_OR_MODEL = Union[layers.Layer, models.Model]
@@ -60,6 +62,15 @@ class SAINTTransformer(_BaseSAINTTransformer):
 
         self._build_saint_inner_transformer_block()
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'multihead_inter_sample_attention': keras.layers.serialize(self.multihead_inter_sample_attention),
+                      'feed_forward': keras.layers.serialize(self.feed_forward),
+                      'transformer': keras.layers.serialize(self.transformer),
+                      }
+        config.update(new_config)
+        return config
+
 
 class Encoder(_BaseEncoder):
     """
@@ -93,6 +104,13 @@ class Encoder(_BaseEncoder):
         if saint_transformer_layers is not None:
             self.transformer_layers = models.Sequential(saint_transformer_layers,
                                                         name="saint_transformer_layers")
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'saint_transformer_layers': keras.layers.serialize(self.saint_transformer_layers),
+                      }
+        config.update(new_config)
+        return config
 
 
 class ReconstructionHead(_BaseReconstructionHead):
@@ -136,6 +154,13 @@ class ReconstructionHead(_BaseReconstructionHead):
         if reconstruction_blocks is not None:
             self.reconstruction_blocks = reconstruction_blocks
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'reconstruction_blocks': serialize_layers_collection(self.reconstruction_blocks),
+                      }
+        config.update(new_config)
+        return config
+
 
 class ClassificationHead(_BaseClassificationHead):
     """
@@ -167,6 +192,14 @@ class ClassificationHead(_BaseClassificationHead):
         if output_layer is not None:
             self.output_layer = output_layer
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'hidden_block': keras.layers.serialize(self.hidden_block),
+                      'output_layer': keras.layers.serialize(self.output_layer)
+                      }
+        config.update(new_config)
+        return config
+
 
 class RegressionHead(_BaseRegressionHead):
     """
@@ -197,6 +230,14 @@ class RegressionHead(_BaseRegressionHead):
 
         if output_layer is not None:
             self.output_layer = output_layer
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'hidden_block': keras.layers.serialize(self.hidden_block),
+                      'output_layer': keras.layers.serialize(self.output_layer)
+                      }
+        config.update(new_config)
+        return config
 
 
 class ProjectionHead(_BaseProjectionHead):
@@ -237,3 +278,11 @@ class ProjectionHead(_BaseProjectionHead):
 
         if output_layer is not None:
             self.output_layer = output_layer
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'hidden_block': keras.layers.serialize(self.hidden_block),
+                      'output_layer': keras.layers.serialize(self.output_layer)
+                      }
+        config.update(new_config)
+        return config

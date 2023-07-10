@@ -1,3 +1,4 @@
+from tensorflow import keras
 from tensorflow.keras import layers, models
 from teras.layers.tabnet import (FeatureTransformer as _BaseFeatureTransformer,
                                  Encoder as _BaseEncoder,
@@ -5,6 +6,7 @@ from teras.layers.tabnet import (FeatureTransformer as _BaseFeatureTransformer,
                                  ClassificationHead as _BaseClassificationHead,
                                  RegressionHead as _BaseRegressionHead)
 from typing import List, Union
+from teras.utils import serialize_layers_collection
 
 
 LAYERS_COLLECTION = List[layers.Layer]
@@ -68,6 +70,14 @@ class FeatureTransformer(_BaseFeatureTransformer):
                              "Expected type(s): List[layers.Layer], models.Model. "
                              f"Received type: {type(layers_collection)}.")
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'shared_layers': serialize_layers_collection(self.shared_layers),
+                      'decision_dependent_layers': serialize_layers_collection(self.decision_dependent_layers)
+                      }
+        config.update(new_config)
+        return config
+
 
 class Encoder(_BaseEncoder):
     """
@@ -117,6 +127,14 @@ class Encoder(_BaseEncoder):
 
         if attentive_transformers_per_step is not None:
             self.attentive_transformers_per_step = attentive_transformers_per_step
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'feature_transformers_per_step': serialize_layers_collection(self.features_transformers_per_step),
+                      'attentive_transformers_per_step': serialize_layers_collection(self.attentive_transformers_per_step)
+                      }
+        config.update(new_config)
+        return config
 
 
 class Decoder(_BaseDecoder):
@@ -169,6 +187,14 @@ class Decoder(_BaseDecoder):
         if projection_layers_per_step is not None:
             self.projection_layers_per_step = projection_layers_per_step
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'feature_transformers_per_step': serialize_layers_collection(self.features_transformers_per_step),
+                      'projection_layers_per_step': serialize_layers_collection(self.projection_layers_per_step)
+                      }
+        config.update(new_config)
+        return config
+
 
 class ClassificationHead(_BaseClassificationHead):
     """
@@ -200,6 +226,14 @@ class ClassificationHead(_BaseClassificationHead):
         if output_layer is not None:
             self.output_layer = output_layer
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'hidden_block': keras.layers.serialize(self.hidden_block),
+                      'output_layer': keras.layers.serialize(self.output_layer)
+                      }
+        config.update(new_config)
+        return config
+
 
 class RegressionHead(_BaseRegressionHead):
     """
@@ -230,3 +264,11 @@ class RegressionHead(_BaseRegressionHead):
 
         if output_layer is not None:
             self.output_layer = output_layer
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'hidden_block': keras.layers.serialize(self.hidden_block),
+                      'output_layer': keras.layers.serialize(self.output_layer)
+                      }
+        config.update(new_config)
+        return config
