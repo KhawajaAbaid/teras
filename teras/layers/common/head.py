@@ -55,6 +55,15 @@ class RegressionHead(layers.Layer):
         outputs = self.output_layer(x)
         return outputs
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'num_outputs': self.num_outputs,
+                      'units_values': self.units_values,
+                      'activation_hidden': self.activation_hidden,
+                      'normalization': self.normalization}
+        config.update(new_config)
+        return config
+
 
 class ClassificationHead(layers.Layer):
     """
@@ -107,3 +116,13 @@ class ClassificationHead(layers.Layer):
             x = self.hidden_block(x)
         outputs = self.output_layer(x)
         return outputs
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'num_classes': self.num_outputs,
+                      'units_values': self.units_values,
+                      'activation_hidden': self.activation_hidden,
+                      'activation_out': self.activation_out,
+                      'normalization': self.normalization}
+        config.update(new_config)
+        return config

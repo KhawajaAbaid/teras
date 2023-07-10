@@ -45,6 +45,14 @@ class ColumnEmbedding(layers.Layer):
         """
         return inputs + self.column_embedding(self.column_indices)
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'num_categorical_features': self.num_categorical_features,
+                      'embedding_dim': self.embedding_dim,
+                      }
+        config.update(new_config)
+        return config
+
 
 class ClassificationHead(BaseClassificationHead):
     """

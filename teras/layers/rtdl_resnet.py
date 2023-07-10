@@ -82,6 +82,19 @@ class ResNetBlock(layers.Layer):
             x = self.add([x, residual])
         return x
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'units': self.units,
+                      'dropout_hidden': self.dropout_hidden,
+                      'dropout_out': self.dropout_out,
+                      'activation_hidden': self.activation_hidden,
+                      'activation_out': self.activation_out,
+                      'normalization': self.normalization,
+                      'use_skip_connection': self.use_skip_connection,
+                      }
+        config.update(new_config)
+        return config
+
 
 class ClassificationHead(_BaseClassificationHead):
     """

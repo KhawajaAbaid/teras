@@ -35,6 +35,14 @@ class MaskEstimator(layers.Layer):
     def call(self, inputs):
         return self.estimator(inputs)
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'units': self.units,
+                      'activation': self.activation,
+                      }
+        config.update(new_config)
+        return config
+
 
 class FeatureEstimator(layers.Layer):
     """
@@ -64,6 +72,14 @@ class FeatureEstimator(layers.Layer):
     def call(self, inputs):
         return self.estimator(inputs)
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'units': self.units,
+                      'activation': self.activation,
+                      }
+        config.update(new_config)
+        return config
+
 
 class Encoder(layers.Layer):
     """
@@ -92,8 +108,11 @@ class Encoder(layers.Layer):
         return self.encoder(inputs)
 
     def get_config(self):
-        config = super(Encoder, self).get_config()
-        config.update({'dim': self.dim})
+        config = super().get_config()
+        new_config = {'units': self.units,
+                      'activation': self.activation,
+                      }
+        config.update(new_config)
         return config
 
 
@@ -164,6 +183,17 @@ class Predictor(layers.Layer):
         y_hat = self.softmax(y_hat_logit)
         return y_hat_logit, y_hat
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'input_dim': self.input_dim,
+                      'units': self.units,
+                      'num_labels': self.num_labels,
+                      'activation': self.activation,
+                      'batch_size': self.batch_size,
+                      }
+        config.update(new_config)
+        return config
+
 
 class MaskGenerationAndCorruption(layers.Layer):
     """
@@ -206,3 +236,10 @@ class MaskGenerationAndCorruption(layers.Layer):
         # Corrupt Samples
         X_tilde = inputs * (1 - mask) + X_bar * mask
         return X_tilde
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'p_m': self.input_dim,
+                      }
+        config.update(new_config)
+        return config

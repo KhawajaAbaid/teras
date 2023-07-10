@@ -62,3 +62,14 @@ class PeriodicEmbedding(layers.Layer):
     def call(self, inputs):
         pi = tf.constant(math.pi)
         return self.cos_sin(2 * pi * self.coefficients[None] * inputs[..., None])
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'num_features': self.num_features,
+                      'embedding_dim': self.embedding_dim,
+                      'initialization': self.initialization,
+                      'sigma': self.sigma,
+                      }
+
+        config.update(new_config)
+        return config

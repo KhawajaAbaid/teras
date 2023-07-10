@@ -59,6 +59,16 @@ class AttentiveTransformer(layers.Layer):
         outputs = tfa.activations.sparsemax(outputs)
         return outputs
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'num_features': self.num_features,
+                      'batch_momentum': self.batch_momentum,
+                      'virtual_batch_size': self.virtual_batch_size,
+                      'relaxation_factor': self.relaxation_factor,
+                      }
+        config.update(new_config)
+        return config
+
 
 class FeatureTransformerBlock(layers.Layer):
     """
@@ -116,6 +126,17 @@ class FeatureTransformerBlock(layers.Layer):
         if self.use_residual_normalization:
             x = self.add([x, inputs]) * tf.math.sqrt(self.residual_normalization_factor)
         return x
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'units': self.units,
+                      'batch_momentum': self.batch_momentum,
+                      'virtual_batch_size': self.virtual_batch_size,
+                      'residual_normalization_factor': self.residual_normalization_factor,
+                      'use_residual_normalization': self.use_residual_normalization,
+                      }
+        config.update(new_config)
+        return config
 
 
 class FeatureTransformer(layers.Layer):
@@ -230,6 +251,18 @@ class FeatureTransformer(layers.Layer):
     def call(self, inputs):
         outputs = self.inner_block(inputs)
         return outputs
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'units': self.units,
+                      'num_shared_layers': self.num_shared_layers,
+                      'num_decision_dependent_layers': self.num_decision_dependent_layers,
+                      'batch_momentum': self.batch_momentum,
+                      'virtual_batch_size': self.virtual_batch_size,
+                      'residual_normalization_factor': self.residual_normalization_factor,
+                      }
+        config.update(new_config)
+        return config
 
 
 class Encoder(layers.Layer):
@@ -419,6 +452,23 @@ class Encoder(layers.Layer):
 
         return outputs_aggregated
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'feature_transformer_dim': self.feature_transformer_dim,
+                      'decision_step_output_dim': self.decision_step_output_dim,
+                      'num_decision_steps': self.num_decision_steps,
+                      'num_shared_layers': self.num_shared_layers,
+                      'num_decision_dependent_layers': self.num_decision_dependent_layers,
+                      'relaxation_factor': self.relaxation_factor,
+                      'batch_momentum': self.batch_momentum,
+                      'virtual_batch_size': self.virtual_batch_size,
+                      'residual_normalization_factor': self.residual_normalization_factor,
+                      'epsilon': self.epsilon,
+                      'num_features': self.num_features,
+                      }
+        config.update(new_config)
+        return config
+
 
 class Decoder(layers.Layer):
     """
@@ -530,6 +580,21 @@ class Decoder(layers.Layer):
             reconstructed_features *= mask
 
         return reconstructed_features
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'data_dim': self.data_dim,
+                      'feature_transformer_dim': self.feature_transformer_dim,
+                      'decision_step_output_dim': self.decision_step_output_dim,
+                      'num_decision_steps': self.num_decision_steps,
+                      'num_shared_layers': self.num_shared_layers,
+                      'num_decision_dependent_layers': self.num_decision_dependent_layers,
+                      'batch_momentum': self.batch_momentum,
+                      'virtual_batch_size': self.virtual_batch_size,
+                      'residual_normalization_factor': self.residual_normalization_factor,
+                      }
+        config.update(new_config)
+        return config
 
 
 class RegressionHead(BaseRegressionHead):

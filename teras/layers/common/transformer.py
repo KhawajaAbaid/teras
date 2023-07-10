@@ -56,6 +56,15 @@ class FeedForward(layers.Layer):
         outputs = self.output_layer(x)
         return outputs
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'embedding_dim': self.embedding_dim,
+                      'multiplier': self.multiplier,
+                      'dropout': self.dropout,
+                      'activation': self.activation}
+        config.update(new_config)
+        return config
+
 
 class Transformer(layers.Layer):
     """
@@ -118,6 +127,17 @@ class Transformer(layers.Layer):
         x = self.layer_norm_2(x)
         return x
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'embedding_dim': self.embedding_dim,
+                      'num_attention_heads': self.num_attention_heads,
+                      'attention_dropout': self.attention_dropout,
+                      'feedforward_dropout': self.feedforward_dropout,
+                      'feedforward_multiplier': self.feedforward_multiplier,
+                      'norm_epsilon': self.norm_epsilon}
+        config.update(new_config)
+        return config
+
 
 class Encoder(layers.Layer):
     """
@@ -172,3 +192,15 @@ class Encoder(layers.Layer):
     def call(self, inputs):
         outputs = self.transformer_layers(inputs)
         return outputs
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'num_transformer_layers': self.num_transformer_layers,
+                      'num_heads': self.num_heads,
+                      'embedding_dim': self.embedding_dim,
+                      'attention_dropout': self.attention_dropout,
+                      'feedforward_dropout': self.feedforward_dropout,
+                      'feedforward_multiplier': self.feedforward_multiplier,
+                      'norm_epsilon': self.norm_epsilon}
+        config.update(new_config)
+        return config

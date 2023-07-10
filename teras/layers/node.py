@@ -156,6 +156,22 @@ class ObliviousDecisionTree(layers.Layer):
         response = tf.einsum('bnd,ncd->bnc', response_weights, self.response)
         return tf.map_fn(keras.backend.flatten, response)
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'num_trees': self.num_trees,
+                      'depth': self.depth,
+                      'tree_dim': self.tree_dim,
+                      'choice_function': self.choice_function,
+                      'bin_function': self.bin_function,
+                      'response_initializer': self.response_initializer,
+                      'selection_logits_intializer': self.selection_logits_intializer,
+                      'threshold_init_beta': self.threshold_init_beta,
+                      'threshold_init_cutoff': self.threshold_init_cutoff,
+                      }
+
+        config.update(new_config)
+        return config
+
 
 class ClassificationHead(_BaseClassificationHead):
     """

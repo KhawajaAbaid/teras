@@ -31,6 +31,11 @@ class GeneratorBlock(layers.Layer):
         out = self.concat([x, inputs])
         return out
 
+    def get_config(self):
+        base_config = super().get_config()
+        config = {'units': self.units}
+        return base_config.update(config)
+
 
 class DiscriminatorBlock(layers.Layer):
     """
@@ -68,3 +73,11 @@ class DiscriminatorBlock(layers.Layer):
         out = self.leaky_relu(out)
         out = self.dropout(out)
         return out
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'units': self.units,
+                      'leaky_relu_alpha': self.leaky_relu_alpha,
+                      'dropout_rate': self.dropout_rate}
+        config.update(new_config)
+        return config

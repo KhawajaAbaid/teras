@@ -113,3 +113,11 @@ class CategoricalFeatureEmbedding(layers.Layer):
         else:
             categorical_feature_embeddings = tf.transpose(categorical_feature_embeddings)
         return categorical_feature_embeddings
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'categorical_features_metadata': self.categorical_features_metadata,
+                      'embedding_dim': self.embedding_dim,
+                      'encode': self.encode}
+        config.update(new_config)
+        return config
