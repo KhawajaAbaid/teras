@@ -8,7 +8,7 @@ from typing import List, Tuple, Union
 
 LIST_OR_TUPLE = Union[List[int], Tuple[int]]
 INT_OR_FLOAT = Union[int, float]
-HIDDEN_BLOCK_TYPE = Union[keras.layers.Layer, List[keras.layers.Layer], keras.models.Model]
+HIDDEN_BLOCK_TYPE = Union[keras.layers.Layer, keras.models.Model]
 
 
 class Classifier(_BaseClassifier):
@@ -67,14 +67,8 @@ class Classifier(_BaseClassifier):
         self.num_classes = num_classes
 
         if hidden_block is not None:
-            if isinstance(hidden_block, (layers.Layer, models.Model)):
-                # leave it as is
-                hidden_block = hidden_block
-            elif isinstance(hidden_block, (list, tuple)):
-                hidden_block = models.Sequential(hidden_block,
-                                                 name="discriminator_hidden_block")
-            else:
-                raise TypeError("`hidden_block` can either be a Keras layer, list of layers or a keras model "
+            if not isinstance(hidden_block, (layers.Layer, models.Model)):
+                raise TypeError("`hidden_block` can either be a Keras layer, or a Keras model "
                                 f"but received type: {type(hidden_block)} which is not supported.")
             self.hidden_block = hidden_block
 
