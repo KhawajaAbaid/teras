@@ -4,7 +4,7 @@ from teras.layerflow.layers import RTDLResNetClassificationHead, RTDLResNetRegre
 from typing import List, Union
 
 
-PACK_OF_LAYERS = Union[List[layers.Layer], models.Model]
+LAYER_OR_MODEL = Union[layers.Layer, models.Model]
 
 
 class RTDLResNet(_BaseRTDLResNet):
@@ -31,20 +31,15 @@ class RTDLResNet(_BaseRTDLResNet):
     """
 
     def __init__(self,
-                 resnet_blocks: PACK_OF_LAYERS = None,
+                 resnet_blocks: LAYER_OR_MODEL = None,
                  head: layers.Layer = None,
                  **kwargs):
         super().__init__(**kwargs)
         if resnet_blocks is not None:
-            if isinstance(resnet_blocks, models.Model):
-                # Leave it as it
-                resnet_blocks = resnet_blocks
-            elif isinstance(resnet_blocks, (list, tuple)):
-                resnet_blocks = models.Sequential(resnet_blocks,
-                                                  name="resnet_blocks")
-            else:
-                raise ValueError("`resnet_blocks` can either be a list of `RTDLResNetBlock` layers "
-                                 f"or a keras model but received type: {type(resnet_blocks)}.")
+            if not isinstance(resnet_blocks, (layers.Layer, models.Model)):
+                raise ValueError("`resnet_blocks` can either be a Keras Layer or Model made up of "
+                                 "`RTDLResNetBlock` layers. \n"
+                                 f"But received type: {type(resnet_blocks)}.")
             self.resnet_blocks = resnet_blocks
 
         if head is not None:
@@ -75,7 +70,7 @@ class RTDLResNetClassifier(RTDLResNet):
                 >>> from teras.layerflow.layers import RTDLResNetClassificationHead
     """
     def __init__(self,
-                 resnet_blocks: PACK_OF_LAYERS = None,
+                 resnet_blocks: LAYER_OR_MODEL = None,
                  head: layers.Layer = None,
                  **kwargs):
         if head is None:
@@ -109,7 +104,7 @@ class RTDLResNetRegressor(RTDLResNet):
                 >>> from teras.layerflow.layers import RTDLResNetRegressionHead
     """
     def __init__(self,
-                 resnet_blocks: PACK_OF_LAYERS = None,
+                 resnet_blocks: LAYER_OR_MODEL = None,
                  head: layers.Layer = None,
                  **kwargs):
         if head is None:
