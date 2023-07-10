@@ -47,11 +47,11 @@ class GumbelSoftmax(layers.Layer):
         hard: Whether to return soft probabilities or hard one hot vectors. Defaults to False.
     """
     def __init__(self,
-                 temparature=0.2,
+                 temperature=0.2,
                  hard: bool = False,
                  **kwargs):
         super().__init__(**kwargs)
-        self.temparature = temparature
+        self.temperature = temperature
         self.hard = hard
 
     def call(self, logits):
@@ -59,7 +59,7 @@ class GumbelSoftmax(layers.Layer):
                                     minval=0,
                                     maxval=1)
         gumbels = -tf.math.log(-tf.math.log(u))
-        perturbed_logits = (logits + gumbels) / self.temparature
+        perturbed_logits = (logits + gumbels) / self.temperature
         probabilities = tf.nn.softmax(perturbed_logits)
         if self.hard:
             one_hot_labels = tf.one_hot(tf.argmax(probabilities, axis=-1), tf.shape(logits)[-1])
@@ -68,6 +68,6 @@ class GumbelSoftmax(layers.Layer):
 
     def get_config(self):
         base_config = super().get_config()
-        config = {'temparature': self.temparature,
+        config = {'temperature': self.temperature,
                   'hard': self.hard}
         return base_config.update(config)
