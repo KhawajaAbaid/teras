@@ -4,3 +4,4 @@ tensorflow-probability
 numpy
 pandas
 scikit-learn
+tqdm
