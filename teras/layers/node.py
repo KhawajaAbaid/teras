@@ -13,7 +13,6 @@ LIST_OR_TUPLE = Union[list, tuple]
 LAYER_OR_STR = Union[keras.layers.Layer, str]
 
 
-
 class ObliviousDecisionTree(layers.Layer):
     """
         Oblivious Decision Tree layer as proposed by Sergei Popov et al.
@@ -24,42 +23,56 @@ class ObliviousDecisionTree(layers.Layer):
             https://arxiv.org/abs/1909.06312
 
         Args:
-            n_trees: Number of trees in this layer
-            depth: Number of splits in every tree
-            tree_dim: Number of response channels in the response of individual tree
-            choice_function: f(tensor, dim) -> R_simplex computes feature weights s.t. f(tensor, dim).sum(dim) == 1
-            bin_function: f(tensor) -> R[0, 1], computes tree leaf weights
-            response_initializer: Initializer for tree output tensor
-            selection_logits_intializer: Initializer for logits that select features for the tree
+       num_trees: `int`, default 128,
+            Number of trees
+        depth: `int`, default 6,
+            Number of splits in every tree
+        tree_dim: `int`, default 1,
+            Number of response channels in the response of individual tree
+        max_features: `int`,
+            Maximum number of features to use. If None, all features in the input dataset will be used.
+        input_dropout: `float`, default 0.,
+            Dropout rate to apply to inputs.
+        choice_function:
+            f(tensor, dim) -> R_simplex computes feature weights s.t. f(tensor, dim).sum(dim) == 1
+            By default, sparsemax is used.
+        bin_function:
+            f(tensor) -> R[0, 1], computes tree leaf weights
+            By default, sparsemoid is used.
+        response_initializer: default "random_normal",
+            Initializer for tree output tensor. Any format that is acceptable by the keras initializers.
+        selection_logits_intializer: default "random_uniform",
+            Initializer for logits that select features for the tree
             Both thresholds and scales are initialized with data-aware initialization function.
-            threshold_init_beta: initializes threshold to a q-th quantile of data points
-                where q ~ Beta(:threshold_init_beta:, :threshold_init_beta:)
-                If this param is set to 1, initial thresholds will have the same distribution as data points
-                If greater than 1 (e.g. 10), thresholds will be closer to median data value
-                If less than 1 (e.g. 0.1), thresholds will approach min/max data values.
-
-            threshold_init_cutoff: threshold log-temperatures initializer, \in (0, inf)
-                By default(1.0), log-remperatures are initialized in such a way that all bin selectors
-                end up in the linear region of sparse-sigmoid. The temperatures are then scaled by this parameter.
-                Setting this value > 1.0 will result in some margin between data points and sparse-sigmoid cutoff value
-                Setting this value < 1.0 will cause (1 - value) part of data points to end up in flat sparse-sigmoid region
-                For instance, threshold_init_cutoff = 0.9 will set 10% points equal to 0.0 or 1.0
-                Setting this value > 1.0 will result in a margin between data points and sparse-sigmoid cutoff value
-                All points will be between (0.5 - 0.5 / threshold_init_cutoff) and (0.5 + 0.5 / threshold_init_cutoff)
+        threshold_init_beta: `float`, default 1.0,
+            Initializes threshold to a q-th quantile of data points
+            where q ~ Beta(:threshold_init_beta:, :threshold_init_beta:)
+            If this param is set to 1, initial thresholds will have the same distribution as data points
+            If greater than 1 (e.g. 10), thresholds will be closer to median data value
+            If less than 1 (e.g. 0.1), thresholds will approach min/max data values.
+        threshold_init_cutoff: `float`, default 1.0,
+            Threshold log-temperatures initializer, \in (0, inf)
+            By default(1.0), log-remperatures are initialized in such a way that all bin selectors
+            end up in the linear region of sparse-sigmoid. The temperatures are then scaled by this parameter.
+            Setting this value > 1.0 will result in some margin between data points and sparse-sigmoid cutoff value
+            Setting this value < 1.0 will cause (1 - value) part of data points to end up in flat sparse-sigmoid region
+            For instance, threshold_init_cutoff = 0.9 will set 10% points equal to 0.0 or 1.0
+            Setting this value > 1.0 will result in a margin between data points and sparse-sigmoid cutoff value
+            All points will be between (0.5 - 0.5 / threshold_init_cutoff) and (0.5 + 0.5 / threshold_init_cutoff)
     """
     def __init__(self,
-                 n_trees,
-                 depth=6,
-                 tree_dim=1,
+                 num_trees: int = 128,
+                 depth: int = 6,
+                 tree_dim: int = 1,
                  choice_function=None,
                  bin_function=None,
                  response_initializer="random_normal",
                  selection_logits_intializer="random_uniform",
-                 threshold_init_beta=1.0,
-                 threshold_init_cutoff=1.0,
+                 threshold_init_beta: float = 1.0,
+                 threshold_init_cutoff: float = 1.0,
                  **kwargs):
         super().__init__(**kwargs)
-        self.n_trees = n_trees
+        self.num_trees = num_trees
         self.depth = depth
         self.tree_dim = tree_dim
         self.choice_function = tfa.activations.sparsemax if choice_function is None else choice_function
@@ -73,18 +86,18 @@ class ObliviousDecisionTree(layers.Layer):
     def build(self, input_shape):
         input_dim = input_shape[-1]
         self.response = self.add_weight(initializer=self.response_initializer,
-                                        shape=(self.n_trees, self.tree_dim, 2 ** self.depth))
+                                        shape=(self.num_trees, self.tree_dim, 2 ** self.depth))
         self.feature_selection_logits = self.add_weight(initializer=self.selection_logits_initializer,
-                                                        shape=(input_dim, self.n_trees, self.depth))
+                                                        shape=(input_dim, self.num_trees, self.depth))
         self.feature_thresholds = tf.Variable(initial_value=keras.initializers.zeros()(
-                                                                                shape=(self.n_trees, self.depth),
+                                                                                shape=(self.num_trees, self.depth),
                                                                                 dtype="float32"),
-                                              shape=[self.n_trees, self.depth])
+                                              shape=[self.num_trees, self.depth])
 
         self.log_temperatures = tf.Variable(initial_value=keras.initializers.zeros()(
-                                                                                shape=(self.n_trees, self.depth),
+                                                                                shape=(self.num_trees, self.depth),
                                                                                 dtype="float32"),
-                                            shape=[self.n_trees, self.depth])
+                                            shape=[self.num_trees, self.depth])
 
         indices = keras.backend.arange(2 ** self.depth)
         offsets = 2 ** keras.backend.arange(self.depth)
@@ -108,19 +121,19 @@ class ObliviousDecisionTree(layers.Layer):
         feature_selectors = self.choice_function(self.feature_selection_logits, axis=0)
         feature_values = tf.einsum('bi,ind->bnd', inputs, feature_selectors)
         beta_dist = tfp.distributions.Beta(self.threshold_init_beta, self.threshold_init_beta)
-        percentiles_q = 100 * beta_dist.sample([self.n_trees * self.depth])
+        percentiles_q = 100 * beta_dist.sample([self.num_trees * self.depth])
 
         flattened_feature_values = tf.map_fn(tf.keras.backend.flatten, feature_values)
 
         feature_thresholds = tfp.stats.percentile(flattened_feature_values, percentiles_q)
-        feature_thresholds = tf.reshape(feature_thresholds, shape=(self.n_trees, self.depth))
+        feature_thresholds = tf.reshape(feature_thresholds, shape=(self.num_trees, self.depth))
         temperatures = tfp.stats.percentile(tf.abs(feature_values - feature_thresholds),
                                      q=100 * min(1.0, self.threshold_init_cutoff), axis=0)
 
         # if threshold_init_cutoff > 1, scale everything down by it
         temperatures /= max(1.0, self.threshold_init_cutoff)
         log_tempratures = tf.math.log(temperatures + eps)
-        log_tempratures = tf.reshape(log_tempratures, shape=[self.n_trees, self.depth])
+        log_tempratures = tf.reshape(log_tempratures, shape=[self.num_trees, self.depth])
 
         self.feature_thresholds.assign(feature_thresholds)
         self.log_temperatures.assign(log_tempratures)
