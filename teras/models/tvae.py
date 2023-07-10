@@ -59,6 +59,13 @@ class Encoder(keras.Model):
         std = tf.exp(0.5 * log_var)
         return mean, std, log_var
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'latent_dim': self.latent_dim,
+                      'units_values': self.units_values
+                      }
+        config.update(new_config)
+        return config
 
 class Decoder(keras.Model):
     """
@@ -114,6 +121,14 @@ class Decoder(keras.Model):
     def call(self, inputs):
         x_generated = self.decompression_block(inputs)
         return x_generated, self.sigmas
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'data_dim': self.data_dim,
+                      'units_values': self.units_values
+                      }
+        config.update(new_config)
+        return config
 
 
 # TODO: we should get rid of this data_dim parameter here since it's just the dimensionality
@@ -255,3 +270,16 @@ class TVAE(keras.Model):
             generated_samples = data_transformer.reverse_transform(x_generated=generated_samples)
 
         return generated_samples
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'data_dim': self.data_dim,
+                      'meta_data': self.meta_data,
+                      'encoder_units_values': self.encoder_units_values,
+                      'decoder_units_values': self.decoder_units_values,
+                      'latent_dim': self.latent_dim,
+                      'loss_factor': self.loss_factor,
+                      }
+        config.update(new_config)
+        return config
+

@@ -227,6 +227,22 @@ class TabTransformer(keras.Model):
             outputs = self.head(outputs)
         return outputs
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'features_metadata': self.features_metadata,
+                      'embedding_dim': self.embedding_dim,
+                      'num_transformer_layers': self.num_transformer_layers,
+                      'num_attention_heads': self.num_attention_heads,
+                      'attention_dropout': self.attention_dropout,
+                      'feedforward_dropout': self.feedforward_dropout,
+                      'feedforward_multiplier': self.feedforward_multiplier,
+                      'norm_epsilon': self.norm_epsilon,
+                      'use_column_embedding': self.use_column_embedding,
+                      'encode_categorical_values': self.encode_categorical_values,
+                      }
+        config.update(new_config)
+        return config
+
 
 class TabTransformerClassifier(TabTransformer):
     """
@@ -372,6 +388,14 @@ class TabTransformerClassifier(TabTransformer):
                             head=head,
                             name="tabtransformer_classifier_pretrained")
         return model
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'num_classes': self.num_classes,
+                      'activation_out': self.activation_out
+                      }
+        config.update(new_config)
+        return config
 
 
 class TabTransformerRegressor(TabTransformer):
@@ -519,6 +543,13 @@ class TabTransformerRegressor(TabTransformer):
                             name="tabtransformer_regressor_pretrained")
         return model
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'num_outputs': self.num_outputs,
+                      }
+        config.update(new_config)
+        return config
+
 
 class TabTransformerPretrainer(keras.Model):
     """
@@ -650,3 +681,11 @@ class TabTransformerPretrainer(keras.Model):
         # reset it at the end of every batch
         self.model.categorical_feature_embedding.encode = True
         return results
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'model': keras.layers.serialize(self.model),
+                      'replace_rate': self.replace_rate
+                      }
+        config.update(new_config)
+        return config

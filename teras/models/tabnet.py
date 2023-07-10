@@ -201,6 +201,24 @@ class TabNet(keras.Model):
             outputs = self.head(outputs)
         return outputs
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'features_metadata': self.features_metadata,
+                      'feature_transformer_dim': self.feature_transformer_dim,
+                      'decision_step_output_dim': self.decision_step_output_dim,
+                      'num_decision_steps': self.num_decision_steps,
+                      'num_shared_layers': self.num_shared_layers,
+                      'num_decision_dependent_layers': self.num_decision_dependent_layers,
+                      'relaxation_factor': self.relaxation_factor,
+                      'batch_momentum': self.batch_momentum,
+                      'virtual_batch_size': self.virtual_batch_size,
+                      'residual_normalization_factor': self.residual_normalization_factor,
+                      'epsilon': self.epsilon,
+                      'encode_categorical_values': self.encode_categorical_values,
+                      }
+        config.update(new_config)
+        return config
+
 
 class TabNetClassifier(TabNet):
     """
@@ -338,6 +356,14 @@ class TabNetClassifier(TabNet):
                             name="tabnet_classifier_pretrained")
         return model
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'num_classes': self.num_classes,
+                      'activation_out': self.activation_out
+                      }
+        config.update(new_config)
+        return config
+
     # def call(self, inputs):
     #     x = inputs
     #     if self.categorical_features_vocabulary is not None:
@@ -471,6 +497,13 @@ class TabNetRegressor(TabNet):
                             head=head,
                             name="tabnet_regressor_pretrained")
         return model
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'num_outputs': self.num_outputs,
+                      }
+        config.update(new_config)
+        return config
 
     # def call(self, inputs):
     #     x = inputs
@@ -647,3 +680,16 @@ class TabNetPretrainer(keras.Model):
             self.compiled_loss(embedded_inputs, reconstructed_samples)
         results = {m.name: m.result() for m in self.metrics}
         return results
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'model': keras.layers.serialize(self.model),
+                      'missing_feature_probability': self.missing_feature_probability,
+                      'decoder_feature_transformer_dim': self.decoder_feature_transformer_dim,
+                      'decoder_decision_step_output_dim': self.decoder_decision_step_output_dim,
+                      'decoder_num_decision_steps': self.decoder_num_decision_steps,
+                      'decoder_num_shared_layers': self.decoder_num_shared_layers,
+                      'decoder_num_decision_dependent_layers': self.decoder_num_decision_dependent_layers,
+                      }
+        config.update(new_config)
+        return config

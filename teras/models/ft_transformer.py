@@ -142,6 +142,19 @@ class FTTransformer(keras.Model):
             outputs = self.head(outputs[:, -1])
         return outputs
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'features_metadata': self.features_metadata,
+                      'embedding_dim': self.embedding_dim,
+                      'num_transformer_layers': self.num_transformer_layers,
+                      'num_attention_heads': self.num_attention_heads,
+                      'attention_dropout': self.attention_dropout,
+                      'feedforward_dropout': self.feedforward_dropout,
+                      'feedforward_multiplier': self.feedforward_multiplier,
+                      'encode_categorical_values': self.encode_categorical_values}
+        config.update(new_config)
+        return config
+
 
 class FTTransformerClassifier(FTTransformer):
     """
@@ -231,6 +244,14 @@ class FTTransformerClassifier(FTTransformer):
                                        activation_out=self.activation_out,
                                        normalization="layer")
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'num_classes': self.num_classes,
+                      'activation_out': self.activation_out
+                      }
+        config.update(new_config)
+        return config
+
 
 class FTTransformerRegressor(FTTransformer):
     """
@@ -314,3 +335,10 @@ class FTTransformerRegressor(FTTransformer):
         self.head = RegressionHead(num_outputs=self.num_outputs,
                                    units_values=None,
                                    normalization="layer")
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'num_outputs': self.num_outputs,
+                      }
+        config.update(new_config)
+        return config

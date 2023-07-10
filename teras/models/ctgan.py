@@ -146,6 +146,14 @@ class Generator(keras.Model):
         outputs = self.apply_activations_by_feature_type(interim_outputs)
         return outputs
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'units_values': self.units_values,
+                      'data_dim': self.data_dim,
+                      'meta_data': self.meta_data}
+        config.update(new_config)
+        return config
+
 
 class Discriminator(keras.Model):
     """
@@ -261,6 +269,14 @@ class Discriminator(keras.Model):
         outputs = self.hidden_block(inputs)
         outputs = self.output_layer(outputs)
         return outputs
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'units_values': self.units_values,
+                      'packing_degree': self.packing_degree,
+                      'gradient_penalty_lambda': self.gradient_penalty_lambda}
+        config.update(new_config)
+        return config
 
 
 class CTGAN(keras.Model):
@@ -494,3 +510,17 @@ class CTGAN(keras.Model):
             generated_samples = data_transformer.reverse_transform(x_generated=generated_samples)
 
         return generated_samples
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'data_dim': self.data_dim,
+                      'meta_data': self.meta_data,
+                      'generator_units_values': self.generator_units_values,
+                      'discriminator_units_values': self.discriminator_units_values,
+                      'num_discriminator_steps': self.num_discriminator_steps,
+                      'latent_dim': self.latent_dim,
+                      'packing_degree': self.packing_degree,
+                      'gradient_penalty_lambda': self.gradient_penalty_lambda,
+                      }
+        config.update(new_config)
+        return config
