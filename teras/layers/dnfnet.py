@@ -14,9 +14,8 @@ from teras.utils.dnfnet import (compute_total_number_of_literals,
                                 generate_random_mask,
                                 extension_matrix,
                                 binary_threshold)
-# TODO move the base ClassificationHead layer to common/common.py from common/transformer.py
-from teras.layers.common.transformer import (ClassificationHead as _BaseClassificationHead,
-                                             RegressionHead as _BaseRegressionHead)
+from teras.layers.common.head import (ClassificationHead as _BaseClassificationHead,
+                                      RegressionHead as _BaseRegressionHead)
 from typing import List, Union
 
 LIST_OF_INT = List[int]

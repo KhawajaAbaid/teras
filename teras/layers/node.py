@@ -5,8 +5,8 @@ from warnings import warn
 from teras.utils import sparsemoid
 import tensorflow_addons as tfa
 import tensorflow_probability as tfp
-from teras.layers.common.transformer import (ClassificationHead as _BaseClassificationHead,
-                                             RegressionHead as _BaseRegressionHead)
+from teras.layers.common.head import (ClassificationHead as _BaseClassificationHead,
+                                      RegressionHead as _BaseRegressionHead)
 from typing import List, Union
 
 LIST_OR_TUPLE = Union[list, tuple]

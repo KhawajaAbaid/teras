@@ -1,7 +1,7 @@
 from tensorflow.keras import layers
 from teras.utils import get_normalization_layer
-from teras.layers.common.transformer import (ClassificationHead as _BaseClassificationHead,
-                                             RegressionHead as _BaseRegressionHead)
+from teras.layers.common.head import (ClassificationHead as _BaseClassificationHead,
+                                      RegressionHead as _BaseRegressionHead)
 from typing import Union
 
 LIST_OR_TUPLE = Union[list, tuple]

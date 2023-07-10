@@ -3,8 +3,8 @@ from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras import models
 from teras.layers.common.transformer import FeedForward, Transformer
-from teras.layers.common.transformer import (ClassificationHead as BaseClassificationHead,
-                                             RegressionHead as BaseRegressionHead)
+from teras.layers.common.head import (ClassificationHead as BaseClassificationHead,
+                                      RegressionHead as BaseRegressionHead)
 from typing import Union, List, Tuple
 
 

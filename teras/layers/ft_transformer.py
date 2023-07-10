@@ -1,8 +1,8 @@
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers, initializers
-from teras.layers.common.transformer import (ClassificationHead as BaseClassificationHead,
-                                             RegressionHead as BaseRegressionHead)
+from teras.layers.common.head import (ClassificationHead as BaseClassificationHead,
+                                      RegressionHead as BaseRegressionHead)
 from typing import Union, List, Tuple
 
 

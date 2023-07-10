@@ -3,8 +3,8 @@ from tensorflow import keras
 from tensorflow.keras import layers, models
 import tensorflow_addons as tfa
 from teras.layers import GLU
-from teras.layers.common.transformer import (RegressionHead as BaseRegressionHead,
-                                             ClassificationHead as BaseClassificationHead)
+from teras.layers.common.head import (RegressionHead as BaseRegressionHead,
+                                      ClassificationHead as BaseClassificationHead)
 from typing import Union, List, Tuple
 
 LIST_OR_TUPLE = Union[List[int], Tuple[int]]
