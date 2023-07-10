@@ -77,6 +77,14 @@ class Classifier(_BaseClassifier):
         x = self.hidden_block(inputs)
         return self.output_layer(x)
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'hidden_block': keras.layers.serialize(self.hidden_block),
+                      'output_layer': keras.layers.serialize(self.output_layer)
+                      }
+        config.update(new_config)
+        return config
+
 
 class PCGAIN(_BasePCGAIN):
     """
@@ -216,3 +224,13 @@ class PCGAIN(_BasePCGAIN):
 
         if classifier is not None:
             self.classifier = classifier
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'generator': keras.layers.serialize(self.generator),
+                      'discriminator': keras.layers.serialize(self.discriminator),
+                      'pretrainer': keras.layers.serialize(self.pretrainer),
+                      'classifier': keras.layers.serialize(self.classifier),
+                      }
+        config.update(new_config)
+        return config

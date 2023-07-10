@@ -1,7 +1,9 @@
+from tensorflow import keras
 from tensorflow.keras import layers, models
 from teras.models import NODE as _BaseNODE
 from teras.layerflow.layers import NODEClassificationHead, NODERegressionHead
 from typing import List
+from teras.utils import serialize_layers_collection
 
 LIST_OF_LAYERS = List[layers.Layer]
 
@@ -51,6 +53,14 @@ class NODE(_BaseNODE):
 
         if head is not None:
             self.head = head
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'tree_layers': serialize_layers_collection(self.tree_layers),
+                      'head': keras.layers.serialize(self.head)
+                      }
+        config.update(new_config)
+        return config
 
 
 class NODEClassifier(NODE):

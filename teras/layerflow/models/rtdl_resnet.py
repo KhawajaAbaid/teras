@@ -1,3 +1,4 @@
+from tensorflow import keras
 from tensorflow.keras import layers, models
 from teras.models.rtdl_resnet import RTDLResNet as _BaseRTDLResNet
 from teras.layerflow.layers import RTDLResNetClassificationHead, RTDLResNetRegressionHead
@@ -44,6 +45,14 @@ class RTDLResNet(_BaseRTDLResNet):
 
         if head is not None:
             self.head = head
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'resnet_blocks': keras.layers.serialize(self.resnet_blocks),
+                      'head': keras.layers.serialize(self.head)
+                      }
+        config.update(new_config)
+        return config
 
 
 class RTDLResNetClassifier(RTDLResNet):

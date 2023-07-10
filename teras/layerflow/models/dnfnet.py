@@ -1,7 +1,9 @@
+from tensorflow import keras
 from tensorflow.keras import layers, models
 from teras.layerflow.layers import DNNF, DNFNetClassificationHead, DNFNetRegressionHead
 from teras.models import (DNFNet as _BaseDNFNet)
 from typing import List, Union
+from teras.utils import serialize_layers_collection
 
 LIST_OF_INT = List[int]
 LIST_OF_FLOAT = List[float]
@@ -49,6 +51,14 @@ class DNFNet(_BaseDNFNet):
 
         if head is not None:
             self.head = head
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'dnnf_layers': serialize_layers_collection(self.dnnf_layers),
+                      'head': keras.layers.serialize(self.head)
+                      }
+        config.update(new_config)
+        return config
 
 
 class DNFNetClassifier(DNFNet):

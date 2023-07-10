@@ -35,3 +35,11 @@ class SimpleModel(models.Model):
         x = self.body(inputs)
         outputs = self.head(x)
         return outputs
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'body': keras.layers.serialize(self.body),
+                      'head': keras.layers.serialize(self.head)
+                      }
+        config.update(new_config)
+        return config

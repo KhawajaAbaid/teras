@@ -81,6 +81,14 @@ class Generator(_BaseGenerator):
         if self.output_layer is not None:
             self.output_layer = output_layer
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'hidden_block': keras.layers.serialize(self.hidden_block),
+                      'output_layer': keras.layers.serialize(self.output_layer)
+                      }
+        config.update(new_config)
+        return config
+
 
 class Discriminator(_BaseDiscriminator):
     """
@@ -155,6 +163,14 @@ class Discriminator(_BaseDiscriminator):
 
         if self.output_layer is not None:
             self.output_layer = output_layer
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'hidden_block': keras.layers.serialize(self.hidden_block),
+                      'output_layer': keras.layers.serialize(self.output_layer)
+                      }
+        config.update(new_config)
+        return config
 
 
 class CTGAN(_BaseCTGAN):
@@ -244,3 +260,11 @@ class CTGAN(_BaseCTGAN):
 
         if discriminator is not None:
             self.discriminator = discriminator
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'generator': keras.layers.serialize(self.generator),
+                      'discriminator': keras.layers.serialize(self.discriminator)
+                      }
+        config.update(new_config)
+        return config

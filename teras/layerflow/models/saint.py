@@ -1,3 +1,4 @@
+from tensorflow import keras
 from tensorflow.keras import layers, models
 from teras.models import (SAINT as _BaseSAINT,
                           SAINTClassifier as _BaseSAINTClassifier,
@@ -76,6 +77,16 @@ class SAINT(_BaseSAINT):
 
         if head is not None:
             self.head = head
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'categorical_feature_embedding': keras.layers.serialize(self.categorical_feature_embedding),
+                      'saint_numerical_feature_embedding': keras.layers.serialize(self.saint_numerical_feature_embedding),
+                      'saint_encoder': keras.layers.serialize(self.saint_encoder),
+                      'head': keras.layers.serialize(self.head),
+                      }
+        config.update(new_config)
+        return config
 
 
 class SAINTClassifier(_BaseSAINTClassifier):

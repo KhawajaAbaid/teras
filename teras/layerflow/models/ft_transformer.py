@@ -1,3 +1,4 @@
+from tensorflow import keras
 from tensorflow.keras import layers, models
 from teras.layerflow.layers.ft_transformer import (ClassificationHead,
                                                    RegressionHead)
@@ -78,6 +79,17 @@ class FTTransformer(_BaseFTTransformer):
 
         if head is not None:
             self.head = head
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'categorical_feature_embedding': keras.layers.serialize(self.categorical_feature_embedding),
+                      'numerical_feature_embedding': keras.layers.serialize(self.numerical_feature_embedding),
+                      'cls_token': keras.layers.serialize(self.cls_token),
+                      'encoder': keras.layers.serialize(self.encoder),
+                      'head': keras.layers.serialize(self.head),
+                      }
+        config.update(new_config)
+        return config
 
 
 class FTTransformerClassifier(_BaseFTTransformerClassifier):
