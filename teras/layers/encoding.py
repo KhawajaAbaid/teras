@@ -117,7 +117,7 @@ class LabelEncoding(layers.Layer):
 
     def get_config(self):
         config = super().get_config()
-        new_config = {'categorical_features_metadata': self.categorical_features_metadata
+        new_config = {'categorical_features_metadata': self.categorical_features_metadata,
                       'concatenate_numerical_features': self.concatenate_numerical_features,
                       'keep_features_order': self.keep_features_order}
         config.update(new_config)
