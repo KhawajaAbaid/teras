@@ -12,6 +12,11 @@ class GLU(layers.Layer):
     def call(self, inputs):
         return inputs[:, :self.units] * tf.nn.sigmoid(inputs[:, self.units:])
 
+    def get_config(self):
+        base_config = super().get_config()
+        config = {'units': self.units}
+        return base_config.update(config)
+
 
 class GEGLU(layers.Layer):
     """GeGLU is an activation function which is a variant of GLU"""
@@ -60,3 +65,9 @@ class GumbelSoftmax(layers.Layer):
             one_hot_labels = tf.one_hot(tf.argmax(probabilities, axis=-1), tf.shape(logits)[-1])
             return one_hot_labels
         return probabilities
+
+    def get_config(self):
+        base_config = super().get_config()
+        config = {'temparature': self.temparature,
+                  'hard': self.hard}
+        return base_config.update(config)
