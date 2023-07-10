@@ -94,6 +94,16 @@ class FeatureSelection(keras.layers.Layer):
         learnable_binary_mask = tf_matmul_sparse_dense(ext_matrix, learnable_mask_01)
         return learnable_binary_mask, literals_random_mask, elastic_net_reg
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'num_formulas': self.num_formulas,
+                      'keep_feature_prob_arr': self.keep_feature_prob_arr,
+                      'elastic_net_beta': self.elastic_net_beta,
+                      'binary_threshold_eps': self.binary_threshold_eps,
+                      'v_temp': self.v_temp}
+        config.update(new_config)
+        return config
+
 
 class Localization(keras.layers.Layer):
     """
@@ -142,6 +152,13 @@ class Localization(keras.layers.Layer):
         loc = tf.exp(-1 * tf.norm(tf.multiply(diff, self.sigma), axis=-1))
         loc = self.softmax(tf.sigmoid(self.temperature) * loc)
         return loc
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'num_formulas': self.num_formulas,
+                      'temperature': self.temperature}
+        config.update(new_config)
+        return config
 
 
 class DNNF(keras.layers.Layer):
@@ -267,6 +284,18 @@ class DNNF(keras.layers.Layer):
         out_DNNFs = tf.multiply(out_DNNFs, loc)
         return out_DNNFs
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'num_formulas': self.num_formulas,
+                      'num_conjunctions_arr': self.num_conjunctions_arr,
+                      'conjunctions_depth_arr': self.conjunctions_depth_arr,
+                      'keep_feature_prob_arr': self.keep_feature_prob_arr,
+                      'elastic_net_beta': self.elastic_net_beta,
+                      'binary_threshold_eps': self.binary_threshold_eps,
+                      'temperature': self.temperature}
+        config.update(new_config)
+        return config
+
 
 class ClassificationHead(_BaseClassificationHead):
     """
@@ -304,6 +333,7 @@ class ClassificationHead(_BaseClassificationHead):
                          activation_out=activation_out,
                          normalization=normalization,
                          **kwargs)
+
 
 
 class RegressionHead(_BaseRegressionHead):
