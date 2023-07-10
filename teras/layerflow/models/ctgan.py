@@ -6,7 +6,7 @@ from teras.models.ctgan import (Generator as _BaseGenerator,
 from typing import List, Union, Tuple
 
 LIST_OR_TUPLE = Union[List[int], Tuple[int]]
-HIDDEN_BLOCK_TYPE = Union[keras.layers.Layer, keras.models.Model]
+HIDDEN_BLOCK_TYPE = Union[keras.layers.Layer, List[keras.layers.Layer], keras.models.Model]
 
 
 class Generator(_BaseGenerator):
