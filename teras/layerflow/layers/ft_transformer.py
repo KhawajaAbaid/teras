@@ -1,3 +1,4 @@
+from tensorflow import keras
 from tensorflow.keras import layers, models
 from teras.layers.ft_transformer import (NumericalFeatureEmbedding,
                                          CLSToken,
@@ -35,6 +36,14 @@ class ClassificationHead(_BaseClassificationHead):
         if output_layer is not None:
             self.output_layer = output_layer
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'hidden_block': keras.layers.serialize(self.hidden_block),
+                      'output_layer': keras.layers.serialize(self.output_layer)
+                      }
+        config.update(new_config)
+        return config
+
 
 class RegressionHead(_BaseRegressionHead):
     """
@@ -65,3 +74,11 @@ class RegressionHead(_BaseRegressionHead):
 
         if output_layer is not None:
             self.output_layer = output_layer
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'hidden_block': keras.layers.serialize(self.hidden_block),
+                      'output_layer': keras.layers.serialize(self.output_layer)
+                      }
+        config.update(new_config)
+        return config

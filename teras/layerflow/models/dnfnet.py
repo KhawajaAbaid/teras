@@ -1,11 +1,13 @@
+from tensorflow import keras
 from tensorflow.keras import layers, models
 from teras.layerflow.layers import DNNF, DNFNetClassificationHead, DNFNetRegressionHead
 from teras.models import (DNFNet as _BaseDNFNet)
 from typing import List, Union
+from teras.utils import serialize_layers_collection
 
 LIST_OF_INT = List[int]
 LIST_OF_FLOAT = List[float]
-PACK_OF_LAYERS = Union[List[layers.Layer], models.Model]
+PACK_OF_LAYERS = Union[layers.Layer, List[layers.Layer], models.Model]
 
 
 class DNFNet(_BaseDNFNet):
@@ -36,19 +38,27 @@ class DNFNet(_BaseDNFNet):
                  **kwargs):
         super().__init__(**kwargs)
         if dnnf_layers is not None:
-            if isinstance(dnnf_layers, models.Model):
+            if isinstance(dnnf_layers, (layers.Layer, models.Model)):
                 # keep it as is
                 dnnf_layers = dnnf_layers
             elif isinstance(dnnf_layers, (list, tuple)):
                 dnnf_layers = models.Sequential(dnnf_layers,
                                                 name="dnnf_layers")
             else:
-                raise ValueError("`dnnf_layers` can either be a list of `DNNF` layers "
-                                 f"or a keras model but received type: {type(dnnf_layers)}.")
+                raise ValueError("`dnnf_layers` can either be a Keras Layer, list of `DNNF` layers "
+                                 f"or a Keras model model but received type: {type(dnnf_layers)}.")
             self.dnnf_layers = dnnf_layers
 
         if head is not None:
             self.head = head
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'dnnf_layers': serialize_layers_collection(self.dnnf_layers),
+                      'head': keras.layers.serialize(self.head)
+                      }
+        config.update(new_config)
+        return config
 
 
 class DNFNetClassifier(DNFNet):

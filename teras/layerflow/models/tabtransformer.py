@@ -1,3 +1,4 @@
+from tensorflow import keras
 from tensorflow.keras import layers, models
 from teras.layers.tabtransformer import (ClassificationHead,
                                          RegressionHead)
@@ -79,6 +80,16 @@ class TabTransformer(BaseTabTransformer):
             self.encoder = encoder
 
         self.head = head
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'categorical_feature_embedding': keras.layers.serialize(self.categorical_feature_embedding),
+                      'column_embedding': keras.layers.serialize(self.column_embedding),
+                      'encoder': keras.layers.serialize(self.encoder),
+                      'head': keras.layers.serialize(self.head),
+                      }
+        config.update(new_config)
+        return config
 
 
 class TabTransformerClassifier(TabTransformer):

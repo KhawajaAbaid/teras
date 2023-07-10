@@ -1,3 +1,4 @@
+from tensorflow import keras
 from tensorflow.keras import layers, models
 from teras.models.tabnet import (TabNet as _BaseTabNet,
                                  TabNetPretrainer as _BaseTabNetPretrainer)
@@ -68,6 +69,15 @@ class TabNet(_BaseTabNet):
 
         if head is not None:
             self.head = head
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'categorical_features_embedding': keras.layers.serialize(self.categorical_features_embedding),
+                      'encoder': keras.layers.serialize(self.encoder),
+                      'head': keras.layers.serialize(self.head),
+                      }
+        config.update(new_config)
+        return config
 
 
 class TabNetClassifier(TabNet):
@@ -301,3 +311,11 @@ class TabNetPretrainer(_BaseTabNetPretrainer):
 
         if decoder is not None:
             self.decoder = decoder
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'model': keras.layers.serialize(self.model),
+                      'decoder': keras.layers.serialize(self.decoder)
+                      }
+        config.update(new_config)
+        return config

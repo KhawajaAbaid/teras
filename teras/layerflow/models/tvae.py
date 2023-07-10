@@ -46,6 +46,13 @@ class Encoder(_BaseEncoder):
                                 f"but received type: {type(compression_block)} which is not supported.")
             self.compression_block = compression_block
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'compression_block': keras.layers.serialize(self.compression_block),
+                      }
+        config.update(new_config)
+        return config
+
 
 class Decoder(_BaseDecoder):
     """
@@ -82,6 +89,13 @@ class Decoder(_BaseDecoder):
                 raise TypeError("`decompression_block` can either be a Keras layer, list of layers or a keras model "
                                 f"but received type: {type(decompression_block)} which is not supported.")
             self.decompression_block = decompression_block
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'decompression_block': keras.layers.serialize(self.decompression_block),
+                      }
+        config.update(new_config)
+        return config
 
 
 class TVAE(_BaseTVAE):
@@ -148,3 +162,11 @@ class TVAE(_BaseTVAE):
 
         if decoder is not None:
             self.decoder = decoder
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'encoder': keras.layers.serialize(self.encoder),
+                      'decoder': keras.layers.serialize(self.decoder)
+                      }
+        config.update(new_config)
+        return config
