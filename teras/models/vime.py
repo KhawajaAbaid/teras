@@ -29,7 +29,7 @@ class VimeSelf(keras.Model):
         mask_estimator_activation: activation to use for mask estimator
     """
     def __init__(self,
-                 p_m,
+                 p_m: float = 0.3,
                  encoder_activation="relu",
                  feature_estimator_activation="sigmoid",
                  mask_estimator_activation="sigmoid",
@@ -84,15 +84,15 @@ class VimeSelf(keras.Model):
 
 class VimeSemi(keras.Model):
     def __init__(self,
-                 hidden_dim,
-                 input_dim,
-                 p_m=0.3,
-                 K=3,
-                 beta=1.0,
+                 input_dim: int,
+                 hidden_dim: int = 32,
+                 p_m: float = 0.3,
+                 K: int = 3,
+                 beta: float = 1.0,
                  encoder_file_path=None,
-                 num_labels=1,
+                 num_labels: int = 1,
                  activation="relu",
-                 batch_size=None,
+                 batch_size: int = None,
                  **kwargs):
         """
         Semi-supervied learning part in VIME.
@@ -105,8 +105,8 @@ class VimeSemi(keras.Model):
             num_labels: Number of labels
         """
         super().__init__(**kwargs)
-        self.hidden_dim = hidden_dim
         self.input_dim = input_dim
+        self.hidden_dim = hidden_dim
         self.p_m = p_m
         self.K = K
         self.beta = beta
