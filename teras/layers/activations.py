@@ -13,9 +13,10 @@ class GLU(layers.Layer):
         return inputs[:, :self.units] * tf.nn.sigmoid(inputs[:, self.units:])
 
     def get_config(self):
-        base_config = super().get_config()
-        config = {'units': self.units}
-        return base_config.update(config)
+        config = super().get_config()
+        new_config = {'units': self.units}
+        config.update(new_config)
+        return config
 
 
 class GEGLU(layers.Layer):
@@ -67,7 +68,8 @@ class GumbelSoftmax(layers.Layer):
         return probabilities
 
     def get_config(self):
-        base_config = super().get_config()
-        config = {'temperature': self.temperature,
-                  'hard': self.hard}
-        return base_config.update(config)
+        config = super().get_config()
+        new_config = {'temperature': self.temperature,
+                      'hard': self.hard}
+        config.update(new_config)
+        return config
