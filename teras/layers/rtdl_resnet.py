@@ -35,7 +35,7 @@ class ResNetBlock(layers.Layer):
             Whether to use the skip connection.
     """
     def __init__(self,
-                 units: int = None,
+                 units: int = 64,
                  dropout_hidden: float = 0.,
                  dropout_out: float = 0.,
                  activation_hidden="relu",
