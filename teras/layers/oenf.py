@@ -15,22 +15,26 @@ class PeriodicEmbedding(layers.Layer):
         https://arxiv.org/abs/2203.05556
 
     Args:
-        embedding_dim: Dimensionality of numerical embeddings
-        n_features: Number of features
-        initialization: Initialization strategy.
-        sigma: Used for coefficients initialization
+        num_features: `int`,
+            Number of features in the dataset.
+        embedding_dim: `int`, default 32,
+            Dimensionality of numerical embeddings
+        initialization: default "normal",
+            Initialization strategy.
+        sigma: `float`, default 0.01
+            Used for coefficients initialization
     """
     def __init__(self,
-                 embedding_dim: int,
-                 n_features: int,
+                 num_features: int,
+                 embedding_dim: int = 32,
                  initialization: PERIOD_INITIALIZATIONS = 'normal',
-                 sigma: float = None,
+                 sigma: float = 0.01,
                  **kwargs):
         super().__init__(**kwargs)
         assert initialization.lower() in ['normal', 'log-linear'], ("Invalid value for initialization."
                                                                     " Must be one of ['log-linear', 'normal']")
         self.embedding_dim = embedding_dim
-        self.n_features = n_features
+        self.num_features = num_features
         self.initialization = initialization.lower()
         self.sigma = sigma
 
@@ -41,11 +45,11 @@ class PeriodicEmbedding(layers.Layer):
         if self.initialization == 'log-linear':
             self.coefficients = self.sigma ** (tf.range(self.n) / self.n)
             self.coefficients = tf.repeat(self.coefficients[None],
-                                          repeats=self.n_features,
+                                          repeats=self.num_features,
                                           axis=1)
         else:
             # initialization must be normal
-            self.coefficients = tf.random.normal(shape=(self.n_features, self.n),
+            self.coefficients = tf.random.normal(shape=(self.num_features, self.n),
                                                  mean=0.,
                                                  stddev=self.sigma)
 
