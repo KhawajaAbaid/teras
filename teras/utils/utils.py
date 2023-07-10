@@ -1,12 +1,13 @@
 from tensorflow import keras
 import tensorflow as tf
-from tensorflow.keras import layers
+from tensorflow.keras import layers, models
 from typing import List, Union, Tuple
 import pandas as pd
 
 
 LayerType = Union[str, layers.Layer]
 FEATURE_NAMES_TYPE = Union[List[str], Tuple[str]]
+LAYERS_COLLECTION = Union[List[layers.Layer], layers.Layer, models.Model]
 
 
 def tf_random_choice(inputs,
@@ -253,3 +254,21 @@ def convert_dict_to_array_tensor(dict_tensor):
     array_tensor = tf.transpose(tf.squeeze(array_tensor.stack()))
     array_tensor.set_shape((None, len(feature_names)))
     return array_tensor
+
+
+def serialize_layers_collection(layers_collection: LAYERS_COLLECTION):
+    """
+    Serializes a collection of keras layers/models.
+
+    Returns:
+        If layers_collection is an instance of list or tuple, it returns a list of serialized layers
+        otherwise it simply returns the serialized layer or model.
+    """
+    if isinstance(layers_collection, (list, tuple)):
+        layers_collection_serialized = [keras.layers.serialize(layer)
+                                        for layer in layers_collection]
+    else:
+        # We assume it's either of type Layer or Model
+        layers_collection_serialized = keras.layers.serialize(layers_collection)
+
+    return layers_collection_serialized
