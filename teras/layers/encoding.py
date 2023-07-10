@@ -114,3 +114,12 @@ class LabelEncoding(layers.Layer):
         encoded_features = tf.transpose(encoded_features)
         encoded_features.set_shape((None, self._num_features))
         return encoded_features
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'categorical_features_metadata': self.categorical_features_metadata,
+                      'concatenate_numerical_features': self.concatenate_numerical_features,
+                      'keep_features_order': self.keep_features_order}
+        config.update(new_config)
+        return config
+

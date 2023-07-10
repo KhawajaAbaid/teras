@@ -3,8 +3,8 @@ from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras import models
 from teras.layers.common.transformer import FeedForward, Transformer
-from teras.layers.common.transformer import (ClassificationHead as BaseClassificationHead,
-                                             RegressionHead as BaseRegressionHead)
+from teras.layers.common.head import (ClassificationHead as BaseClassificationHead,
+                                      RegressionHead as BaseRegressionHead)
 from typing import Union, List, Tuple
 
 
@@ -88,6 +88,15 @@ class NumericalFeatureEmbedding(layers.Layer):
             numerical_feature_embeddings = tf.transpose(numerical_feature_embeddings)
         return numerical_feature_embeddings
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'numerical_features_metadata': self.numerical_features_metadata,
+                      'embedding_dim': self.embedding_dim,
+                      'hidden_dim': self.hidden_dim,
+                      }
+        config.update(new_config)
+        return config
+
 
 class MultiHeadInterSampleAttention(layers.Layer):
     """
@@ -132,6 +141,15 @@ class MultiHeadInterSampleAttention(layers.Layer):
         x = self.multi_head_attention(x, x)
         x = tf.reshape(x, shape=tf.shape(inputs))
         return x
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'num_heads': self.num_heads,
+                      'key_dim': self.key_dim,
+                      'dropout': self.dropout,
+                      }
+        config.update(new_config)
+        return config
 
 
 class SAINTTransformer(layers.Layer):
@@ -273,6 +291,23 @@ class SAINTTransformer(layers.Layer):
         out = self.transformer_block(inputs)
         return out
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'embedding_dim': self.embedding_dim,
+                      'num_attention_heads': self.num_attention_heads,
+                      'num_inter_sample_attention_heads': self.num_inter_sample_attention_heads,
+                      'attention_dropout': self.attention_dropout,
+                      'inter_sample_attention_dropout': self.inter_sample_attention_dropout,
+                      'feedforward_dropout': self.feedforward_dropout,
+                      'feedforward_multiplier': self.feedforward_multiplier,
+                      'norm_epsilon': self.norm_epsilon,
+                      'apply_attention_to_features': self.apply_attention_to_features,
+                      'apply_attention_to_rows': self.apply_attention_to_rows,
+                      'num_embedded_features': self.num_embedded_features,
+                      }
+        config.update(new_config)
+        return config
+
 
 class Encoder(layers.Layer):
     """
@@ -386,6 +421,24 @@ class Encoder(layers.Layer):
         outputs = self.saint_transformer_layers(inputs)
         return outputs
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'num_transformer_layers': self.num_transformer_layers,
+                      'embedding_dim': self.embedding_dim,
+                      'num_attention_heads': self.num_attention_heads,
+                      'num_inter_sample_attention_heads': self.num_inter_sample_attention_heads,
+                      'attention_dropout': self.attention_dropout,
+                      'inter_sample_attention_dropout': self.inter_sample_attention_dropout,
+                      'feedforward_dropout': self.feedforward_dropout,
+                      'feedforward_multiplier': self.feedforward_multiplier,
+                      'norm_epsilon': self.norm_epsilon,
+                      'apply_attention_to_features': self.apply_attention_to_features,
+                      'apply_attention_to_rows': self.apply_attention_to_rows,
+                      'num_embedded_features': self.num_embedded_features,
+                      }
+        config.update(new_config)
+        return config
+
 
 class ProjectionHead(layers.Layer):
     """
@@ -462,6 +515,15 @@ class ReconstructionBlock(layers.Layer):
         x = self.hidden_block(inputs)
         outputs = self.output_layer(x)
         return outputs
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'hidden_dim': self.hidden_dim,
+                      'hidden_activation': self.hidden_activation,
+                      'data_dim': self.data_dim,
+                      }
+        config.update(new_config)
+        return config
 
 
 class ReconstructionHead(layers.Layer):
@@ -547,6 +609,14 @@ class ReconstructionHead(layers.Layer):
         # `number of numerical features` + `number of categories in the categorical features`
         reconstructed_inputs = tf.concat(reconstructed_inputs, axis=1)
         return reconstructed_inputs
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'features_metadata': self.features_metadata,
+                      'embedding_dim': self.embedding_dim,
+                      }
+        config.update(new_config)
+        return config
 
 
 class ClassificationHead(BaseClassificationHead):

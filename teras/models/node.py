@@ -114,6 +114,24 @@ class NODE(keras.Model):
             outputs = self.head(outputs)
         return outputs
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'num_layers': self.num_layers,
+                      'num_trees': self.num_trees,
+                      'depth': self.depth,
+                      'tree_dim': self.tree_dim,
+                      'max_features': self.max_features,
+                      'input_dropout': self.input_dropout,
+                      'choice_function': self.choice_function,
+                      'bin_function': self.bin_function,
+                      'response_initializer': self.response_initializer,
+                      'selection_logits_intializer': self.selection_logits_intializer,
+                      'threshold_init_beta': self.threshold_init_beta,
+                      'threshold_init_cutoff': self.threshold_init_cutoff,
+                      }
+        config.update(new_config)
+        return config
+
 
 class NODERegressor(NODE):
     """
@@ -196,6 +214,13 @@ class NODERegressor(NODE):
                          **kwargs)
         self.num_outputs = num_outputs
         self.head = layers.Dense(self.num_outputs)
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'num_outputs': self.num_outputs,
+                      }
+        config.update(new_config)
+        return config
 
 
 class NODEClassifier(NODE):
@@ -288,3 +313,11 @@ class NODEClassifier(NODE):
             self.activation_out = "sigmoid" if self.num_classes == 1 else "softmax"
         self.head = layers.Dense(self.num_classes,
                                  activation=activation_out)
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'num_classes': self.num_classes,
+                      'activation_out': self.activation_out
+                      }
+        config.update(new_config)
+        return config

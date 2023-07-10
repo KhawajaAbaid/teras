@@ -1,8 +1,8 @@
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers, initializers
-from teras.layers.common.transformer import (ClassificationHead as BaseClassificationHead,
-                                             RegressionHead as BaseRegressionHead)
+from teras.layers.common.head import (ClassificationHead as BaseClassificationHead,
+                                      RegressionHead as BaseRegressionHead)
 from typing import Union, List, Tuple
 
 
@@ -81,6 +81,14 @@ class NumericalFeatureEmbedding(layers.Layer):
             numerical_feature_embeddings = tf.transpose(numerical_feature_embeddings)
         return numerical_feature_embeddings
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'numerical_features_metadata': self.numerical_features_metadata,
+                      'embedding_dim': self.embedding_dim}
+
+        config.update(new_config)
+        return config
+
 
 # TODO rework this layer -- ideally making it simple!
 class CLSToken(keras.layers.Layer):
@@ -128,6 +136,14 @@ class CLSToken(keras.layers.Layer):
 
     def call(self, inputs):
         return tf.concat([inputs, self.expand(tf.shape(inputs)[0], 1)], axis=1)
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'embedding_dim': self.embedding_dim,
+                      'initialization': self.initialization}
+
+        config.update(new_config)
+        return config
 
 
 class ClassificationHead(BaseClassificationHead):

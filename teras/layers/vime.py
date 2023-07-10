@@ -17,21 +17,31 @@ class MaskEstimator(layers.Layer):
         https://proceedings.neurips.cc/paper/2020/hash/7d97667a3e056acab9aaf653807b4a03-Abstract.html
 
     Args:
-        dim: Dimensionality of Mask Estimator layer
-        activation: Activation function to use. Defaults to sigmoid.
+        units: `int`, default 32,
+            Dimensionality of Mask Estimator layer
+        activation: default "sigmoid",
+            Activation function to use.
     """
     def __init__(self,
-                 dim,
+                 units: int = 32,
                  activation="sigmoid",
                  **kwargs):
         super().__init__(**kwargs)
-        self.dim = dim
+        self.units = units
         self.activation = activation
-        self.estimator = layers.Dense(self.dim,
+        self.estimator = layers.Dense(self.units,
                                       activation=self.activation)
 
     def call(self, inputs):
         return self.estimator(inputs)
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'units': self.units,
+                      'activation': self.activation,
+                      }
+        config.update(new_config)
+        return config
 
 
 class FeatureEstimator(layers.Layer):
@@ -44,20 +54,31 @@ class FeatureEstimator(layers.Layer):
         https://proceedings.neurips.cc/paper/2020/hash/7d97667a3e056acab9aaf653807b4a03-Abstract.html
 
     Args:
-        dim: Dimensionality of Feature Estimator layer
-        activation: Activation function to use. Defaults to sigmoid.
+        units: `int`, default 32,
+            Dimensionality of Feature Estimator layer
+        activation: default "sigmoid",
+            Activation function to use.
     """
     def __init__(self,
-                 dim,
+                 units: int = 32,
                  activation="sigmoid",
                  **kwargs):
         super().__init__(**kwargs)
-        self.dim = dim
+        self.units = units
         self.activation = activation
-        self.estimator = layers.Dense(dim,
-                                            activation=self.activation)
+        self.estimator = layers.Dense(self.units,
+                                      activation=self.activation)
+
     def call(self, inputs):
         return self.estimator(inputs)
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'units': self.units,
+                      'activation': self.activation,
+                      }
+        config.update(new_config)
+        return config
 
 
 class Encoder(layers.Layer):
@@ -70,42 +91,66 @@ class Encoder(layers.Layer):
         https://proceedings.neurips.cc/paper/2020/hash/7d97667a3e056acab9aaf653807b4a03-Abstract.html
 
     Args:
-        dim: Dimensionality of Encoder layer
+        units: `int Dimensionality of Encoder layer
         activation: Activation function to use. Defaults to relu.
     """
     def __init__(self,
-                 dim,
+                 units: int = 32,
                  activation="relu",
                  **kwargs):
         super().__init__(**kwargs)
-        self.dim = dim
+        self.units = units
         self.activation = activation
-        self.encoder = layers.Dense(dim,
+        self.encoder = layers.Dense(self.units,
                                     activation=self.activation)
 
     def call(self, inputs):
         return self.encoder(inputs)
 
     def get_config(self):
-        config = super(Encoder, self).get_config()
-        config.update({'dim': self.dim})
+        config = super().get_config()
+        new_config = {'units': self.units,
+                      'activation': self.activation,
+                      }
+        config.update(new_config)
         return config
 
 
 # Layers for Semi-Supervised part of VIME
 
 class Predictor(layers.Layer):
-    """The predictor"""
+    """
+    Predictor layer based on the architecture proposed by Jinsung Yoon et a.
+    in the paper "VIME: Extending the Success of Self- and
+    Semi-supervised Learning to Tabular Domain"
+
+    Reference(s):
+        https://proceedings.neurips.cc/paper/2020/hash/7d97667a3e056acab9aaf653807b4a03-Abstract.html
+
+    # TODO make docs great again!
+
+    Args:
+        units: `int`, default 32,
+            The hidden dimensionality of the predictor.
+        input_dim: `int`,
+            Input dimensionality of the dataset
+        num_labels: `int`, default 32,
+            Number of labels to predict
+        activation: default "relu",
+            Activation function to use in for the hidden layers.
+        batch_size: `int`, default 512,
+            Batch size being used.
+    """
     def __init__(self,
-                 hidden_dim=None,
-                 input_dim=None,
-                 num_labels=None,
+                 input_dim: int,
+                 units: int = 32,
+                 num_labels: int = 2,
                  activation="relu",
-                 batch_size=None,
+                 batch_size: int = 512,
                  **kwargs):
         super().__init__(**kwargs)
-        self.hidden_dim = hidden_dim
         self.input_dim = input_dim
+        self.units = units
         self.num_labels = num_labels
         self.activation = activation
         self.batch_size = batch_size
@@ -113,22 +158,22 @@ class Predictor(layers.Layer):
         self.predictor_block = models.Sequential()
 
         self.input_layer = layers.Input(shape=(None, input_dim,),
-                                              batch_size=self.batch_size)
+                                        batch_size=self.batch_size)
         self.predictor_block.add(self.input_layer)
 
         self.inter_layer_1 = layers.Dense(self.hidden_dim,
-                                                activation=self.activation,
-                                                name="inter_layer_1")
+                                          activation=self.activation,
+                                          name="inter_layer_1")
         self.predictor_block.add(self.inter_layer_1)
 
         self.inter_layer_2 = layers.Dense(self.hidden_dim,
-                                                activation=self.activation,
-                                                name="inter_layer_2")
+                                          activation=self.activation,
+                                          name="inter_layer_2")
         self.predictor_block.add(self.inter_layer_2)
 
         self.dense_out = layers.Dense(self.num_labels,
-                                            activation=None,
-                                            name="dense_out")
+                                      activation=None,
+                                      name="dense_out")
         self.predictor_block.add(self.dense_out)
 
         self.softmax = layers.Softmax()
@@ -137,6 +182,17 @@ class Predictor(layers.Layer):
         y_hat_logit = self.predictor_block(inputs)
         y_hat = self.softmax(y_hat_logit)
         return y_hat_logit, y_hat
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'input_dim': self.input_dim,
+                      'units': self.units,
+                      'num_labels': self.num_labels,
+                      'activation': self.activation,
+                      'batch_size': self.batch_size,
+                      }
+        config.update(new_config)
+        return config
 
 
 class MaskGenerationAndCorruption(layers.Layer):
@@ -148,13 +204,15 @@ class MaskGenerationAndCorruption(layers.Layer):
     and pack these both in a sequential model or plug them together using functional API
 
     Args:
-        p_m: Corruption probability.
+        p_m: `float`, default 0.3,
+            Corruption probability. (Note: Don't do it in real life!)
     """
     def __init__(self,
-                 p_m=None,
+                 p_m: float = 0.3,
                  **kwargs):
         super().__init__(**kwargs)
         self.p_m = p_m
+
     def call(self, inputs):
         """inputs: Batch of unlabeled X"""
 
@@ -164,8 +222,6 @@ class MaskGenerationAndCorruption(layers.Layer):
                                             counts=1,
                                             probs=self.p_m,
                                             output_dtype=tf.float32)
-
-
 
         # Generate corrupted samples
         num_samples = tf.shape(inputs)[0]
@@ -180,3 +236,10 @@ class MaskGenerationAndCorruption(layers.Layer):
         # Corrupt Samples
         X_tilde = inputs * (1 - mask) + X_bar * mask
         return X_tilde
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'p_m': self.input_dim,
+                      }
+        config.update(new_config)
+        return config

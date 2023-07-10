@@ -76,6 +76,20 @@ class RTDLResNet(keras.Model):
             outputs = self.head(outputs)
         return outputs
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'num_blocks': self.num_blocks,
+                      'units': self.units,
+                      'dropout_hidden': self.dropout_hidden,
+                      'dropout_out': self.dropout_out,
+                      'activation_hidden': self.activation_hidden,
+                      'activation_out': self.activation_out,
+                      'normalization': self.normalization,
+                      'use_skip_connection': self.use_skip_connection,
+                      }
+        config.update(new_config)
+        return config
+
 
 class RTDLResNetClassifier(RTDLResNet):
     """
@@ -143,6 +157,14 @@ class RTDLResNetClassifier(RTDLResNet):
                                                  activation_out=self.activation_out,
                                                  name="rtdl_resnet_classification_head")
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'num_classes': self.num_classes,
+                      'activation_out': self.activation_out
+                      }
+        config.update(new_config)
+        return config
+
 
 class RTDLResNetRegressor(keras.Model):
     """
@@ -198,3 +220,10 @@ class RTDLResNetRegressor(keras.Model):
         self.num_outputs = num_outputs
         self.head = RTDLResNetRegressionHead(num_outputs=self.num,
                                              normalization=self.normalization_head)
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'num_outputs': self.num_outputs,
+                      }
+        config.update(new_config)
+        return config

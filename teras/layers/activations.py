@@ -12,6 +12,12 @@ class GLU(layers.Layer):
     def call(self, inputs):
         return inputs[:, :self.units] * tf.nn.sigmoid(inputs[:, self.units:])
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'units': self.units}
+        config.update(new_config)
+        return config
+
 
 class GEGLU(layers.Layer):
     """GeGLU is an activation function which is a variant of GLU"""
@@ -42,11 +48,11 @@ class GumbelSoftmax(layers.Layer):
         hard: Whether to return soft probabilities or hard one hot vectors. Defaults to False.
     """
     def __init__(self,
-                 temparature=0.2,
+                 temperature=0.2,
                  hard: bool = False,
                  **kwargs):
         super().__init__(**kwargs)
-        self.temparature = temparature
+        self.temperature = temperature
         self.hard = hard
 
     def call(self, logits):
@@ -54,9 +60,16 @@ class GumbelSoftmax(layers.Layer):
                                     minval=0,
                                     maxval=1)
         gumbels = -tf.math.log(-tf.math.log(u))
-        perturbed_logits = (logits + gumbels) / self.temparature
+        perturbed_logits = (logits + gumbels) / self.temperature
         probabilities = tf.nn.softmax(perturbed_logits)
         if self.hard:
             one_hot_labels = tf.one_hot(tf.argmax(probabilities, axis=-1), tf.shape(logits)[-1])
             return one_hot_labels
         return probabilities
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'temperature': self.temperature,
+                      'hard': self.hard}
+        config.update(new_config)
+        return config

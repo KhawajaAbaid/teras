@@ -72,6 +72,17 @@ class Classifier(keras.Model):
         x = self.hidden_block(inputs)
         return self.output_layer(x)
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'data_dim': self.data_dim,
+                      'num_classes': self.num_classes,
+                      'units_values': self.units_values,
+                      'activation_hidden': self.activation_hidden,
+                      'activation_out': self.activation_out
+                      }
+        config.update(new_config)
+        return config
+
 
 class PCGAIN(keras.Model):
     """
@@ -442,16 +453,17 @@ class PCGAIN(keras.Model):
 
     def get_config(self):
         config = super().get_config()
-        config.update({"generator": self.generator,
-                       "discriminator": self.discriminator,
-                       "num_discriminator_steps": self.num_discriminator_steps,
-                       "data_dim": self.data_dim,
+        config.update({"data_dim": self.data_dim,
+                       "generator_units_values": self.generator_units_values,
+                       "discriminator_units_values": self.discriminator_units_values,
+                       "generator_activation_hidden": self.generator_activation_hidden,
+                       "discriminator_activation_hidden": self.discriminator_activation_hidden,
+                       "generator_activation_out": self.generator_activation_out,
+                       "discriminator_activation_out": self.discriminator_activation_out,
                        "hint_rate": self.hint_rate,
                        "alpha": self.alpha,
                        "beta": self.beta,
                        "num_clusters": self.num_clusters,
                        "clustering_method": self.clustering_method,
-                       "pretrainer": self.pretrainer,
-                       "classifier": self.classifier
                        })
         return config

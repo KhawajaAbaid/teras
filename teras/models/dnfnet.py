@@ -80,6 +80,18 @@ class DNFNet(models.Model):
             outputs = self.head(outputs)
         return outputs
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'num_dnnf_layers': self.num_dnnf_layers,
+                      'num_formulas': self.num_formulas,
+                      'num_conjunctions_arr': self.num_conjunctions_arr,
+                      'conjunctions_depth_arr': self.conjunctions_depth_arr,
+                      'keep_feature_prob_arr': self.keep_feature_prob_arr,
+                      'elastic_net_beta': self.elastic_net_beta,
+                      'binary_threshold_eps': self.binary_threshold_eps,
+                      'temperature': self.temperature}
+        config.update(new_config)
+        return config
 
 
 class DNFNetRegressor(DNFNet):
@@ -143,6 +155,13 @@ class DNFNetRegressor(DNFNet):
                          **kwargs)
         self.num_outputs = num_outputs
         self.head = DNFNetRegressionHead(num_outputs=self.num_outputs)
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'num_outputs': self.num_outputs,
+                      }
+        config.update(new_config)
+        return config
 
 
 class DNFNetClassifier(DNFNet):
@@ -213,3 +232,11 @@ class DNFNetClassifier(DNFNet):
         self.activation_out = activation_out
         self.head = DNFNetClassificationHead(num_classes=self.num_classes,
                                              activation_out=self.activation_out)
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'num_classes': self.num_outputs,
+                      'activation_out': self.activation_out
+                      }
+        config.update(new_config)
+        return config

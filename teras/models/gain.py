@@ -92,6 +92,16 @@ class Generator(keras.Model):
         outputs = self.output_layer(outputs)
         return outputs
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'data_dim': self.data_dim,
+                      "units_values": self.units_values,
+                      "activation_hidden": self.activation_hidden,
+                      "activation_out": self.activation_out,
+                      }
+        config.update(new_config)
+        return config
+
 
 class Discriminator(keras.Model):
     """
@@ -183,6 +193,16 @@ class Discriminator(keras.Model):
         outputs = self.hidden_block(inputs)
         outputs = self.output_layer(outputs)
         return outputs
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'data_dim': self.data_dim,
+                      "units_values": self.units_values,
+                      "activation_hidden": self.activation_hidden,
+                      "activation_out": self.activation_out,
+                      }
+        config.update(new_config)
+        return config
 
 
 class GAIN(keras.Model):

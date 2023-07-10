@@ -30,6 +30,16 @@ class GeneratorBlock(layers.Layer):
     def call(self, inputs):
         return self.dense(inputs)
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'units': self.units,
+                      'activation': self.activation,
+                      'kernel_initializer': self.kernel_initializer,
+                      }
+
+        config.update(new_config)
+        return config
+
 
 class DiscriminatorBlock(layers.Layer):
     """
@@ -59,3 +69,13 @@ class DiscriminatorBlock(layers.Layer):
 
     def call(self, inputs):
         return self.dense(inputs)
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'units': self.units,
+                      'activation': self.activation,
+                      'kernel_initializer': self.kernel_initializer,
+                      }
+
+        config.update(new_config)
+        return config

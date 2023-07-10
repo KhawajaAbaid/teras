@@ -1,8 +1,8 @@
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
-from teras.layers.common.transformer import (ClassificationHead as BaseClassificationHead,
-                                             RegressionHead as BaseRegressionHead)
+from teras.layers.common.head import (ClassificationHead as BaseClassificationHead,
+                                      RegressionHead as BaseRegressionHead)
 from typing import Union, List, Tuple
 
 
@@ -19,11 +19,14 @@ class ColumnEmbedding(layers.Layer):
         https://arxiv.org/abs/2012.06678
 
     Args:
-        TODO
+        num_categorical_features: `int`,
+            Number of categorical features in the dataset.
+        embedding_dim: `int`, default 32,
+            Dimensionality of the embedded features
     """
     def __init__(self,
+                 num_categorical_features: int,
                  embedding_dim=32,
-                 num_categorical_features=None,
                  **kwargs):
         super().__init__(**kwargs)
         self.embedding_dim = embedding_dim
@@ -41,6 +44,15 @@ class ColumnEmbedding(layers.Layer):
             inputs: Embeddings of categorical features encoded by CategoricalFeatureEmbedding layer
         """
         return inputs + self.column_embedding(self.column_indices)
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'num_categorical_features': self.num_categorical_features,
+                      'embedding_dim': self.embedding_dim,
+                      }
+        config.update(new_config)
+        return config
+
 
 class ClassificationHead(BaseClassificationHead):
     """

@@ -1,7 +1,7 @@
 from tensorflow.keras import layers
 from teras.utils import get_normalization_layer
-from teras.layers.common.transformer import (ClassificationHead as _BaseClassificationHead,
-                                             RegressionHead as _BaseRegressionHead)
+from teras.layers.common.head import (ClassificationHead as _BaseClassificationHead,
+                                      RegressionHead as _BaseRegressionHead)
 from typing import Union
 
 LIST_OR_TUPLE = Union[list, tuple]
@@ -35,7 +35,7 @@ class ResNetBlock(layers.Layer):
             Whether to use the skip connection.
     """
     def __init__(self,
-                 units: int = None,
+                 units: int = 64,
                  dropout_hidden: float = 0.,
                  dropout_out: float = 0.,
                  activation_hidden="relu",
@@ -81,6 +81,19 @@ class ResNetBlock(layers.Layer):
         if self.use_skip_connection:
             x = self.add([x, residual])
         return x
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'units': self.units,
+                      'dropout_hidden': self.dropout_hidden,
+                      'dropout_out': self.dropout_out,
+                      'activation_hidden': self.activation_hidden,
+                      'activation_out': self.activation_out,
+                      'normalization': self.normalization,
+                      'use_skip_connection': self.use_skip_connection,
+                      }
+        config.update(new_config)
+        return config
 
 
 class ClassificationHead(_BaseClassificationHead):

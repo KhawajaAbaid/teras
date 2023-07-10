@@ -29,7 +29,7 @@ class VimeSelf(keras.Model):
         mask_estimator_activation: activation to use for mask estimator
     """
     def __init__(self,
-                 p_m,
+                 p_m: float = 0.3,
                  encoder_activation="relu",
                  feature_estimator_activation="sigmoid",
                  mask_estimator_activation="sigmoid",
@@ -81,18 +81,28 @@ class VimeSelf(keras.Model):
         encoder = models.Model(inputs=self.functional_model.input, outputs=encoder_layer.output)
         return encoder
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'p_m': self.p_m,
+                      'encoder_activation': self.encoder_activation,
+                      'feature_estimator_activation': self.feature_estimator_activation,
+                      'mask_estimator_activation': self.mask_estimator_activation,
+                      }
+        config.update(new_config)
+        return config
+
 
 class VimeSemi(keras.Model):
     def __init__(self,
-                 hidden_dim,
-                 input_dim,
-                 p_m=0.3,
-                 K=3,
-                 beta=1.0,
+                 input_dim: int,
+                 hidden_dim: int = 32,
+                 p_m: float = 0.3,
+                 K: int = 3,
+                 beta: float = 1.0,
                  encoder_file_path=None,
-                 num_labels=1,
+                 num_labels: int = 1,
                  activation="relu",
-                 batch_size=None,
+                 batch_size: int = None,
                  **kwargs):
         """
         Semi-supervied learning part in VIME.
@@ -105,8 +115,8 @@ class VimeSemi(keras.Model):
             num_labels: Number of labels
         """
         super().__init__(**kwargs)
-        self.hidden_dim = hidden_dim
         self.input_dim = input_dim
+        self.hidden_dim = hidden_dim
         self.p_m = p_m
         self.K = K
         self.beta = beta
@@ -195,3 +205,18 @@ class VimeSemi(keras.Model):
             outputs['yv_hat'] = yv_hat
         outputs['beta'] = self.beta
         return outputs
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'input_dim': self.input_dim,
+                      'hidden_dim': self.hidden_dim,
+                      'p_m': self.p_m,
+                      'K': self.K,
+                      'beta': self.beta,
+                      'encoder_file_path': self.encoder_file_path,
+                      'num_labels': self.num_labels,
+                      'activation': self.activation,
+                      'batch_size': self.batch_size,
+                      }
+        config.update(new_config)
+        return config

@@ -199,6 +199,26 @@ class SAINT(keras.Model):
             outputs = self.head(outputs)
         return outputs
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'features_metadata': self.features_metadata,
+                      'embedding_dim': self.embedding_dim,
+                      'numerical_embedding_hidden_dim': self.numerical_embedding_hidden_dim,
+                      'num_transformer_layers': self.num_transformer_layers,
+                      'num_attention_heads': self.num_attention_heads,
+                      'num_inter_sample_attention_heads': self.num_inter_sample_attention_heads,
+                      'attention_dropout': self.attention_dropout,
+                      'inter_sample_attention_dropout': self.inter_sample_attention_dropout,
+                      'feedforward_dropout': self.feedforward_dropout,
+                      'feedforward_multiplier': self.feedforward_multiplier,
+                      'norm_epsilon': self.norm_epsilon,
+                      'encode_categorical_values': self.encode_categorical_values,
+                      'apply_attention_to_features': self.apply_attention_to_features,
+                      'apply_attention_to_rows': self.apply_attention_to_rows,
+                      }
+        config.update(new_config)
+        return config
+
 
 class SAINTClassifier(SAINT):
     """
@@ -321,6 +341,14 @@ class SAINTClassifier(SAINT):
                                        activation_out=self.activation_out,
                                        name="saint_classification_head")
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'num_classes': self.num_classes,
+                      'activation_out': self.activation_out
+                      }
+        config.update(new_config)
+        return config
+
 
 class SAINTRegressor(SAINT):
     """
@@ -438,6 +466,13 @@ class SAINTRegressor(SAINT):
                                    units_values=self.head_units_values,
                                    name="saint_regression_head")
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'num_outputs': self.num_outputs,
+                      }
+        config.update(new_config)
+        return config
+
 
 class SAINTPretrainer(keras.Model):
     """
@@ -469,12 +504,12 @@ class SAINTPretrainer(keras.Model):
             contrastive loss.
     """
     def __init__(self,
-                model: SAINT,
-                cutmix_probs: float = 0.3,
-                mixup_alpha: float = 1.0,
-                temperature: float = 0.7,
-                lambda_: float = 10.,
-                **kwargs):
+                 model: SAINT,
+                 cutmix_probs: float = 0.3,
+                 mixup_alpha: float = 1.0,
+                 temperature: float = 0.7,
+                 lambda_: float = 10.,
+                 **kwargs):
         super().__init__(**kwargs)
         self.model = model
         self.cutmix_probs = cutmix_probs
@@ -651,3 +686,13 @@ class SAINTPretrainer(keras.Model):
         results = {m.name: m.result() for m in self.metrics}
         return results
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'model': keras.layers.serialize(self.model),
+                      'cutmix_probs': self.cutmix_probs,
+                      'mixup_alpha': self.mixup_alpha,
+                      'temperature': self.temperature,
+                      'lambda_': self.lambda_,
+                      }
+        config.update(new_config)
+        return config

@@ -50,6 +50,13 @@ class MixUp(keras.layers.Layer):
         inputs_mixedup = (lambda_ * inputs) + (1 - lambda_) * random_partners
         return inputs_mixedup
 
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'alpha': self.alpha,
+                      }
+        config.update(new_config)
+        return config
+
 
 class CutMix(keras.layers.Layer):
     """
@@ -85,3 +92,10 @@ class CutMix(keras.layers.Layer):
         # Apply cutmix formula
         inputs_cutmixed = (inputs * mask_cutmix) + (random_partners * (1 - mask_cutmix))
         return inputs_cutmixed
+
+    def get_config(self):
+        config = super().get_config()
+        new_config = {'probs': self.probs,
+                      }
+        config.update(new_config)
+        return config
