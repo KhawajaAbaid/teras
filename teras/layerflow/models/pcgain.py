@@ -59,7 +59,8 @@ class Classifier(_BaseClassifier):
         if num_classes is None:
             num_classes = 3
         super().__init__(data_dim=data_dim,
-                         num_classes=num_classes)
+                         num_classes=num_classes,
+                         **kwargs)
 
         self.hidden_block = hidden_block
         self.output_layer = output_layer
