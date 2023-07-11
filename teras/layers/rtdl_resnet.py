@@ -57,7 +57,7 @@ class ResNetBlock(layers.Layer):
         self.dense_hidden = layers.Dense(units=self.units,
                                          activation=self.activation_hidden,
                                          name="resnet_block_dense_hidden")
-        self.dropout_hidden = layers.Dropout(self.hidden_dropout_rate,
+        self.dropout_hidden = layers.Dropout(self.dropout_hidden,
                                              name="resnet_block_dropout_hidden")
         self.dropout_out = layers.Dropout(self.dropout_out,
                                           name="resnet_block_dropout_out")
