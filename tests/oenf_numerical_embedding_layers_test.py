@@ -1,8 +1,8 @@
 from tensorflow import keras
 import tensorflow as tf
 import pandas as pd
-from teras.layers import PeriodicEmbedding, TabTransformerCategoricalFeatureEmbedding
-from teras.utils import get_categorical_features_vocab, dataframe_to_tf_dataset
+from teras.layers import PeriodicEmbedding, CategoricalFeatureEmbedding
+from teras.utils import get_features_metadata_for_embedding, dataframe_to_tf_dataset
 from teras.preprocessing import PiecewiseLinearEncoding
 # tf.config.run_functions_eagerly(True)
 
@@ -16,25 +16,25 @@ from teras.preprocessing import PiecewiseLinearEncoding
 
 
 class Regressor(keras.Model):
-    def __init__(self, embedding_dim=32,
+    def __init__(self,
+                 embedding_dim=32,
                  categorical_features=None,
                  numerical_features=None,
-                 categorical_features_vocab=None,
+                 features_metadata=None,
                  **kwargs):
         super().__init__(**kwargs)
         self.embedding_dim = embedding_dim
         self.categorical_features = categorical_features
         self.numerical_features = tuple(numerical_features)
-        self.categorical_features_vocab = categorical_features_vocab
+        self.features_metadata = features_metadata
 
-        self.categorical_feature_embedding = TabTransformerCategoricalFeatureEmbedding(
-                                                        categorical_features=self.categorical_features,
-                                                        categorical_features_vocab=self.categorical_features_vocab,
-                                                        embedding_dim=self.embedding_dim
+        self.categorical_feature_embedding = CategoricalFeatureEmbedding(
+                                                categorical_features_metadata=self.features_metadata["categorical"],
+                                                embedding_dim=self.embedding_dim
                                                         )
         # Period Embedding layer to embed numerical features
-        self.periodic_embedding = PeriodicEmbedding(embedding_dim=self.embedding_dim,
-                                                    n_features=len(self.numerical_features),
+        self.periodic_embedding = PeriodicEmbedding(num_features=len(self.numerical_features),
+                                                    embedding_dim=self.embedding_dim,
                                                     sigma=0.01)
 
         self.concat = keras.layers.Concatenate(axis=1)
@@ -70,16 +70,16 @@ ple = PiecewiseLinearEncoding(task="regression", method="tree")
 ple.fit(gem_df[num_cols], y=gem_df["price"])
 gem_df[num_cols] = ple.transform(gem_df[num_cols])
 
-cat_vocab = get_categorical_features_vocab(gem_df, cat_cols)
+features_metadata = get_features_metadata_for_embedding(gem_df, cat_cols)
 
-gem_ds = dataframe_to_tf_dataset(gem_df, target="price")
+gem_ds = dataframe_to_tf_dataset(gem_df, target="price", as_dict=True)
 
 
 # =====> TRAINING THE MODEL <======
 
 regressor_model = Regressor(categorical_features=cat_cols,
                             numerical_features=num_cols,
-                            categorical_features_vocab=cat_vocab)
+                            features_metadata=features_metadata)
 
 regressor_model.compile(loss="MSE",
                       optimizer=keras.optimizers.AdamW(learning_rate=0.01),

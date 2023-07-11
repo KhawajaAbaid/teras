@@ -1,5 +1,5 @@
 from tensorflow import keras
-from teras.keras import layers, models
+from tensorflow.keras import layers, models
 from teras.layers.node import (ObliviousDecisionTree,
                                ClassificationHead as _BaseClassificationHead,
                                RegressionHead as _BaseRegressionHead)

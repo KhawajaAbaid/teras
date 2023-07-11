@@ -31,6 +31,7 @@ tvae = TVAE(data_dim=data_sampler.data_dim,
 tvae.compile(optimizer=keras.optimizers.Adam(learning_rate=0.01))
 history = tvae.fit(dataset, epochs=2)
 generated_data = tvae.generate(num_samples=1000,
-                               data_transformer=data_transformer)
+                               data_transformer=data_transformer,
+                               reverse_transform=True)
 print(generated_data.head())
 print("woah")

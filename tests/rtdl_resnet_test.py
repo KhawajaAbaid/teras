@@ -15,9 +15,7 @@ from sklearn import datasets as sklearn_datasets
 # train_data -= mean
 # train_data /= std
 #
-# resnet_regressor = RTDLResNetRegressor(num_blocks=8,
-#                                        main_dim=16,
-#                                        hidden_dim=32)
+# resnet_regressor = RTDLResNetRegressor(num_blocks=8)
 #
 # resnet_regressor.compile(loss="MSE", optimizer=keras.optimizers.Adam(learning_rate=0.05), metrics=["MAE"])
 # resnet_regressor.fit(train_data, train_targets, batch_size=32, epochs=10)
@@ -30,9 +28,7 @@ X = iris_dataset.data
 y = iris_dataset.target
 
 resnet_classifier = RTDLResNetClassifier(num_classes=3,
-                                       num_blocks=8,
-                                       hidden_dim=16,
-                                       main_dim=8)
+                                         num_blocks=8)
 resnet_classifier.compile(loss=keras.losses.SparseCategoricalCrossentropy(),
                         optimizer=keras.optimizers.Adam(learning_rate=0.01),
                         metrics=["accuracy"])

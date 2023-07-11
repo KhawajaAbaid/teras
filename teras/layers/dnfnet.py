@@ -46,12 +46,14 @@ class FeatureSelection(keras.layers.Layer):
             Used in the computation of learnable mask.
     """
     def __init__(self,
+                 input_dim: int,
                  num_formulas: int = 256,
                  keep_feature_prob_arr: LIST_OF_FLOAT = [0.1, 0.3, 0.5, 0.7, 0.9],
                  elastic_net_beta: float = 0.4,
                  binary_threshold_eps: float = 1.0,
                  **kwagrs):
         super().__init__(**kwagrs)
+        self.input_dim = input_dim
         self.num_formulas = num_formulas
         self.keep_feature_prob_arr = keep_feature_prob_arr
         self.elastic_net_beta = elastic_net_beta
@@ -59,7 +61,6 @@ class FeatureSelection(keras.layers.Layer):
         self.v_temp = tf.Variable(tf.zeros(self.num_formulas), trainable=False)
 
     def build(self, input_shape):
-        self.input_dim = input_shape[1]
         self.elastic_net_alpha = tf.Variable(initial_value=tf.constant(0.),
                                              name='elastic_net_alpha')
         self.learnable_mask = tf.Variable(initial_value=tf.fill(dims=(self.input_dim, self.num_formulas),
@@ -95,7 +96,8 @@ class FeatureSelection(keras.layers.Layer):
 
     def get_config(self):
         config = super().get_config()
-        new_config = {'num_formulas': self.num_formulas,
+        new_config = {'input_dim': self.input_dim,
+                      'num_formulas': self.num_formulas,
                       'keep_feature_prob_arr': self.keep_feature_prob_arr,
                       'elastic_net_beta': self.elastic_net_beta,
                       'binary_threshold_eps': self.binary_threshold_eps,
@@ -214,16 +216,19 @@ class DNNF(keras.layers.Layer):
         self.binary_threshold_eps = binary_threshold_eps
         self.temperature = temperature
 
-        self.feature_selection = FeatureSelection(num_formulas=self.num_formulas,
-                                                  keep_feature_prob_arr=self.keep_feature_prob_arr,
-                                                  elastic_net_beta=self.elastic_net_beta,
-                                                  binary_threshold_eps=self.binary_threshold_eps)
         self.localization = Localization(num_formulas=self.num_formulas,
-                                         temperature=self.temprature)
+                                         temperature=self.temperature)
 
         self.loaded_input_masks = None
 
     def build(self, input_shape):
+        input_dim = input_shape[1]
+        self.feature_selection = FeatureSelection(input_dim=input_dim,
+                                                  num_formulas=self.num_formulas,
+                                                  keep_feature_prob_arr=self.keep_feature_prob_arr,
+                                                  elastic_net_beta=self.elastic_net_beta,
+                                                  binary_threshold_eps=self.binary_threshold_eps)
+
         self.total_number_of_literals = compute_total_number_of_literals(self.num_formulas,
                                                                          self.num_conjunctions_arr,
                                                                          self.conjunctions_depth_arr)
@@ -253,6 +258,7 @@ class DNNF(keras.layers.Layer):
                                                                              total_number_of_conjunctions,
                                                                              self.conjunctions_depth_arr,
                                                                              )
+        conjunctions_indicator_matrix = tf.cast(conjunctions_indicator_matrix, dtype=tf.float32)
         self.conjunctions_indicator_sparse_matrix = dense_ndim_array_to_sparse_tensor(conjunctions_indicator_matrix)
         self.and_bias = tf.reduce_sum(conjunctions_indicator_matrix,
                                       axis=0)
@@ -262,6 +268,7 @@ class DNNF(keras.layers.Layer):
         formulas_indicator_matrix = create_formulas_indicator_matrix(c,
                                                                      self.num_formulas,
                                                                      self.num_conjunctions_arr)
+        formulas_indicator_matrix = tf.cast(formulas_indicator_matrix, dtype=tf.float32)
         self.formulas_indicator_sparse_matrix = dense_ndim_array_to_sparse_tensor(formulas_indicator_matrix)
         self.or_bias = tf.reduce_sum(formulas_indicator_matrix,
                                      axis=0)
