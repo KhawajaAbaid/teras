@@ -125,7 +125,7 @@ def create_formulas_indicator_matrix(c,
 @tf.function
 def compute_total_number_of_literals(num_formulas,
                                      num_conjunctions_arr,
-                                     conjunctions_depth_arrconjunctions_depth_arr):
+                                     conjunctions_depth_arr):
     return (tf.reduce_sum(num_conjunctions_arr) * tf.reduce_sum(conjunctions_depth_arr) * num_formulas) // (
                 tf.shape(conjunctions_depth_arr)[0] * tf.shape(num_conjunctions_arr)[0])
 
