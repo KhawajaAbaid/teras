@@ -187,27 +187,32 @@ class PCGAIN(keras.Model):
         self.num_clusters = num_clusters
         self.clustering_method = clustering_method
 
-        self.generator = Generator(data_dim=self.data_dim,
-                                   units_values=self.generator_units_values,
-                                   activation_hidden=self.generator_activation_hidden,
-                                   activation_out=self.generator_activation_out)
-        self.discriminator = Discriminator(data_dim=self.data_dim,
-                                           units_values=self.discriminator_units_values,
-                                           activation_hidden=self.discriminator_activation_hidden,
-                                           activation_out=self.discriminator_activation_out)
+        # self.generator = Generator(data_dim=self.data_dim,
+        #                            units_values=self.generator_units_values,
+        #                            activation_hidden=self.generator_activation_hidden,
+        #                            activation_out=self.generator_activation_out)
+        # self.discriminator = Discriminator(data_dim=self.data_dim,
+        #                                    units_values=self.discriminator_units_values,
+        #                                    activation_hidden=self.discriminator_activation_hidden,
+        #                                    activation_out=self.discriminator_activation_out)
 
         # Since we pretrain using the EXACT SAME architecture as GAIN
         # so here we simply use the GAIN model, which acts as `pretrainer`.
         # And since it instantiates generators and discriminator models,
-        # we can pass them to GAIN which acts as a proxy pretrainer and
-        # have it pretrain them, and then we can access those pretrained models
+        # we can pass these generator and discriminator parameters to GAIN
+        # which acts as a proxy pretrainer and have it instantiate and pretrain them,
+        # and then we can access those pretrained Generator and Discriminator models
         # and use them here in our PC-GAIN architecture.
-        self.pretrainer = GAIN(generator=self.generator,
-                               discriminator=self.discriminator,
-                               data_dim=self.data_dim,
+        self.pretrainer = GAIN(data_dim=self.data_dim,
+                               generator_units_values=self.generator_units_values,
+                               generator_activation_hidden=self.generator_activation_hidden,
+                               generator_activation_out=self.generator_activation_out,
+                               discriminator_units_values=self.discriminator_units_values,
+                               discriminator_activation_hidden=self.discriminator_activation_hidden,
+                               discriminator_activation_out=self.discriminator_activation_out,
                                hint_rate=self.hint_rate,
                                alpha=self.alpha
-                                   )
+                                )
         self.classifier = Classifier(data_dim=self.data_dim,
                                      num_classes=self.num_clusters)
 
