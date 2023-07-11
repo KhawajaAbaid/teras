@@ -60,9 +60,11 @@ class RTDLResNet(keras.Model):
             [
                 RTDLResNetBlock(
                     units=self.units,
-                    dropout=self.dropout,
-                    activation=self.activation,
-                    normalization=self.normalization_block,
+                    dropout_hidden=self.dropout_hidden,
+                    dropout_out=self.dropout_out,
+                    activation_hidden=self.activation_hidden,
+                    activation_out=self.activation_out,
+                    normalization=self.normalization,
                     use_skip_connection=self.use_skip_connection
 
                 )
