@@ -2,7 +2,7 @@ import tensorflow as tf
 from teras.layers.node import ObliviousDecisionTree
 
 
-def test_generator_block_output_shape():
+def test_node_oblivious_decision_tree_output_shape():
     oblivious = ObliviousDecisionTree(num_trees=16,
                                       depth=8,
                                       tree_dim=4)
