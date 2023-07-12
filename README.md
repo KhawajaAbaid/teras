@@ -1,4 +1,4 @@
-# Teras — A Unified Deep Learning Framework for Tabualr Data
+# Teras — A Unified Deep Learning Library for Tabualr Data
 
 Teras, which is short for "Tabular Keras", aims to provide all the state of the art deep learning architectures (models/layers) for tabular data proposed by researchers.
 
