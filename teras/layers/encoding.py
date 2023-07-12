@@ -45,6 +45,7 @@ class LabelEncoding(layers.Layer):
         # Just see the magic that's about to happen. aabraca... whoops not that magic
         self._categorical_features_idx = set(map(lambda x: x[0], self.categorical_features_metadata.values()))
         self._categorical_features_names = set(self.categorical_features_metadata.keys())
+        self._num_categorical_features = len(self.categorical_features_metadata)
         self._num_features = None
         self._numerical_features_names = None
         self._numerical_features_idx = None
@@ -112,7 +113,10 @@ class LabelEncoding(layers.Layer):
 
         encoded_features = tf.squeeze(encoded_features.stack())
         encoded_features = tf.transpose(encoded_features)
-        encoded_features.set_shape((None, self._num_features))
+        if self.concatenate_numerical_features:
+            encoded_features.set_shape((None, self._num_features))
+        else:
+            encoded_features.set_shape((None, self._num_categorical_features))
         return encoded_features
 
     def get_config(self):
