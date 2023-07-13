@@ -208,6 +208,7 @@ class TabTransformer(keras.Model):
                     feature = tf.expand_dims(inputs[feature_name], axis=1)
                 else:
                     feature = tf.expand_dims(inputs[:, feature_idx], axis=1)
+                feature = tf.cast(feature, tf.float32)
                 numerical_features = numerical_features.write(i, feature)
             numerical_features = tf.transpose(tf.squeeze(numerical_features.stack()))
             if features is not None:
