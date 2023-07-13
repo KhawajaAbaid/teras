@@ -1,8 +1,16 @@
 # Teras — A Unified Deep Learning Library for Tabualr Data
 
-Teras, which is short for "Tabular Keras", aims to provide all the state of the art deep learning architectures (models/layers) for tabular data proposed by researchers. It inclues models ranging from Classificaiton and Regression to Data Generation (using GANs and VAEs) and Imputation. It also includes Preprocessing, Encoding and (Categorical and Numerical) Embedding layers. 
+Teras (short for Tabular Keras) is a unified deep learning library for Tabular Data that aims to be your one stop for everything related to deep learing with tabular data.
 
-# Getting Started
+It provides state of the art layers, models and arhitectures for all purposes, be it classificaiton, regression or even data generation and imputation using state of the art deep learning architectures. 
+
+It also includes Preprocessing, Encoding and (Categorical and Numerical) Embedding layers. 
+
+While these state of the art architectures can be quite sophisticated, Teras, thanks to the increidble design of Keras, abstracts away all the complications and sophistication and makes it easy as ever to access those models and put them to use.
+
+Not only that, everything available is highly customizable and modular, allowing for all variety of use cases.
+
+## Getting Started
 Read our [Getting Started Guide](https://github.com/KhawajaAbaid/teras/blob/main/tutorials/getting_started.ipynb) to...*drum roll* get started with Teras.
 
 ## Usage
@@ -24,8 +32,9 @@ model = TabNetClassifier(features_metadata=features_metadata,
                          encoder=encoder,
                          head=head)
 ```
+You can read more about the difference between the two in the Teras APIs section in the [Getting Started Guide](https://github.com/KhawajaAbaid/teras/blob/main/tutorials/getting_started.ipynb).
 
-# Main Teras Modules
+## Main Teras Modules
 Teras offers following main modules:
 
 1. `teras.layerflow`: It is the LayerFlow API, offering maximum flebility with minimal interface. It's an alternative to the default Parametric API. You can read more about the difference between the two in the Teras APIs section in the [Getting Started Guide](https://github.com/KhawajaAbaid/teras/blob/main/tutorials/getting_started.ipynb).
