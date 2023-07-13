@@ -328,7 +328,7 @@ class TabTransformerClassifier(TabTransformer):
         super().__init__(features_metadata=features_metadata,
                          embedding_dim=embedding_dim,
                          num_transformer_layers=num_transformer_layers,
-                         numgirl_attention_heads=num_attention_heads,
+                         num_attention_heads=num_attention_heads,
                          attention_dropout=attention_dropout,
                          feedforward_dropout=feedforward_dropout,
                          feedforward_multiplier=feedforward_multiplier,
