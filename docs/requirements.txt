@@ -1,0 +1,7 @@
+tensorflow
+tensorflow-addons
+tensorflow-probability
+numpy
+pandas
+scikit-learn
+tqdm
