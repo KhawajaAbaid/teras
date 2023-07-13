@@ -13,6 +13,10 @@ Not only that, everything available is highly customizable and modular, allowing
 ## Getting Started
 Read our [Getting Started Guide](https://github.com/KhawajaAbaid/teras/blob/main/tutorials/getting_started.ipynb) to...*drum roll* get started with Teras.
 
+## Documentation:
+You can access the documentation on ReadTheDocs.io: https://teras.readthedocs.io/en/latest/index.html
+Only the front page is a little messy but rest of the documentation should be good — though a lot of works needs to be done in this regard.
+
 ## Usage
 Teras provieds two API for usage to satitate different levels of flexbility and accessbility needs:
 1. **Parametric API**: This is the default API, where user specifies values for parameters that are used in construction of any sub-layers or models within the architecture.
