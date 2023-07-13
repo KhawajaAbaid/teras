@@ -1,12 +1,12 @@
-# Teras — A Unified Deep Learning Library for Tabualr Data
+# Teras — A Unified Deep Learning Library for Tabular Data
 
 Teras (short for Tabular Keras) is a unified deep learning library for Tabular Data that aims to be your one stop for everything related to deep learing with tabular data.
 
-It provides state of the art layers, models and arhitectures for all purposes, be it classificaiton, regression or even data generation and imputation using state of the art deep learning architectures. 
+It provides state of the art layers, models and arhitectures for all purposes, be it classification, regression or even data generation and imputation using state of the art deep learning architectures. 
 
 It also includes Preprocessing, Encoding and (Categorical and Numerical) Embedding layers. 
 
-While these state of the art architectures can be quite sophisticated, Teras, thanks to the increidble design of Keras, abstracts away all the complications and sophistication and makes it easy as ever to access those models and put them to use.
+While these state of the art architectures can be quite sophisticated, Teras, thanks to the incredible design of Keras, abstracts away all the complications and sophistication and makes it easy as ever to access those models and put them to use.
 
 Not only that, everything available is highly customizable and modular, allowing for all variety of use cases.
 
@@ -15,22 +15,24 @@ You can install Teras using pip as follows,
 ```
 pip install teras
 ```
+
 ## Getting Started
 Read our [Getting Started Guide](https://github.com/KhawajaAbaid/teras/blob/main/tutorials/getting_started.ipynb) to...*drum roll* get started with Teras.
+
 
 ## Documentation:
 You can access the documentation on ReadTheDocs.io: https://teras.readthedocs.io/en/latest/index.html
 Only the front page is a little messy but rest of the documentation should be good — though a lot of works needs to be done in this regard.
 
 ## Usage
-Teras provieds two API for usage to satitate different levels of flexbility and accessbility needs:
+Teras provides two API for usage to satiate different levels of flexibility and accessibility needs:
 1. **Parametric API**: This is the default API, where user specifies values for parameters that are used in construction of any sub-layers or models within the architecture.
 ```
 from teras.models import TabNetClassifier
 
 model = TabNetClassifier(num_classes=2, features_metadata=features_metadata)
 ```
-2. **LayerFlow API**: It maximizes flexbility and minimizes interface. Here, the user can pass any sub-layers or models instances as arguments to the given architecture (model/layer). It can be accessed through `teras.layerflow`
+2. **LayerFlow API**: It maximizes flexibility and minimizes interface. Here, the user can pass any sub-layers or models instances as arguments to the given architecture (model/layer). It can be accessed through `teras.layerflow`
 ```
 from teras.layerflow.models import TabNetClassifier
 from teras.layerflow.layers import TabNetEncoder, TabNetClassificationHead
@@ -46,7 +48,7 @@ You can read more about the difference between the two in the Teras APIs section
 ## Main Teras Modules
 Teras offers following main modules:
 
-1. `teras.layerflow`: It is the LayerFlow API, offering maximum flebility with minimal interface. It's an alternative to the default Parametric API. You can read more about the difference between the two in the Teras APIs section in the [Getting Started Guide](https://github.com/KhawajaAbaid/teras/blob/main/tutorials/getting_started.ipynb).
+1. `teras.layerflow`: It is the LayerFlow API, offering maximum flexibility with minimal interface. It's an alternative to the default Parametric API. You can read more about the difference between the two in the Teras APIs section in the [Getting Started Guide](https://github.com/KhawajaAbaid/teras/blob/main/tutorials/getting_started.ipynb).
 2. `teras.layers`: It contains all the layers for all of the architectures offered by Teras.
 3. `teras.models`: It contains all of the models of all the architectures types, be it Classificaiton, Regresssion etc offered by Teras.
 4. `teras.generative`: It contains state of the art models for Data Generation. (Currently it offers `CTGAN` and `TVAE`).
@@ -65,7 +67,7 @@ The main purposes of Teras are to:
 
 
 ## Support
-If you find Teras useful, consider supporting the project. I've been working on this for the past ~3 months full time and plan to continue to do so. I also have many future plans for it but my currently laptop is quite old which makes it impossible for me to test highly demanding workflows let alone rapidly test and iterate. So your support will be very vital in the betterment of this project.
+If you find Teras useful, consider supporting the project. I've been working on this for the past ~3 months full time and plan to continue to do so. I also have many future plans for it but my current laptop is quite old which makes it impossible for me to test highly demanding workflows let alone rapidly test and iterate. So your support will be very vital in the betterment of this project.
 Thank you!
 
 [![BuyMeACoffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://www.buymeacoffee.com/KhawajaAbaid)
