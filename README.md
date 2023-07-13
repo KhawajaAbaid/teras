@@ -10,6 +10,11 @@ While these state of the art architectures can be quite sophisticated, Teras, th
 
 Not only that, everything available is highly customizable and modular, allowing for all variety of use cases.
 
+## Instalation:
+You can install Teras using pip as follows,
+```
+pip install teras
+```
 ## Getting Started
 Read our [Getting Started Guide](https://github.com/KhawajaAbaid/teras/blob/main/tutorials/getting_started.ipynb) to...*drum roll* get started with Teras.
 
