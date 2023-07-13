@@ -4,8 +4,6 @@ import numpy as np
 from typing import List
 from sklearn.preprocessing import OrdinalEncoder
 from teras.preprocessing.base.base_data_transformer import BaseDataTransformer
-from collections import namedtuple
-from copy import deepcopy
 
 
 FEATURE_NAMES_TYPE = List[str]
@@ -48,7 +46,8 @@ class DataTransformer(BaseDataTransformer):
         self.min_vals = None
         self.max_vals = None
 
-    def fit(self, x):
+    def fit(self, x,
+            **kwargs):
         # We min max normalize the entire dataset regardless of the
         # features types - so we first need to have the ordinally
         # encoded values for the categorical features
@@ -69,7 +68,7 @@ class DataTransformer(BaseDataTransformer):
 
     def transform(self,
                   x: pd.DataFrame,
-                  return_dataframe: bool = True):
+                  **kwargs):
         """
         Transforms the data (applying normalization etc)
         and returns a tensorflow dataset.
@@ -78,7 +77,6 @@ class DataTransformer(BaseDataTransformer):
 
         Args:
             x: Data to transform. Must be a pandas DataFrame.
-            return_dataframe: default False, whether to return data as pandas dataframe.
 
         Returns:
             Transformed data.
@@ -104,13 +102,13 @@ class DataTransformer(BaseDataTransformer):
         x = (x - self.min_vals) / self.max_vals
         x = x.astype(np.float)
 
-        if return_dataframe:
-            x = pd.DataFrame(x, columns=self.ordered_features_names_all)
+        # if return_dataframe:
+        x = pd.DataFrame(x, columns=self.ordered_features_names_all)
         return x
 
     def reverse_transform(self,
                           x,
-                          return_dataframe=True):
+                          **kwargs):
         """
         Reverse Transforms the transformed data.
         The `min_vals` and `max_vals` values learnt in the `transform` step
@@ -118,8 +116,6 @@ class DataTransformer(BaseDataTransformer):
 
         Args:
             x: Transformed Data.
-            return_dataframe: default True, whether to return data
-                as pandas dataframe.
 
         Returns:
             Data in its original format and scale.
@@ -141,8 +137,8 @@ class DataTransformer(BaseDataTransformer):
         if self.categorical_features is not None:
             x[self.categorical_features] = self.encoder.inverse_transform(x[self.categorical_features])
 
-        if not return_dataframe:
-            x = x.values
+        # if not return_dataframe:
+        #     x = x.values
         return x
 
 
