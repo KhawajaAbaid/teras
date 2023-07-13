@@ -2,6 +2,9 @@
 
 Teras, which is short for "Tabular Keras", aims to provide all the state of the art deep learning architectures (models/layers) for tabular data proposed by researchers. It inclues models ranging from Classificaiton and Regression to Data Generation (using GANs and VAEs) and Imputation. It also includes Preprocessing, Encoding and (Categorical and Numerical) Embedding layers. 
 
+# Getting Started
+Read our [Getting Started Guide](https://github.com/KhawajaAbaid/teras/blob/main/tutorials/getting_started.ipynb) to...*drum roll* get started with Teras.
+
 ## Usage
 Teras provieds two API for usage to satitate different levels of flexbility and accessbility needs:
 1. **Parametric API**: This is the default API, where user specifies values for parameters that are used in construction of any sub-layers or models within the architecture.
@@ -21,6 +24,19 @@ model = TabNetClassifier(features_metadata=features_metadata,
                          encoder=encoder,
                          head=head)
 ```
+
+# Main Teras Modules
+Teras offers following main modules:
+
+1. `teras.layerflow`: It is the LayerFlow API, offering maximum flebility with minimal interface. It's an alternative to the default Parametric API. You can read more about the difference between the two in the Teras APIs section in the [Getting Started Guide](https://github.com/KhawajaAbaid/teras/blob/main/tutorials/getting_started.ipynb).
+2. `teras.layers`: It contains all the layers for all of the architectures offered by Teras.
+3. `teras.models`: It contains all of the models of all the architectures types, be it Classificaiton, Regresssion etc offered by Teras.
+4. `teras.generative`: It contains state of the art models for Data Generation. (Currently it offers `CTGAN` and `TVAE`).
+5. `teras.impute`: It contains state of the art models for Data Imputation. (Currently it offers `GAIN` and `PCGAIN`)
+6. `teras.preprocessing`: It offers preprocessing classes for data transformation and data sampling that are required by highly sophisticated models specifically the data generation and imputation models.
+7. `teras.ensemble`: It is a work in progress and aims to offers ensembling techniques making it easier than ever to ensemble your deep learning models, such as using Bagging or Stacking. (Currently it offers very basic version of these.)
+8. `teras.utils`: It contains useful utility functions making life easier for Teras users
+9. `teras.losses`: It contains custom losses for various architectures.
 
 ## Motivation
 The main purposes of Teras are to:
