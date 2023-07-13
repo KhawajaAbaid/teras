@@ -22,7 +22,8 @@ from .utils import (tf_random_choice,
                     get_features_metadata_for_embedding,
                     dataframe_to_tf_dataset,
                     convert_dict_to_array_tensor,
-                    serialize_layers_collection)
+                    serialize_layers_collection,
+                    inject_missing_values)
 
 
 # DNFNet utility function(s)

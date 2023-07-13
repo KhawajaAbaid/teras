@@ -4,7 +4,7 @@ import tensorflow as tf
 import pandas as pd
 from teras.models.pcgain import PCGAIN
 from teras.preprocessing.pcgain import DataTransformer, DataSampler
-from teras.utils.gain import inject_missing_values
+from teras.utils import inject_missing_values
 
 from warnings import filterwarnings
 filterwarnings('ignore')

@@ -3,7 +3,7 @@ tf.config.run_functions_eagerly(True)
 import pandas as pd
 from teras.models.gain import GAIN
 from teras.preprocessing.gain import DataTransformer, DataSampler
-from teras.utils.gain import inject_missing_values
+from teras.utils import inject_missing_values
 
 
 print(f"{'-'*15}  GAIN TEST {'-'*15}")
