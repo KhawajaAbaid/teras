@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from collections import namedtuple
 from copy import deepcopy
+from teras.preprocessing.base import BaseDataTransformer
 
 
 class ModeSpecificNormalization:
@@ -209,7 +210,7 @@ class ModeSpecificNormalization:
         return x
 
 
-class DataTransformer:
+class DataTransformer(BaseDataTransformer):
     """
     Data Transformation class based on the data transformation
     in the official CTGAN paper and implementation.
@@ -326,7 +327,11 @@ class DataTransformer:
         self.one_hot_enc.fit(x)
         return self.one_hot_enc.transform(x)
 
-    def transform(self, x):
+    def fit(self, x, **kwargs):
+        # we've got nothing to fit in this case
+        pass
+
+    def transform(self, x, **kwargs):
         total_transformed_features = 0
         x_numerical, x_categorical = None, None
         if self.num_numerical_features > 0:
