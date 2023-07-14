@@ -146,19 +146,19 @@ class SAINT(keras.Model):
                                                     encode=self.encode_categorical_values)
             self._num_embedded_features += self._num_categorical_features
 
-        self.saint_encoder = SAINTEncoder(num_transformer_layers=self.num_transformer_layers,
-                                          embedding_dim=self.embedding_dim,
-                                          num_attention_heads=self.num_attention_heads,
-                                          num_inter_sample_attention_heads=self.num_inter_sample_attention_heads,
-                                          attention_dropout=self.attention_dropout,
-                                          inter_sample_attention_dropout=self.inter_sample_attention_dropout,
-                                          feedforward_dropout=self.feedforward_dropout,
-                                          feedforward_multiplier=self.feedforward_multiplier,
-                                          norm_epsilon=self.norm_epsilon,
-                                          apply_attention_to_features=self.apply_attention_to_features,
-                                          apply_attention_to_rows=self.apply_attention_to_rows,
-                                          num_embedded_features=self._num_embedded_features,
-                                          )
+        self.encoder = SAINTEncoder(num_transformer_layers=self.num_transformer_layers,
+                                    embedding_dim=self.embedding_dim,
+                                    num_attention_heads=self.num_attention_heads,
+                                    num_inter_sample_attention_heads=self.num_inter_sample_attention_heads,
+                                    attention_dropout=self.attention_dropout,
+                                    inter_sample_attention_dropout=self.inter_sample_attention_dropout,
+                                    feedforward_dropout=self.feedforward_dropout,
+                                    feedforward_multiplier=self.feedforward_multiplier,
+                                    norm_epsilon=self.norm_epsilon,
+                                    apply_attention_to_features=self.apply_attention_to_features,
+                                    apply_attention_to_rows=self.apply_attention_to_rows,
+                                    num_embedded_features=self._num_embedded_features,
+                                    )
         self.flatten = layers.Flatten()
         self.norm = layers.LayerNormalization(epsilon=self.norm_epsilon)
 
@@ -188,8 +188,11 @@ class SAINT(keras.Model):
             else:
                 features = numerical_features
 
+        # Set features shape
+        features.set_shape((None, self.num_features, self.embedding_dim))
+
         # Contextualize the embedded features
-        features = self.saint_encoder(features)
+        features = self.encoder(features)
 
         # Flatten the contextualized embeddings of the features
         features = self.flatten(features)
@@ -609,8 +612,8 @@ class SAINTPretrainer(keras.Model):
         p_prime = self.mixup(p_prime)
 
         # Pass these embeddings through saint encoder
-        r = self.model.saint_encoder(p)
-        r_prime = self.model.saint_encoder(p_prime)
+        r = self.model.encoder(p)
+        r_prime = self.model.encoder(p_prime)
 
         # Pass the encoded features through projection heads
         z = self.projection_head_1(r)
