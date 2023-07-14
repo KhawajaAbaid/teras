@@ -92,7 +92,7 @@ class FTTransformer(_BaseFTTransformer):
         return config
 
 
-class FTTransformerClassifier(_BaseFTTransformerClassifier):
+class FTTransformerClassifier(FTTransformer):
     """
     FTTransformerClassifier architecture with LayrFlow design.
     It is based on the FT-Transformer architecture proposed by Yury Gorishniy et al.
@@ -170,7 +170,7 @@ class FTTransformerClassifier(_BaseFTTransformerClassifier):
                          **kwargs)
 
 
-class FTTransformerRegressor(_BaseFTTransformerRegressor):
+class FTTransformerRegressor(FTTransformer):
     """
     FTTransformerRegressor architecture with LayrFlow design.
     It is based on the FT-Transformer architecture proposed by Yury Gorishniy et al.
