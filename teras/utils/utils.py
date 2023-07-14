@@ -210,8 +210,19 @@ def dataframe_to_tf_dataset(
          A tf.data.Dataset dataset
     """
     df = dataframe.copy()
-    if target:
-        labels = df.pop(target)
+    if target is not None:
+        if isinstance(target, (list, tuple, set)):
+            if as_dict:
+                labels = dict()
+                for feat in target:
+                    labels[feat] = df.pop(feat)
+            else:
+                labels = []
+                for feat in target:
+                    labels.append(df.pop(feat))
+                labels = tuple(labels)
+        else:
+            labels = df.pop(target)
         if as_dict:
             dataset = tf.data.Dataset.from_tensor_slices((dict(df), labels))
         else:
