@@ -83,7 +83,15 @@ class RTDLResNetClassifier(RTDLResNet):
                  head: layers.Layer = None,
                  **kwargs):
         if head is None:
-            head = RTDLResNetClassificationHead()
+            num_classes = 2
+            activation_out = None
+            if "num_classes" in kwargs:
+                num_classes = kwargs.pop("num_classes")
+            if "activation_out" in kwargs:
+                activation_out = kwargs.pop("activation_out")
+            head = RTDLResNetClassificationHead(num_classes=num_classes,
+                                          activation_out=activation_out,
+                                          name="rtdl_resnet_classification_head")
         super().__init__(resnet_blocks=resnet_blocks,
                          head=head,
                          **kwargs)
@@ -117,7 +125,11 @@ class RTDLResNetRegressor(RTDLResNet):
                  head: layers.Layer = None,
                  **kwargs):
         if head is None:
-            head = RTDLResNetRegressionHead()
+            num_outputs = 1
+            if "num_outputs" in kwargs:
+                num_outputs = kwargs.pop("num_outputs")
+            head = RTDLResNetRegressionHead(num_outputs=num_outputs,
+                                            name="rtdl_resnet_regression_head")
         super().__init__(resnet_blocks=resnet_blocks,
                          head=head,
                          **kwargs)
