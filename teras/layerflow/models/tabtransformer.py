@@ -159,7 +159,15 @@ class TabTransformerClassifier(TabTransformer):
                  head: layers.Layer = None,
                  **kwargs):
         if head is None:
-            head = ClassificationHead()
+            num_classes = 2
+            activation_out = None
+            if "num_classes" in kwargs:
+                num_classes = kwargs.pop("num_classes")
+            if "activation_out" in kwargs:
+                activation_out = kwargs.pop("activation_out")
+            head = ClassificationHead(num_classes=num_classes,
+                                      activation_out=activation_out,
+                                      name="tabtransformer_classification_head")
         super().__init__(features_metadata=features_metadata,
                          categorical_feature_embedding=categorical_feature_embedding,
                          column_embedding=column_embedding,
@@ -262,7 +270,11 @@ class TabTransformerRegressor(TabTransformer):
                  head: layers.Layer = None,
                  **kwargs):
         if head is None:
-            head = RegressionHead()
+            num_outputs = 1
+            if "num_outputs" in kwargs:
+                num_outputs = kwargs.pop("num_outputs")
+            head = RegressionHead(num_outputs=num_outputs,
+                                  name="tatransformer_regression_head")
         super().__init__(features_metadata=features_metadata,
                          categorical_feature_embedding=categorical_feature_embedding,
                          column_embedding=column_embedding,

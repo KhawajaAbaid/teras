@@ -89,7 +89,15 @@ class DNFNetClassifier(DNFNet):
                  head: layers.Layer = None,
                  **kwargs):
         if head is None:
-            head = DNFNetClassificationHead()
+            num_classes = 2
+            activation_out = None
+            if "num_classes" in kwargs:
+                num_classes = kwargs.pop("num_classes")
+            if "activation_out" in kwargs:
+                activation_out = kwargs.pop("activation_out")
+            head = DNFNetClassificationHead(num_classes=num_classes,
+                                            activation_out=activation_out,
+                                            name="dnfnet_classification_head")
         super().__init__(dnnf_layers=dnnf_layers,
                          head=head,
                          **kwargs)
@@ -122,7 +130,11 @@ class DNFNetRegressor(DNFNet):
                  head: layers.Layer = None,
                  **kwargs):
         if head is None:
-            head = DNFNetRegressionHead()
+            num_outputs = 1
+            if "num_outputs" in kwargs:
+                num_outputs = kwargs.pop("num_outputs")
+            head = DNFNetRegressionHead(num_outputs=num_outputs,
+                                        name="dnfnet_regression_head")
         super().__init__(dnnf_layers=dnnf_layers,
                          head=head,
                          **kwargs)

@@ -138,7 +138,15 @@ class TabNetClassifier(TabNet):
                  head: layers.Layer = None,
                  **kwargs):
         if head is None:
-            head = ClassificationHead()
+            num_classes = 2
+            activation_out = None
+            if "num_classes" in kwargs:
+                num_classes = kwargs.pop("num_classes")
+            if "activation_out" in kwargs:
+                activation_out = kwargs.pop("activation_out")
+            head = ClassificationHead(num_classes=num_classes,
+                                      activation_out=activation_out,
+                                      name="tabnet_classification_head")
         super().__init__(features_metadata=features_metadata,
                          categorical_features_embedding=categorical_features_embedding,
                          encoder=encoder,
@@ -233,7 +241,11 @@ class TabNetRegressor(TabNet):
                  head: layers.Layer = None,
                  **kwargs):
         if head is None:
-            head = RegressionHead()
+            num_outputs = 1
+            if "num_outputs" in kwargs:
+                num_outputs = kwargs.pop("num_outputs")
+            head = RegressionHead(num_outputs=num_outputs,
+                                  name="tabnet_regression_head")
         super().__init__(features_metadata=features_metadata,
                          categorical_features_embedding=categorical_features_embedding,
                          encoder=encoder,
