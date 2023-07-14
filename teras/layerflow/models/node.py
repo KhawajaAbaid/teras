@@ -1,7 +1,7 @@
 from tensorflow import keras
 from tensorflow.keras import layers, models
 from teras.models import NODE as _BaseNODE
-from teras.layerflow.layers import NODEClassificationHead, NODERegressionHead
+from teras.layers import NODEClassificationHead, NODERegressionHead
 from typing import List
 from teras.utils import serialize_layers_collection
 
@@ -99,7 +99,15 @@ class NODEClassifier(NODE):
                  input_dropout: float = 0.,
                  **kwargs):
         if head is None:
-            head = NODEClassificationHead()
+            num_classes = 2
+            activation_out = None
+            if "num_classes" in kwargs:
+                num_classes = kwargs.pop("num_classes")
+            if "activation_out" in kwargs:
+                activation_out = kwargs.pop("activation_out")
+            head = NODEClassificationHead(num_classes=num_classes,
+                                          activation_out=activation_out,
+                                          name="node_classification_head")
         super().__init__(tree_layers=tree_layers,
                          head=head,
                          max_features=max_features,
@@ -143,7 +151,11 @@ class NODERegressor(NODE):
                  input_dropout: float = 0.,
                  **kwargs):
         if head is None:
-            head = NODERegressionHead()
+            num_outputs = 1
+            if "num_outputs" in kwargs:
+                num_outputs = kwargs.pop("num_outputs")
+            head = NODERegressionHead(num_outputs=num_outputs,
+                                      name="node_regression_head")
         super().__init__(tree_layers=tree_layers,
                          head=head,
                          max_features=max_features,
