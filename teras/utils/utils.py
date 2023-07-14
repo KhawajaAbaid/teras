@@ -182,7 +182,7 @@ def get_features_metadata_for_embedding(dataframe: pd.DataFrame,
 
 def dataframe_to_tf_dataset(
         dataframe: pd.DataFrame,
-        target: str = None,
+        target: Union[str, list] = None,
         shuffle: bool = True,
         batch_size: int = 1024,
         as_dict: bool = False,
@@ -191,11 +191,16 @@ def dataframe_to_tf_dataset(
     Builds a tf.data.Dataset from a given pandas dataframe
 
     Args:
-        dataframe: A pandas dataframe
-        target: Name of the target column
-        shuffle: Whether to shuffle the dataset
-        batch_size: Batch size
-        as_dict: Whether to make a tensorflow dataset in a dictionary format
+        dataframe: `pd.DataFrame`,
+            A pandas dataframe
+        target: `str` or `list`,
+            Name of the target column or list of names of the target columns.
+        shuffle: `bool`, default True
+            Whether to shuffle the dataset
+        batch_size: `int`, default 1024,
+            Batch size
+        as_dict: `bool`, default False,
+            Whether to make a tensorflow dataset in a dictionary format
             where each record is a mapping of features names against their values.
 
             SOME GUIDELINES on when to create dataset in dictionary format and when not:
@@ -220,7 +225,7 @@ def dataframe_to_tf_dataset(
                 labels = []
                 for feat in target:
                     labels.append(df.pop(feat).values)
-                labels = tuple(labels)
+                labels = tf.transpose(tf.constant(labels))
         else:
             labels = df.pop(target)
             if not as_dict:
