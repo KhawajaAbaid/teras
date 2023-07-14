@@ -182,7 +182,7 @@ def get_features_metadata_for_embedding(dataframe: pd.DataFrame,
 
 def dataframe_to_tf_dataset(
         dataframe: pd.DataFrame,
-        target: str = None,
+        target: Union[str, list] = None,
         shuffle: bool = True,
         batch_size: int = 1024,
         as_dict: bool = False,
@@ -191,11 +191,16 @@ def dataframe_to_tf_dataset(
     Builds a tf.data.Dataset from a given pandas dataframe
 
     Args:
-        dataframe: A pandas dataframe
-        target: Name of the target column
-        shuffle: Whether to shuffle the dataset
-        batch_size: Batch size
-        as_dict: Whether to make a tensorflow dataset in a dictionary format
+        dataframe: `pd.DataFrame`,
+            A pandas dataframe
+        target: `str` or `list`,
+            Name of the target column or list of names of the target columns.
+        shuffle: `bool`, default True
+            Whether to shuffle the dataset
+        batch_size: `int`, default 1024,
+            Batch size
+        as_dict: `bool`, default False,
+            Whether to make a tensorflow dataset in a dictionary format
             where each record is a mapping of features names against their values.
 
             SOME GUIDELINES on when to create dataset in dictionary format and when not:
@@ -210,13 +215,25 @@ def dataframe_to_tf_dataset(
          A tf.data.Dataset dataset
     """
     df = dataframe.copy()
-    if target:
-        labels = df.pop(target)
+    if target is not None:
+        if isinstance(target, (list, tuple, set)):
+            if as_dict:
+                labels = dict()
+                for feat in target:
+                    labels[feat] = df.pop(feat).values
+            else:
+                labels = []
+                for feat in target:
+                    labels.append(df.pop(feat).values)
+                labels = tf.transpose(tf.constant(labels))
+        else:
+            labels = df.pop(target)
+            if not as_dict:
+                labels = labels.values
         if as_dict:
             dataset = tf.data.Dataset.from_tensor_slices((dict(df), labels))
         else:
             df = df.values
-            labels = labels.values
             dataset = tf.data.Dataset.from_tensor_slices((df, labels))
     else:
         if as_dict:

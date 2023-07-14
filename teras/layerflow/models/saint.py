@@ -1,8 +1,6 @@
 from tensorflow import keras
 from tensorflow.keras import layers, models
 from teras.models import (SAINT as _BaseSAINT,
-                          SAINTClassifier as _BaseSAINTClassifier,
-                          SAINTRegressor as _BaseSAINTRegressor,
                           SAINTPretrainer as _BaseSAINTPretrainer)
 from teras.layerflow.layers.saint import ClassificationHead, RegressionHead
 
@@ -60,8 +58,8 @@ class SAINT(_BaseSAINT):
     def __init__(self,
                  features_metadata: dict,
                  categorical_feature_embedding: layers.Layer = None,
-                 saint_numerical_feature_embedding: layers.Layer = None,
-                 saint_encoder: layers.Layer = None,
+                 numerical_feature_embedding: layers.Layer = None,
+                 encoder: layers.Layer = None,
                  head: layers.Layer = None,
                  **kwargs):
         super().__init__(features_metadata=features_metadata,
@@ -69,11 +67,11 @@ class SAINT(_BaseSAINT):
         if categorical_feature_embedding is not None:
             self.categorical_feature_embedding = categorical_feature_embedding
 
-        if saint_numerical_feature_embedding is not None:
-            self.numerical_feature_embedding = saint_numerical_feature_embedding
+        if numerical_feature_embedding is not None:
+            self.numerical_feature_embedding = numerical_feature_embedding
 
-        if saint_encoder is not None:
-            self.saint_encoder = saint_encoder
+        if encoder is not None:
+            self.encoder = encoder
 
         if head is not None:
             self.head = head
@@ -81,15 +79,15 @@ class SAINT(_BaseSAINT):
     def get_config(self):
         config = super().get_config()
         new_config = {'categorical_feature_embedding': keras.layers.serialize(self.categorical_feature_embedding),
-                      'saint_numerical_feature_embedding': keras.layers.serialize(self.saint_numerical_feature_embedding),
-                      'saint_encoder': keras.layers.serialize(self.saint_encoder),
+                      'numerical_feature_embedding': keras.layers.serialize(self.numerical_feature_embedding),
+                      'encoder': keras.layers.serialize(self.encoder),
                       'head': keras.layers.serialize(self.head),
                       }
         config.update(new_config)
         return config
 
 
-class SAINTClassifier(_BaseSAINTClassifier):
+class SAINTClassifier(SAINT):
     """
     SAINTClassifier with LayerFlow design.
     It is based on the SAINT architecture proposed by Gowthami Somepalli et al.
@@ -147,20 +145,27 @@ class SAINTClassifier(_BaseSAINTClassifier):
                  features_metadata: dict,
                  categorical_feature_embedding: layers.Layer = None,
                  numerical_feature_embedding: layers.Layer = None,
-                 saint_encoder: layers.Layer = None,
+                 encoder: layers.Layer = None,
                  head: layers.Layer = None,
                  **kwargs):
         if head is None:
-            head = ClassificationHead()
+            num_classes = 2
+            activation_out = None
+            if "num_classes" in kwargs:
+                num_classes = kwargs.pop("num_classes")
+            if "activation_out" in kwargs:
+                activation_out = kwargs.pop("activation_out")
+            head = ClassificationHead(num_classes=num_classes,
+                                      activation_out=activation_out)
         super().__init__(features_metadata=features_metadata,
                          categorical_feature_embedding=categorical_feature_embedding,
                          numerical_feature_embedding=numerical_feature_embedding,
-                         saint_encoder=saint_encoder,
+                         encoder=encoder,
                          head=head,
                          **kwargs)
 
 
-class SAINTRegressor(_BaseSAINTRegressor):
+class SAINTRegressor(SAINT):
     """
     SAINTClassifier with LayerFlow design.
     It is based on the SAINT architecture proposed by Gowthami Somepalli et al.
@@ -219,15 +224,18 @@ class SAINTRegressor(_BaseSAINTRegressor):
                  features_metadata: dict,
                  categorical_feature_embedding: layers.Layer = None,
                  numerical_feature_embedding: layers.Layer = None,
-                 saint_encoder: layers.Layer = None,
+                 encoder: layers.Layer = None,
                  head: layers.Layer = None,
                  **kwargs):
         if head is None:
-            head = RegressionHead()
+            num_outputs = 1
+            if "num_outputs" in kwargs:
+                num_outputs = kwargs.pop("num_outputs")
+            head = RegressionHead(num_outputs=num_outputs)
         super().__init__(features_metadata=features_metadata,
                          categorical_feature_embedding=categorical_feature_embedding,
                          numerical_feature_embedding=numerical_feature_embedding,
-                         saint_encoder=saint_encoder,
+                         encoder=encoder,
                          head=head,
                          **kwargs)
 
