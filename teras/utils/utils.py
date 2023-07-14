@@ -215,19 +215,20 @@ def dataframe_to_tf_dataset(
             if as_dict:
                 labels = dict()
                 for feat in target:
-                    labels[feat] = df.pop(feat)
+                    labels[feat] = df.pop(feat).values
             else:
                 labels = []
                 for feat in target:
-                    labels.append(df.pop(feat))
+                    labels.append(df.pop(feat).values)
                 labels = tuple(labels)
         else:
             labels = df.pop(target)
+            if not as_dict:
+                labels = labels.values
         if as_dict:
             dataset = tf.data.Dataset.from_tensor_slices((dict(df), labels))
         else:
             df = df.values
-            labels = labels.values
             dataset = tf.data.Dataset.from_tensor_slices((df, labels))
     else:
         if as_dict:
