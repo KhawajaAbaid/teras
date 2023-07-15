@@ -1,7 +1,9 @@
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
-from typing import List
+from typing import List, Union
+import numpy as np
+import tensorflow as tf
 
 
 LIST_OF_STR = List[str]
@@ -57,18 +59,31 @@ class CategoricalFeatureEmbedding(layers.Layer):
             # then encode them first. The `encode` parameter lets user specify if we need to encode
             # the categorical values or not.
             if self.encode:
-                # Lookup Table to convert string values to integer indices
-                lookup = layers.StringLookup(vocabulary=vocabulary,
-                                             mask_token=None,
-                                             num_oov_indices=0,
-                                             output_mode="int"
-                                             )
+                # Check for the type of data in the feature's vocab, if it's string,
+                # use the StringLookup layer, if it's  integers, use the IntegerLookup layer
+                if isinstance(vocabulary[0], str):
+                    # Lookup Table to map string values to integer indices
+                    lookup = layers.StringLookup(vocabulary=vocabulary,
+                                                 mask_token=None,
+                                                 output_mode="int"
+                                                 )
+
+                elif isinstance(vocabulary[0], (int, np.int32, np.int64)):
+                    # Lookup Table to map integer values to integer indices
+                    lookup = layers.IntegerLookup(vocabulary=vocabulary,
+                                                  mask_token=None,
+                                                  output_mode="int",
+                                                  )
+
+                else:
+                    raise TypeError("`CategoricalFeatureEmbedding` layer can only encode values of type `string`, "
+                                    f"or `int`, but received type: {type(vocabulary[0])} for feature {feature_name}.")
                 lookup_tables.append(lookup)
 
             # Embedding layers map the integer representations of categorical values
             # to dense vectors of `embedding_dim` dimensionality,
             # which in fancier lingo are called `embeddings`.
-            embedding = layers.Embedding(input_dim=len(vocabulary),
+            embedding = layers.Embedding(input_dim=len(vocabulary) + 1,
                                          output_dim=self.embedding_dim)
             embedding_layers.append(embedding)
 
