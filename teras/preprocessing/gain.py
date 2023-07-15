@@ -27,14 +27,14 @@ class DataTransformer(BaseDataTransformer):
             Numerical features are encoded using MinMax normalization.
 
     Example:
-        ```python
+        .. code-block:: python
+
             input_df = pd.DataFrame(np.arange(10, 3).reshape(20, 5),
-                                    columns=['A', 'B', 'C'])
+                                        columns=['A', 'B', 'C'])
             numerical_features = input_df.columns
             data_transformer = DataTransformer(categorical_features=None,
                                                numerical_features=numerical_features)
             transformed_df = data_transformer.transform(input_df)
-        ```
     """
     def __init__(self,
                  categorical_features: FEATURE_NAMES_TYPE = None,
