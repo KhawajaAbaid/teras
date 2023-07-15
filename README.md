@@ -24,7 +24,6 @@ Read our [Getting Started Guide](https://github.com/KhawajaAbaid/teras/blob/main
 
 ## Documentation:
 You can access the documentation on ReadTheDocs.io: https://teras.readthedocs.io/en/latest/index.html
-Only the front page is a little messy but rest of the documentation should be good — though a lot of works needs to be done in this regard.
 
 ## Usage
 Teras provides two API for usage to satiate different levels of flexibility and accessibility needs:
