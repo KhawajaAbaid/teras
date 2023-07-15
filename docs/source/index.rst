@@ -20,10 +20,30 @@ While these state of the art architectures can be quite sophisticated, Teras, th
 Not only that, everything available is highly customizable and modular, allowing for all variety of use cases.
 
 Installation:
-------------
-You can install `Teras` using pip as follows::
+------------------
+You can install ``Teras`` using ``pip`` as follows::
 
    pip install teras
+
+
+
+Getting Started:
+------------------
+Visit the :ref:`Getting Started <getting_started>` page to learn everything you need to know for getting started with
+Teras.
+
+.. toctree::
+   :maxdepth: 1
+   :titlesonly:
+
+   getting_started
+
+
+Tutorials:
+--------------
+You can find the tutorials for classification, pretraining, data imputation and data generation using Teras in the
+`tutorials directory <https://github.com/KhawajaAbaid/teras/tree/main/tutorials>`_ of
+Teras's `github repository <https://github.com/KhawajaAbaid/teras>`_.
 
 
 API Reference:
@@ -32,3 +52,4 @@ API Reference:
    :maxdepth: 1
 
    teras
+
