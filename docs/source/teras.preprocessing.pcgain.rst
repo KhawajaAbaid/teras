@@ -1,4 +1,4 @@
-teras.preprocessing.pcgain module
+PCGAIN Preprocessing
 =================================
 
 .. automodule:: teras.preprocessing.pcgain

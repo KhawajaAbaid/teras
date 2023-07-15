@@ -1,4 +1,4 @@
-teras.layerflow.models.simple module
+Simple Model
 ====================================
 
 .. automodule:: teras.layerflow.models.simple

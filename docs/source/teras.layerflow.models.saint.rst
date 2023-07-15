@@ -1,5 +1,5 @@
-teras.layerflow.models.saint module
-===================================
+SAINT Models
+===============
 
 .. automodule:: teras.layerflow.models.saint
    :members:

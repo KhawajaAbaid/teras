@@ -1,21 +1,26 @@
-teras.config package
+Config
 ====================
 
-Submodules
-----------
 
 .. toctree::
    :maxdepth: 4
 
    teras.config.base
+
+
+.. toctree::
+   :maxdepth: 4
+
    teras.config.saint
+
+
+.. toctree::
+   :maxdepth: 4
+
    teras.config.tabnet
+
+
+.. toctree::
+   :maxdepth: 4
+
    teras.config.tabtransformer
-
-Module contents
----------------
-
-.. automodule:: teras.config
-   :members:
-   :undoc-members:
-   :show-inheritance:

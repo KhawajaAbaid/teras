@@ -1,5 +1,5 @@
-teras.layerflow.models.ctgan module
-===================================
+CTGAN Models
+===============
 
 .. automodule:: teras.layerflow.models.ctgan
    :members:

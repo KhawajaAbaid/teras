@@ -1,4 +1,4 @@
-teras.layers.saint module
+SAINT Layers
 =========================
 
 .. automodule:: teras.layers.saint

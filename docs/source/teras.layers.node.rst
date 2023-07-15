@@ -1,4 +1,4 @@
-teras.layers.node module
+NODE Layers
 ========================
 
 .. automodule:: teras.layers.node

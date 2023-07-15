@@ -1,4 +1,4 @@
-teras.preprocessing.tvae module
+TVAE Preprocessing
 ===============================
 
 .. automodule:: teras.preprocessing.tvae

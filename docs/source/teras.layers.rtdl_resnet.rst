@@ -1,4 +1,4 @@
-teras.layers.rtdl\_resnet module
+RTDL ResNet Layers
 ================================
 
 .. automodule:: teras.layers.rtdl_resnet

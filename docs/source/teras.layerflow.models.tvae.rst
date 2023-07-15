@@ -1,5 +1,5 @@
-teras.layerflow.models.tvae module
-==================================
+TVAE Models
+===============
 
 .. automodule:: teras.layerflow.models.tvae
    :members:

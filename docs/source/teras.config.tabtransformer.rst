@@ -1,4 +1,4 @@
-teras.config.tabtransformer module
+TabTransformer Config
 ==================================
 
 .. automodule:: teras.config.tabtransformer

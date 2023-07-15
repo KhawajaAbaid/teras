@@ -1,4 +1,4 @@
-teras.utils.tabtransformer module
+TabTransformer Utils
 =================================
 
 .. automodule:: teras.utils.tabtransformer

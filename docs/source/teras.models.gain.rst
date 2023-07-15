@@ -1,5 +1,5 @@
-teras.models.gain module
-========================
+GAIN Models
+================
 
 .. automodule:: teras.models.gain
    :members:

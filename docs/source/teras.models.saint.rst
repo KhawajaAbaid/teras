@@ -1,5 +1,5 @@
-teras.models.saint module
-=========================
+SAINT Models
+===============
 
 .. automodule:: teras.models.saint
    :members:

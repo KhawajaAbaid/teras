@@ -1,4 +1,4 @@
-teras.layers.ft\_transformer module
+FTTransformer Layers
 ===================================
 
 .. automodule:: teras.layers.ft_transformer

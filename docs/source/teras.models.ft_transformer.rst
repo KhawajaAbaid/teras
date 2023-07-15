@@ -1,5 +1,5 @@
-teras.models.ft\_transformer module
-===================================
+FTTransformer Models
+========================
 
 .. automodule:: teras.models.ft_transformer
    :members:

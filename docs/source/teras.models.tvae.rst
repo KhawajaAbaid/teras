@@ -1,5 +1,5 @@
-teras.models.tvae module
-========================
+TVAE Models
+================
 
 .. automodule:: teras.models.tvae
    :members:

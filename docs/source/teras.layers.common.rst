@@ -1,53 +1,17 @@
-teras.layers.common package
+Common Layers
 ===========================
 
-Submodules
-----------
 
-teras.layers.common.gan module
-------------------------------
+.. toctree::
+   :maxdepth: 2
+   :caption: Head
 
-.. automodule:: teras.layers.common.gan
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   teras.layers.common.head
 
-teras.layers.common.head module
--------------------------------
 
-.. automodule:: teras.layers.common.head
-   :members:
-   :undoc-members:
-   :show-inheritance:
 
-teras.layers.common.head\_test module
--------------------------------------
+.. toctree::
+   :maxdepth: 2
+   :caption: Transformer
 
-.. automodule:: teras.layers.common.head_test
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-teras.layers.common.transformer module
---------------------------------------
-
-.. automodule:: teras.layers.common.transformer
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-teras.layers.common.transformer\_test module
---------------------------------------------
-
-.. automodule:: teras.layers.common.transformer_test
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Module contents
----------------
-
-.. automodule:: teras.layers.common
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   teras.layers.common.transformer

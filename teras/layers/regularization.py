@@ -1,9 +1,3 @@
-"""
-Here we implement regularization layers listed below:
-
-1. MixUp
-2. CutMix
-"""
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers

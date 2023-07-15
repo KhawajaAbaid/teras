@@ -1,5 +1,5 @@
-teras.models.vime module
-========================
+VIME Models
+==============
 
 .. automodule:: teras.models.vime
    :members:

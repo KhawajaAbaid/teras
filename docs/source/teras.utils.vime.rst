@@ -1,4 +1,4 @@
-teras.utils.vime module
+VIME Utils
 =======================
 
 .. automodule:: teras.utils.vime

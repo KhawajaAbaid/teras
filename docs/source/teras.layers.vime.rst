@@ -1,4 +1,4 @@
-teras.layers.vime module
+VIME Layers
 ========================
 
 .. automodule:: teras.layers.vime

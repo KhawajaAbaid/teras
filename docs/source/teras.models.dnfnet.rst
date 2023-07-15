@@ -1,4 +1,4 @@
-teras.models.dnfnet module
+DNFNet Models
 ==========================
 
 .. automodule:: teras.models.dnfnet

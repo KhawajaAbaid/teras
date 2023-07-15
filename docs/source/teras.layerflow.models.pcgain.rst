@@ -1,5 +1,5 @@
-teras.layerflow.models.pcgain module
-====================================
+PCGAIN Models
+===============
 
 .. automodule:: teras.layerflow.models.pcgain
    :members:

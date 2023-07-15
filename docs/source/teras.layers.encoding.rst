@@ -1,4 +1,4 @@
-teras.layers.encoding module
+Encoding Layers
 ============================
 
 .. automodule:: teras.layers.encoding

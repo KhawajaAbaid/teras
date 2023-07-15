@@ -1,4 +1,4 @@
-teras.utils.pcgain module
+PCGAIN Utils
 =========================
 
 .. automodule:: teras.utils.pcgain

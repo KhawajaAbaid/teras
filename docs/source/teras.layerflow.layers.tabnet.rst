@@ -1,5 +1,5 @@
-teras.layerflow.layers.tabnet module
-====================================
+TabNet Layers
+===============
 
 .. automodule:: teras.layerflow.layers.tabnet
    :members:

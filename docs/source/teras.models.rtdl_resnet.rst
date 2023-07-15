@@ -1,5 +1,5 @@
-teras.models.rtdl\_resnet module
-================================
+RTDL ResNet Models
+=====================
 
 .. automodule:: teras.models.rtdl_resnet
    :members:

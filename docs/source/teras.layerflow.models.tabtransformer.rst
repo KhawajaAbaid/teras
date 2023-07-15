@@ -1,5 +1,5 @@
-teras.layerflow.models.tabtransformer module
-============================================
+TabTransformer Models
+=========================
 
 .. automodule:: teras.layerflow.models.tabtransformer
    :members:

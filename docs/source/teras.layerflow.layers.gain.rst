@@ -1,4 +1,4 @@
-teras.layerflow.layers.gain module
+GAIN Layers
 ==================================
 
 .. automodule:: teras.layerflow.layers.gain

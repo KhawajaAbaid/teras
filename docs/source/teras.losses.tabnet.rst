@@ -1,4 +1,4 @@
-teras.losses.tabnet module
+TabNet Losses
 ==========================
 
 .. automodule:: teras.losses.tabnet

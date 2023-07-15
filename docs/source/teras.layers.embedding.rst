@@ -1,4 +1,4 @@
-teras.layers.embedding module
+Embedding Layers
 =============================
 
 .. automodule:: teras.layers.embedding
