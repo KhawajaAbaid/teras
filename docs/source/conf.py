@@ -26,11 +26,11 @@ templates_path = ['_templates']
 exclude_patterns = ['config', 'teras/config']
 
 
-
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
+import sphinx_rtd_theme
 
-html_theme = 'alabaster'
+html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
 
 
@@ -42,6 +42,7 @@ def skip_member(app, what, name, obj, skip, options):
         return True
 
     return None
+
 
 def setup(app):
     app.connect('autodoc-skip-member', skip_member)
