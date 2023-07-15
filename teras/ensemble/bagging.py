@@ -1,10 +1,10 @@
 import tensorflow as tf
 from tensorflow import keras
 from sklearn.model_selection import KFold, StratifiedKFold
-from typing import List
+from typing import List, Union
 import numpy as np
 
-INT_OR_FLOAT = List[int, float]
+INT_OR_FLOAT = Union[int, float]
 
 # NOTE: This is a very simple implementation of Bagging.
 # And mostly is for demonstration purpose.
