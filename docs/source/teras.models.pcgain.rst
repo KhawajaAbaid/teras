@@ -1,5 +1,5 @@
-teras.models.pcgain module
-==========================
+PCGAIN Models
+=================
 
 .. automodule:: teras.models.pcgain
    :members:

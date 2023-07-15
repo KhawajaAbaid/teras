@@ -1,4 +1,4 @@
-teras.preprocessing.ctgan module
+CTGAN Preprocessing
 ================================
 
 .. automodule:: teras.preprocessing.ctgan

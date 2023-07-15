@@ -1,4 +1,4 @@
-teras.losses.ctgan module
+CTGAN Losses
 =========================
 
 .. automodule:: teras.losses.ctgan

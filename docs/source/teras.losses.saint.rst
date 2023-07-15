@@ -1,4 +1,4 @@
-teras.losses.saint module
+SAINT Loses
 =========================
 
 .. automodule:: teras.losses.saint

@@ -1,4 +1,4 @@
-teras.layers.activations module
+Activation Layers
 ===============================
 
 .. automodule:: teras.layers.activations

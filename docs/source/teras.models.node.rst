@@ -1,4 +1,4 @@
-teras.models.node module
+NODE Models
 ========================
 
 .. automodule:: teras.models.node

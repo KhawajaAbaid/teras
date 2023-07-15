@@ -1,5 +1,5 @@
-teras.layerflow.models.dnfnet module
-====================================
+DNFNet Models
+================
 
 .. automodule:: teras.layerflow.models.dnfnet
    :members:

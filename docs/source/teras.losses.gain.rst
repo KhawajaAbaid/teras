@@ -1,4 +1,4 @@
-teras.losses.gain module
+GAIN Losses
 ========================
 
 .. automodule:: teras.losses.gain

@@ -1,4 +1,4 @@
-teras.preprocessing.gain module
+GAIN Preprocessing
 ===============================
 
 .. automodule:: teras.preprocessing.gain

@@ -1,5 +1,5 @@
-teras.layerflow.layers.node module
-==================================
+NODE Layers
+===============
 
 .. automodule:: teras.layerflow.layers.node
    :members:

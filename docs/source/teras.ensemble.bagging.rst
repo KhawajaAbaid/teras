@@ -1,4 +1,4 @@
-teras.ensemble.bagging module
+Bagging
 =============================
 
 .. automodule:: teras.ensemble.bagging

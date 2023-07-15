@@ -1,4 +1,4 @@
-teras.losses.tvae module
+TVAE Losses
 ========================
 
 .. automodule:: teras.losses.tvae

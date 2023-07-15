@@ -1,4 +1,4 @@
-teras.layers.oenf module
+OENF Layers
 ========================
 
 .. automodule:: teras.layers.oenf

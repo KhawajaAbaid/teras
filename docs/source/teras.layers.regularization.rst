@@ -1,5 +1,6 @@
-teras.layers.regularization module
-==================================
+Regularization Layers
+=======================
+
 
 .. automodule:: teras.layers.regularization
    :members:

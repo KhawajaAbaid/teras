@@ -1,5 +1,5 @@
-teras.models.tabnet module
-==========================
+TabNet Models
+================
 
 .. automodule:: teras.models.tabnet
    :members:

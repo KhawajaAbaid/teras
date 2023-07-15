@@ -1,4 +1,4 @@
-teras.config.tabnet module
+TabNet Config
 ==========================
 
 .. automodule:: teras.config.tabnet

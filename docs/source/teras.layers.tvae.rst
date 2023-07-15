@@ -1,4 +1,4 @@
-teras.layers.tvae module
+TVAE Layers
 ========================
 
 .. automodule:: teras.layers.tvae

@@ -1,4 +1,4 @@
-teras.layers.tabnet module
+TabNet Layers
 ==========================
 
 .. automodule:: teras.layers.tabnet

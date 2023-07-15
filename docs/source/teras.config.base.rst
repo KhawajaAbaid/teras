@@ -1,4 +1,4 @@
-teras.config.base module
+Base Config
 ========================
 
 .. automodule:: teras.config.base

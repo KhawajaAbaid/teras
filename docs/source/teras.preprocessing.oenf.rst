@@ -1,4 +1,4 @@
-teras.preprocessing.oenf module
+OENF Preprocessing
 ===============================
 
 .. automodule:: teras.preprocessing.oenf

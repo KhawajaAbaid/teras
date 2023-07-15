@@ -1,4 +1,4 @@
-teras.losses.vime module
+VIME Losses
 ========================
 
 .. automodule:: teras.losses.vime

@@ -1,19 +1,15 @@
-teras.ensemble package
+Ensemble
 ======================
 
 Submodules
 ----------
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 2
 
    teras.ensemble.bagging
+
+.. toctree::
+   :maxdepth: 2
+
    teras.ensemble.stacking
-
-Module contents
----------------
-
-.. automodule:: teras.ensemble
-   :members:
-   :undoc-members:
-   :show-inheritance:

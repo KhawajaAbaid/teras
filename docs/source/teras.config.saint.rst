@@ -1,4 +1,4 @@
-teras.config.saint module
+SAINT Config
 =========================
 
 .. automodule:: teras.config.saint

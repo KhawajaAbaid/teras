@@ -1,4 +1,4 @@
-teras.ensemble.stacking module
+Stacking
 ==============================
 
 .. automodule:: teras.ensemble.stacking

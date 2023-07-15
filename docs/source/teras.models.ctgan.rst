@@ -1,4 +1,4 @@
-teras.models.ctgan module
+CTGAN Models
 =========================
 
 .. automodule:: teras.models.ctgan

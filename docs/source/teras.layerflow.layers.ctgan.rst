@@ -1,4 +1,4 @@
-teras.layerflow.layers.ctgan module
+CTGAN Layers
 ===================================
 
 .. automodule:: teras.layerflow.layers.ctgan

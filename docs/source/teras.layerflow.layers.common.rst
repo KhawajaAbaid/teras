@@ -1,18 +1,7 @@
-teras.layerflow.layers.common package
+Common Layers
 =====================================
 
-Submodules
-----------
-
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 2
 
    teras.layerflow.layers.common.transformer
-
-Module contents
----------------
-
-.. automodule:: teras.layerflow.layers.common
-   :members:
-   :undoc-members:
-   :show-inheritance:

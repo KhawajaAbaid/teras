@@ -1,4 +1,4 @@
-teras.layers.gain module
+GAIN Layers
 ========================
 
 .. automodule:: teras.layers.gain

@@ -1,5 +1,5 @@
-teras.layerflow.layers.common.transformer module
-================================================
+Common Transformer Layers
+=============================
 
 .. automodule:: teras.layerflow.layers.common.transformer
    :members:

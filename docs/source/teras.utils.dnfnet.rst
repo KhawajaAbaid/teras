@@ -1,4 +1,4 @@
-teras.utils.dnfnet module
+DNFNet Utils
 =========================
 
 .. automodule:: teras.utils.dnfnet

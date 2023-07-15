@@ -1,4 +1,4 @@
-teras.utils.gain module
+GAIN Utils
 =======================
 
 .. automodule:: teras.utils.gain

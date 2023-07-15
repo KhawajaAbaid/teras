@@ -1,5 +1,5 @@
-teras.layerflow.models.gain module
-==================================
+GAIN Models
+================
 
 .. automodule:: teras.layerflow.models.gain
    :members:

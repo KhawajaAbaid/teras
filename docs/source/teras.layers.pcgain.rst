@@ -1,4 +1,4 @@
-teras.layers.pcgain module
+PCGAIN Layers
 ==========================
 
 .. automodule:: teras.layers.pcgain

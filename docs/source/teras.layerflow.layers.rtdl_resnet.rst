@@ -1,5 +1,5 @@
-teras.layerflow.layers.rtdl\_resnet module
-==========================================
+RTDL ResNet Layers
+====================
 
 .. automodule:: teras.layerflow.layers.rtdl_resnet
    :members:

@@ -1,4 +1,4 @@
-teras.losses.pcgain module
+PCGAIN Losses
 ==========================
 
 .. automodule:: teras.losses.pcgain

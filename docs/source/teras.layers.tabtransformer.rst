@@ -1,4 +1,4 @@
-teras.layers.tabtransformer module
+TabTransformer Layers
 ==================================
 
 .. automodule:: teras.layers.tabtransformer

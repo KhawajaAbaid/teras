@@ -1,4 +1,4 @@
-teras.utils.utils module
+Utils
 ========================
 
 .. automodule:: teras.utils.utils

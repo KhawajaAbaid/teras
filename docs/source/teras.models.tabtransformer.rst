@@ -1,5 +1,5 @@
-teras.models.tabtransformer module
-==================================
+TabTransformer Models
+========================
 
 .. automodule:: teras.models.tabtransformer
    :members:

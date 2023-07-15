@@ -1,24 +1,42 @@
-teras.losses package
-====================
-
-Submodules
-----------
+Losses
+==========
 
 .. toctree::
    :maxdepth: 4
 
    teras.losses.ctgan
+
+.. toctree::
+   :maxdepth: 4
+
    teras.losses.gain
+
+
+.. toctree::
+   :maxdepth: 4
+
    teras.losses.pcgain
+
+.. toctree::
+   :maxdepth: 4
+
    teras.losses.saint
+
+
+.. toctree::
+   :maxdepth: 4
+
    teras.losses.tabnet
+
+
+.. toctree::
+   :maxdepth: 4
+
    teras.losses.tvae
+
+
+.. toctree::
+   :maxdepth: 4
+
    teras.losses.vime
 
-Module contents
----------------
-
-.. automodule:: teras.losses
-   :members:
-   :undoc-members:
-   :show-inheritance:

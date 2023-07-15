@@ -1,4 +1,4 @@
-teras.layerflow.layers.dnfnet module
+DNFNet Layers
 ====================================
 
 .. automodule:: teras.layerflow.layers.dnfnet
