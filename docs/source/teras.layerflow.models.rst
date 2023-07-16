@@ -2,6 +2,11 @@ Models
 ==============================
 
 
+Teras ``layerflow.layers` module provides `LayerFlow` version of all models offered by Teras.
+
+To learn more about the ``LayerFlow API`` refer to **Teras API** section on the
+:ref:`Getting Started Guide <getting_started>`.
+
 .. toctree::
    :maxdepth: 2
    :caption: CTGAN

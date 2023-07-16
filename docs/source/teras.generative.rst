@@ -5,7 +5,7 @@ Teras generative module provides an easy and convenient way of accessing generat
 
 .. admonition:: Note!
 
-   The code files for those models and their layers actually exist in the `teras/models` and `teras/layers`
+   The code files for those models and their layers actually exist in the ``teras/models`` and ``teras/layers``
    directories respectively.
 
 Here are quick links to the documentation of the generative models and layers offered by Teras.

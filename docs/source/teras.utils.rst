@@ -1,6 +1,8 @@
 Utils
 ==========
 
+Teras ``utils`` module provides general as well as architecture specific utility functions.
+
 
 .. toctree::
    :maxdepth: 4
