@@ -1,6 +1,18 @@
 Layers
 ==============================
 
+Teras ``layerflow.layers`` module provides `LayerFlow` version of all the non-atomic layers, but teras allows you to
+access the atomic layers from this module as well for convenience sake.
+
+
+.. admonition:: Terminology Note!
+
+   * Atomic Layer: A layer that is NOT made up of any sub-layers.
+   * Non-Atomic Layer: A layer that IS made up of one or more sub-layers.
+
+
+To learn more about the ``LayerFlow API`` refer to **Teras API** section on the
+:ref:`Getting Started Guide <getting_started>`.
 
 .. toctree::
    :maxdepth: 2

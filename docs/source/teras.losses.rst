@@ -1,6 +1,9 @@
 Losses
 ==========
 
+Teras ``losses`` module provides custom losses proposed for various architectures implemented by Teras.
+
+
 .. toctree::
    :maxdepth: 4
 

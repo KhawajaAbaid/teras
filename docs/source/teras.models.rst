@@ -1,7 +1,7 @@
 Models
 ====================
 
-All the models offered by Teras. Let's goooo!
+All the models offered by Teras.
 
 
 .. toctree::

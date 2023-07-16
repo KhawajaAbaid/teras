@@ -1,6 +1,6 @@
 Layers
 ====================
-All the layers offered by Teras. Let's goooo!
+All the layers offered by Teras.
 
 .. toctree::
    :maxdepth: 2
