@@ -4,6 +4,7 @@ from tensorflow.keras import layers, models
 from typing import List, Union, Tuple
 import pandas as pd
 import numpy as np
+from warnings import warn
 
 
 LayerType = Union[str, layers.Layer]
@@ -258,8 +259,8 @@ def convert_dict_to_array_tensor(dict_tensor):
         Array format data.
     """
     if not isinstance(dict_tensor, dict):
-        print("Given tensor is not in dictionary format. Hence no processing will be applied. \n"
-              f"Expected type: {dict}, Received type: {type(dict_tensor)}")
+        warn("Given tensor is not in dictionary format. Hence no processing will be applied. \n"
+             f"Expected type: {dict}, Received type: {type(dict_tensor)}")
         return
 
     feature_names = dict_tensor.keys()
