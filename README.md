@@ -19,7 +19,7 @@ pip install teras
 ```
 
 ## Getting Started
-Read our [Getting Started Guide](https://github.com/KhawajaAbaid/teras/blob/main/tutorials/getting_started.ipynb) to...*drum roll* get started with Teras.
+Read our [Getting Started Guide](https://teras.readthedocs.io/en/latest/getting_started.html) to...*drum roll* get started with Teras.
 
 
 ## Documentation:
@@ -49,7 +49,7 @@ You can read more about the difference between the two in the Teras APIs section
 ## Main Teras Modules
 Teras offers following main modules:
 
-1. `teras.layerflow`: It is the LayerFlow API, offering maximum flexibility with minimal interface. It's an alternative to the default Parametric API. You can read more about the difference between the two in the Teras APIs section in the [Getting Started Guide](https://github.com/KhawajaAbaid/teras/blob/main/tutorials/getting_started.ipynb).
+1. `teras.layerflow`: It is the LayerFlow API, offering maximum flexibility with minimal interface. It's an alternative to the default Parametric API. You can read more about the difference between the two in the **Teras APIs** section in the [Getting Started Guide](https://teras.readthedocs.io/en/latest/getting_started.html).
 2. `teras.layers`: It contains all the layers for all of the architectures offered by Teras.
 3. `teras.models`: It contains all of the models of all the architectures types, be it Classificaiton, Regresssion etc offered by Teras.
 4. `teras.generative`: It contains state of the art models for Data Generation. (Currently it offers `CTGAN` and `TVAE`).
