@@ -130,8 +130,6 @@ def get_categorical_features_cardinalities(dataframe,
     return cardinalities
 
 
-
-
 def get_features_metadata_for_embedding(dataframe: pd.DataFrame,
                                         categorical_features=None,
                                         numerical_features=None):
@@ -186,7 +184,6 @@ def dataframe_to_tf_dataset(
         target: Union[str, list] = None,
         shuffle: bool = True,
         batch_size: int = 1024,
-        as_dict: bool = False,
 ):
     """
     Builds a tf.data.Dataset from a given pandas dataframe
@@ -200,17 +197,6 @@ def dataframe_to_tf_dataset(
             Whether to shuffle the dataset
         batch_size: `int`, default 1024,
             Batch size
-        as_dict: `bool`, default False,
-            Whether to make a tensorflow dataset in a dictionary format
-            where each record is a mapping of features names against their values.
-
-            SOME GUIDELINES on when to create dataset in dictionary format and when not:
-            1. If your dataset is composed of heterogeneous data formats, i.e. it contains
-                features where some features contain integers/floats AND others contain strings,
-                and you don't want to manually encode the string values into integers/floats,
-                then your dataset must be in dictionary format, which you can get by setting
-                the `as_dict` parameter to `True`.
-
 
     Returns:
          A tf.data.Dataset dataset
@@ -218,29 +204,16 @@ def dataframe_to_tf_dataset(
     df = dataframe.copy()
     if target is not None:
         if isinstance(target, (list, tuple, set)):
-            if as_dict:
-                labels = dict()
-                for feat in target:
-                    labels[feat] = df.pop(feat).values
-            else:
-                labels = []
-                for feat in target:
-                    labels.append(df.pop(feat).values)
-                labels = tf.transpose(tf.constant(labels))
+            labels = []
+            for feat in target:
+                labels.append(df.pop(feat).values)
+            labels = tf.transpose(tf.constant(labels))
         else:
             labels = df.pop(target)
-            if not as_dict:
-                labels = labels.values
-        if as_dict:
-            dataset = tf.data.Dataset.from_tensor_slices((dict(df), labels))
-        else:
-            df = df.values
-            dataset = tf.data.Dataset.from_tensor_slices((df, labels))
+            labels = labels.values
+        dataset = tf.data.Dataset.from_tensor_slices((df.values, labels))
     else:
-        if as_dict:
-            dataset = tf.data.Dataset.from_tensor_slices(dict(df))
-        else:
-            dataset = tf.data.Dataset.from_tensor_slices(df.values)
+        dataset = tf.data.Dataset.from_tensor_slices(df.values)
     if shuffle:
         dataset = dataset.shuffle(buffer_size=len(dataframe))
     dataset = dataset.batch(batch_size)
