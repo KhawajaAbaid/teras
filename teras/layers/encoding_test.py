@@ -7,18 +7,18 @@ import pytest
 
 @pytest.fixture
 def setup_data():
-    data = {'color': ['green', 'yellow', 'green', 'orange', 'red', 'orange', 'orange', 'green'],
-            'shape': ['square', 'square', 'circle', 'rectangle', 'circle', 'rectangle', 'rectangle', 'square'],
-            'area': [8., 10., 11., 7., 5., 1., 7., 9.]}
-    metadata = get_features_metadata_for_embedding(pd.DataFrame(data),
-                                                   categorical_features=['color', 'shape'],
-                                                   numerical_features=['area'])
-    return data, metadata
+    df = pd.DataFrame({'player_level': [70, 90, 80, 90, 100, 90, 70, 80],
+            'shirt_number': [10, 7, 7, 10, 10, 10, 7, 10],
+            'income': [1000, 1270, 900, 1000, 1234, 5678, 9999, 0]})
+    metadata = get_features_metadata_for_embedding(df,
+                                                   categorical_features=["player_level", "shirt_number"],
+                                                   numerical_features=["income"])
+    return df.values, metadata
 
 
 def test_label_encoding_output_shape_when_concatenate_numerical_features_is_false(setup_data):
     data, metadata = setup_data
-    label_encoding = LabelEncoding(categorical_features_metadata=metadata["categorical"],
+    label_encoding = LabelEncoding(features_metadata=metadata,
                                    concatenate_numerical_features=False)
     outputs = label_encoding(data)
     assert len(tf.shape(outputs)) == 2
@@ -28,7 +28,7 @@ def test_label_encoding_output_shape_when_concatenate_numerical_features_is_fals
 
 def test_label_encoding_output_shape_when_concatenate_numerical_features_is_true(setup_data):
     data, metadata = setup_data
-    label_encoding = LabelEncoding(categorical_features_metadata=metadata["categorical"],
+    label_encoding = LabelEncoding(features_metadata=metadata,
                                    concatenate_numerical_features=True)
     outputs = label_encoding(data)
     assert len(tf.shape(outputs)) == 2
