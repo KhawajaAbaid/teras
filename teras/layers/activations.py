@@ -1,6 +1,9 @@
 import tensorflow as tf
 from tensorflow.keras import layers
+from tensorflow import keras
 
+
+@keras.saving.register_keras_serializable(package="teras.layers.activations")
 class GLU(layers.Layer):
     """Generalized linear unit nonlinear activation."""
     def __init__(self,
@@ -19,6 +22,7 @@ class GLU(layers.Layer):
         return config
 
 
+@keras.saving.register_keras_serializable(package="teras.layers.activations")
 class GEGLU(layers.Layer):
     """GeGLU is an activation function which is a variant of GLU"""
     def __init__(self):
@@ -31,6 +35,7 @@ class GEGLU(layers.Layer):
         return x * tf.nn.gelu(gates)
 
 
+@keras.saving.register_keras_serializable(package="teras.layers.activations")
 class GumbelSoftmax(layers.Layer):
     """
     Implementation of the Gumbel Softmax activation
