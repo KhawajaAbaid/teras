@@ -29,7 +29,8 @@ from teras.models.tabnet import (TabNet,
 from teras.models.tabtransformer import (TabTransformer,
                                          TabTransformerClassifier,
                                          TabTransformerRegressor,
-                                         TabTransformerPretrainer)
+                                         )
+from teras.layerflow.models.tabtransformer import TabTransformerPretrainer
 
 # DNFNet models
 from .dnfnet import (DNFNet,
