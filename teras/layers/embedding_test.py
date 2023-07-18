@@ -7,30 +7,26 @@ import pytest
 
 @pytest.fixture
 def setup_data():
-    data = {'color': ['green', 'yellow', 'green', 'orange', 'red', 'orange', 'orange', 'green'],
-            'shape': ['square', 'square', 'circle', 'rectangle', 'circle', 'rectangle', 'rectangle', 'square']}
-    metadata = get_features_metadata_for_embedding(pd.DataFrame(data),
-                                                   categorical_features=['color', 'shape'])
-    categorical_embedding = CategoricalFeatureEmbedding(categorical_features_metadata=metadata["categorical"],
+    df = pd.DataFrame({'player_level': [70, 90, 80, 90, 100, 90, 70, 80],
+                       'shirt_number': [10, 7, 7, 10, 10, 10, 7, 10],
+                       'income': [1000, 1270, 900, 1000, 1234, 5678, 9999, 0]})
+    metadata = get_features_metadata_for_embedding(df,
+                                                   categorical_features=['player_level', 'shirt_number'],
+                                                   numerical_features=['income'])
+    categorical_embedding = CategoricalFeatureEmbedding(features_metadata=metadata,
                                                         embedding_dim=32,
                                                         encode=True)
-    return data, categorical_embedding
+    return df.values, categorical_embedding
 
 
-def test_categorical_feature_embedding_accepts_dictionary_data(setup_data):
-    categorical_data, categorical_embedding = setup_data
-    outputs = categorical_embedding(categorical_data)
-
-
-def test_categorical_feature_embedding_accepts_array_data(setup_data):
-    categorical_data, categorical_embedding = setup_data
-    inputs_array = tf.transpose(tf.constant(list(categorical_data.values())))
-    outputs = categorical_embedding(inputs_array)
+def test_categorical_feature_embedding_valid_call(setup_data):
+    data, categorical_embedding = setup_data
+    outputs = categorical_embedding(data)
 
 
 def test_categorical_feature_embedding_output_shape(setup_data):
-    categorical_data, categorical_embedding = setup_data
-    outputs = categorical_embedding(categorical_data)
+    data, categorical_embedding = setup_data
+    outputs = categorical_embedding(data)
     assert len(tf.shape(outputs)) == 3
     assert tf.shape(outputs)[0] == 8    # number of items in each column
     assert tf.shape(outputs)[1] == 2
