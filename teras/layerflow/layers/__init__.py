@@ -92,3 +92,7 @@ from teras.layers.gain import (GeneratorBlock as PCGAINGeneratorBlock,
 # CTGAN layers
 from teras.layers.ctgan import (GeneratorBlock as CTGANGeneratorBlock,
                                 DiscriminatorBlock as CTGANDiscriminatorBlock)
+
+
+# Normalization layers
+from teras.layerflow.layers.normalization import NumericalFeatureNormalization
