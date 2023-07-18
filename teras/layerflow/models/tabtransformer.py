@@ -421,9 +421,9 @@ class TabTransformerPretrainer(keras.Model):
         self.features_metadata = self.model.features_metadata
 
         self._categorical_features_exist = len(self.features_metadata["categorical"]) > 0
-        self._is_first_batch = True
-        self.num_features = None
-        self.num_features_to_replace = None
+        self.num_features = len(self.features_metadata["categorical"]) + len(self.features_metadata["numerical"])
+        self.num_features_to_replace = tf.cast(tf.cast(self.num_features, tf.float32) * self.replace_rate,
+                                               dtype=tf.int32)
         self.loss_tracker = keras.metrics.Mean(name="loss")
 
     def build(self, input_shape):
@@ -464,12 +464,6 @@ class TabTransformerPretrainer(keras.Model):
     def train_step(self, data):
         if isinstance(data, tuple):
             data = data[0]
-
-        if self._is_first_batch:
-            self.num_features = tf.shape(data)[1]
-            self.num_features_to_replace = tf.cast(tf.cast(self.num_features, tf.float32) * self.replace_rate,
-                                                   dtype=tf.int32)
-            self._is_first_batch = False
 
         # Feature indices is of the shape batch_size x num_features_to_replace
         feature_indices_to_replace = tf.random.uniform((tf.shape(data)[0], self.num_features_to_replace),
