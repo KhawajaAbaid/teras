@@ -10,6 +10,7 @@ LIST_OR_TUPLE = Union[List[int], Tuple[int]]
 LAYER_OR_STR = Union[keras.layers.Layer, str]
 
 
+@keras.saving.register_keras_serializable(package="teras.layers.tabtransformer")
 class ColumnEmbedding(layers.Layer):
     """
     ColumnEmbedding layer as proposed by Xin Huang et al. in the paper
@@ -54,6 +55,7 @@ class ColumnEmbedding(layers.Layer):
         return config
 
 
+@keras.saving.register_keras_serializable(package="teras.layers.tabtransformer")
 class ClassificationHead(BaseClassificationHead):
     """
     Classification head for the TabTransformer Classifier architecture.
@@ -92,6 +94,7 @@ class ClassificationHead(BaseClassificationHead):
                          **kwargs)
 
 
+@keras.saving.register_keras_serializable(package="teras.layers.tabtransformer")
 class RegressionHead(BaseRegressionHead):
     """
     Regression head for the TabTransformer Regressor architecture.
