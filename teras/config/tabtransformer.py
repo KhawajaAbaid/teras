@@ -12,3 +12,4 @@ class TabTransformerConfig(BaseConfig):
     use_column_embedding: bool = True
     categorical_features_vocabulary: dict = None
     encode_categorical_values: bool = True
+    numerical_normalization: str = "layer"
