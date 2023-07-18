@@ -8,6 +8,7 @@ LIST_OR_TUPLE = Union[List[int], Tuple[int]]
 LAYER_OR_STR = Union[keras.layers.Layer, str]
 
 
+@keras.saving.register_keras_serializable(package="teras.layers.common")
 class RegressionHead(layers.Layer):
     """
     Regression head to use on top of the architectures for regression.
@@ -65,6 +66,7 @@ class RegressionHead(layers.Layer):
         return config
 
 
+@keras.saving.register_keras_serializable(package="teras.layers.common")
 class ClassificationHead(layers.Layer):
     """
     Classification head to use on top of the architectures for classification.
@@ -119,7 +121,7 @@ class ClassificationHead(layers.Layer):
 
     def get_config(self):
         config = super().get_config()
-        new_config = {'num_classes': self.num_outputs,
+        new_config = {'num_classes': self.num_classes,
                       'units_values': self.units_values,
                       'activation_hidden': self.activation_hidden,
                       'activation_out': self.activation_out,
