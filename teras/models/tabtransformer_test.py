@@ -1,10 +1,10 @@
+from teras.models import (TabTransformer,
+                          TabTransformerClassifier,
+                          TabTransformerRegressor,
+                          TabTransformerPretrainer)
+from teras.utils import get_features_metadata_for_embedding
 import tensorflow as tf
 from tensorflow import keras
-from teras.layerflow.models.tabtransformer import (TabTransformer,
-                                                   TabTransformerClassifier,
-                                                   TabTransformerRegressor,
-                                                   TabTransformerPretrainer)
-from teras.utils import get_features_metadata_for_embedding
 import pandas as pd
 import numpy as np
 import os
