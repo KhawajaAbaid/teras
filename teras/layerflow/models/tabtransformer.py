@@ -425,9 +425,7 @@ class TabTransformerPretrainer(keras.Model):
         self.num_features_to_replace = tf.cast(tf.cast(self.num_features, tf.float32) * self.replace_rate,
                                                dtype=tf.int32)
         self.loss_tracker = keras.metrics.Mean(name="loss")
-
-    def build(self, input_shape):
-        self.head = layers.Dense(input_shape[1],
+        self.head = layers.Dense(self.num_features,
                                  activation="sigmoid",
                                  name="pretrainer_head")
 
