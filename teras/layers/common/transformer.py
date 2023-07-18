@@ -9,6 +9,7 @@ LIST_OR_TUPLE = Union[List[int], Tuple[int]]
 LAYER_OR_STR = Union[keras.layers.Layer, str]
 
 
+@keras.saving.register_keras_serializable(package="teras.layers.transformer")
 class FeedForward(layers.Layer):
     """
     FeedForward layer that is used in the Transformer layer of the Encoder block
@@ -66,6 +67,7 @@ class FeedForward(layers.Layer):
         return config
 
 
+@keras.saving.register_keras_serializable(package="teras.layers.transformer")
 class Transformer(layers.Layer):
     """
     Transformer layer that is used as a building block for
@@ -139,6 +141,7 @@ class Transformer(layers.Layer):
         return config
 
 
+@keras.saving.register_keras_serializable(package="teras.layers.transformer")
 class Encoder(layers.Layer):
     """
     Encoder for transformer based architectures.
