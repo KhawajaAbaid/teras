@@ -133,32 +133,16 @@ class SAINTEncoder(layers.Layer):
         saint_transformer_layers: ``layers.Layer`` or ``List[Layer]`` or ``models.Model``,
             A list, a keras layer or a keras model made up of ``SAINTTransformer`` layers or
             any other custom layers for that purpose.
-            By default, 6 ``SAINTTransformer`` layers are used.
             You can import the ``SAINTTransformer`` layer as follows,
                 >>> from teras.layerflow.layers.saint import SAINTTransformer
     """
     def __init__(self,
-                 saint_transformer_layers: LAYERS_COLLECTION = None,
+                 saint_transformer_layers: LAYERS_COLLECTION,
                  **kwargs):
         super().__init__(**kwargs)
         self.saint_transformer_layers = saint_transformer_layers
 
-        # The reason behind modifying the value of saint_transformer_layers
-        # storing that modified value in config and create a new instance using
-        # the config of modified value -- instead of just original value
-        # is that, this way we can make sure the saved model and reloaded model
-        # have the same weights. Otherwise in case of None, if we don't override
-        # the value with default layers and store that modified value, instead
-        # we just store the original None, when we'll reload the layer,
-        # it will re-instantiate the layers -- effectively losing all weights.
-
-        if self.saint_transformer_layers is None:
-            # by default, we use 6 SAINTTransformer layers
-            self.saint_transformer_layers = keras.models.Sequential(
-                [SAINTTransformer() for _ in range(6)],
-                name="saint_transformer_layers")
-
-        elif isinstance(self.saint_transformer_layers, (list, tuple)):
+        if isinstance(self.saint_transformer_layers, (list, tuple)):
             self.saint_transformer_layers = models.Sequential(self.saint_transformer_layers,
                                                               name="saint_transformer_layers")
 
