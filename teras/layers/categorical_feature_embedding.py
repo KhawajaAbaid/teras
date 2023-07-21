@@ -1,5 +1,4 @@
 from tensorflow import keras
-from tensorflow.keras import layers
 from typing import List
 import numpy as np
 import tensorflow as tf
@@ -9,7 +8,7 @@ LIST_OF_STR = List[str]
 
 
 @keras.saving.register_keras_serializable(package="teras.layers")
-class CategoricalFeatureEmbedding(layers.Layer):
+class CategoricalFeatureEmbedding(keras.layers.Layer):
     """
     CategoricalFeatureEmbedding layer that encodes categorical features into
     categorical feature embeddings.
@@ -50,7 +49,7 @@ class CategoricalFeatureEmbedding(layers.Layer):
 
         self.categorical_features_metadata = features_metadata["categorical"]
         self.lookup_tables, self.embedding_layers = self._get_lookup_tables_and_embedding_layers()
-        self.concat = layers.Concatenate(axis=1)
+        self.concat = keras.layers.Concatenate(axis=1)
         self._is_data_in_dict_format = False
         self._is_first_batch = True
         self._num_categorical_features = len(self.categorical_features_metadata)
@@ -66,10 +65,10 @@ class CategoricalFeatureEmbedding(layers.Layer):
             if self.encode:
                 if isinstance(vocabulary[0], (int, np.int32, np.int64, float, np.float32, np.float64)):
                     # Lookup Table to map integer values to integer indices
-                    lookup = layers.IntegerLookup(vocabulary=vocabulary,
-                                                  mask_token=None,
-                                                  output_mode="int",
-                                                  )
+                    lookup = keras.layers.IntegerLookup(vocabulary=vocabulary,
+                                                        mask_token=None,
+                                                        output_mode="int",
+                                                        )
                 else:
                     raise TypeError("`CategoricalFeatureEmbedding` layer can only encode values of type int "
                                     f"but received type: {type(vocabulary[0])} for feature {feature_name}.")
@@ -78,8 +77,8 @@ class CategoricalFeatureEmbedding(layers.Layer):
             # Embedding layers map the integer representations of categorical values
             # to dense vectors of `embedding_dim` dimensionality,
             # which in fancier lingo are called `embeddings`.
-            embedding = layers.Embedding(input_dim=len(vocabulary) + 1,
-                                         output_dim=self.embedding_dim)
+            embedding = keras.layers.Embedding(input_dim=len(vocabulary) + 1,
+                                               output_dim=self.embedding_dim)
             embedding_layers.append(embedding)
 
         return lookup_tables, embedding_layers
@@ -120,3 +119,8 @@ class CategoricalFeatureEmbedding(layers.Layer):
                       'encode': self.encode}
         config.update(new_config)
         return config
+
+    @classmethod
+    def from_config(cls, config):
+        features_metadata = config.pop("features_metadata")
+        return cls(features_metadata, **config)
