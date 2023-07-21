@@ -10,6 +10,7 @@ from warnings import warn
 LayerType = Union[str, layers.Layer]
 FEATURE_NAMES_TYPE = Union[List[str], Tuple[str]]
 LAYERS_COLLECTION = Union[List[layers.Layer], layers.Layer, models.Model]
+LAYERS_CONFIGS_COLLECTION = Union[List[dict], dict]
 
 
 def tf_random_choice(inputs,
@@ -255,10 +256,29 @@ def serialize_layers_collection(layers_collection: LAYERS_COLLECTION):
         layers_collection_serialized = [keras.layers.serialize(layer)
                                         for layer in layers_collection]
     else:
-        # We assume it's either of type Layer or Model
+        # We assume it's either of type Layer or Model, or None
         layers_collection_serialized = keras.layers.serialize(layers_collection)
 
     return layers_collection_serialized
+
+
+def deserialize_layers_collection(layers_configs_collection: LAYERS_CONFIGS_COLLECTION):
+    """
+    De-serializes a collection of keras layers/models configs.
+
+    Returns:
+        If layers_configs_collection is a list of layers config dictionaries, it returns a
+        list of de-serialized layers otherwise if it's a config dictionary, it returns the
+         de-serialized layer or model.
+    """
+    if isinstance(layers_configs_collection, list):
+        layers_collection_deserialized = [keras.layers.deserialize(layer)
+                                          for layer in layers_configs_collection]
+    else:
+        # We assume it's either a dict or None
+        layers_collection_deserialized = keras.layers.deserialize(layers_configs_collection)
+
+    return layers_collection_deserialized
 
 
 def inject_missing_values(x: pd.DataFrame,
