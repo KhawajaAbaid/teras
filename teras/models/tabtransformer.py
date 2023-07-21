@@ -1,15 +1,15 @@
 from tensorflow import keras
-from tensorflow.keras import layers
 from teras.config.tabtransformer import TabTransformerConfig
 from teras.layerflow.models import TabTransformer as TabTransformerLF
 from teras.layers.common.transformer import Encoder
-from teras.layers.embedding import CategoricalFeatureEmbedding
+from teras.layers.categorical_feature_embedding import CategoricalFeatureEmbedding
 from teras.layers.normalization import NumericalFeatureNormalization
-from teras.layers.tabtransformer import ColumnEmbedding, ClassificationHead, RegressionHead
+from teras.layers.tabtransformer import ColumnEmbedding
+from teras.layers.common.head import ClassificationHead, RegressionHead
 from typing import List, Union, Tuple
 
 LIST_OR_TUPLE_OF_INT = Union[List[int], Tuple[int]]
-LAYER_OR_MODEL = Union[layers.Layer, keras.Model]
+LAYER_OR_MODEL = Union[keras.layers.Layer, keras.Model]
 
 
 @keras.saving.register_keras_serializable("keras.models")
@@ -93,9 +93,6 @@ class TabTransformer(TabTransformerLF):
                  use_column_embedding: bool = TabTransformerConfig.use_column_embedding,
                  encode_categorical_values: bool = TabTransformerConfig.encode_categorical_values,
                  numerical_normalization: str = TabTransformerConfig.numerical_normalization,
-                 num_classes: int = None,
-                 num_outputs: int = None,
-                 head_units_values: LIST_OR_TUPLE_OF_INT = (64, 32),
                  **kwargs
                  ):
 
@@ -122,23 +119,13 @@ class TabTransformer(TabTransformerLF):
                           feedforward_multiplier=feedforward_multiplier,
                           norm_epsilon=norm_epsilon)
         numerical_feature_normalization = NumericalFeatureNormalization(features_metadata=features_metadata,
-                                                                         normalization_type=numerical_normalization)
-
-        head = None
-        if num_classes is not None:
-            head = ClassificationHead(num_classes=num_classes,
-                                      units_values=head_units_values)
-
-        if num_outputs is not None:
-            head = RegressionHead(num_outputs=num_outputs,
-                                  units_values=head_units_values)
+                                                                        normalization_type=numerical_normalization)
 
         super().__init__(features_metadata=features_metadata,
                          categorical_feature_embedding=categorical_feature_embedding,
                          column_embedding=column_embedding,
                          encoder=encoder,
                          numerical_feature_normalization=numerical_feature_normalization,
-                         head=head,
                          **kwargs)
 
         self.features_metadata = features_metadata
@@ -152,9 +139,6 @@ class TabTransformer(TabTransformerLF):
         self.norm_epsilon = norm_epsilon
         self.encode_categorical_values = encode_categorical_values
         self.numerical_normalization = numerical_normalization
-        self.num_classes = num_classes
-        self.num_outputs = num_outputs
-        self.head_units_values = head_units_values
 
     def get_config(self):
         config = {'name': self.name,
@@ -171,12 +155,6 @@ class TabTransformer(TabTransformerLF):
                   'encode_categorical_values': self.encode_categorical_values,
                   'numerical_normalization': self.numerical_normalization,
                   }
-        if self.num_classes is not None:
-            config.update({"num_classes": self.num_classes,
-                           "head_units_values": self.head_units_values})
-        elif self.num_outputs is not None:
-            config.update({"num_outputs": self.num_outputs,
-                           "head_units_values": self.head_units_values})
         return config
 
     @classmethod
@@ -283,6 +261,16 @@ class TabTransformerClassifier(TabTransformer):
                  numerical_normalization: str = TabTransformerConfig.numerical_normalization,
                  **kwargs
                  ):
+        # Since the parent `TabTransformer` class subclasses its LayerFlow version
+        # which accepts layers as input and does expose a head argumnet to pass the layer.
+        # we can create a relevant head layer, in this case, the `ClassificationHead` layer
+        # and pass its instance to the parent who will pass it along to its parent as part of
+        # the **kwargs dict
+        head = ClassificationHead(num_classes=num_classes,
+                                  units_values=head_units_values,
+                                  activation_hidden="relu",
+                                  normalization="batch",
+                                  name="tabtransformer_classifier_head")
         super().__init__(features_metadata=features_metadata,
                          embedding_dim=embedding_dim,
                          num_transformer_layers=num_transformer_layers,
@@ -294,16 +282,17 @@ class TabTransformerClassifier(TabTransformer):
                          use_column_embedding=use_column_embedding,
                          encode_categorical_values=encode_categorical_values,
                          numerical_normalization=numerical_normalization,
-                         num_classes=num_classes,
-                         head_units_values=head_units_values,
+                         head=head,
                          **kwargs)
+        self.num_classes = num_classes
+        self.head_units_values = head_units_values
 
     @classmethod
     def from_pretrained(cls,
                         pretrained_model: TabTransformer,
                         num_classes: int = 2,
-                        head_units_values: LIST_OR_TUPLE_OF_INT = (64, 32),
-                        activation_out=None):
+                        head_units_values: LIST_OR_TUPLE_OF_INT = (64, 32)
+                        ):
         """
         Class method to create a TabTransformer Classifier model instance from
         a pretrained base TabTransformer model instance.
@@ -322,11 +311,18 @@ class TabTransformerClassifier(TabTransformer):
         """
         head = ClassificationHead(num_classes=num_classes,
                                   units_values=head_units_values,
-                                  activation_out=activation_out,
-                                  name="tabtransformer_classification_head")
+                                  name="tabtransformer_classifier_head")
         model = keras.models.Sequential([pretrained_model, head],
                                         name="tabtransformer_classifier_pretrained")
         return model
+
+    def get_config(self):
+        config = super().get_config()
+        config.update({'num_classes': self.num_classes,
+                       'head_units_values': self.head_units_values
+                       })
+        return config
+
 
 
 class TabTransformerRegressor(TabTransformer):
@@ -421,6 +417,11 @@ class TabTransformerRegressor(TabTransformer):
                  numerical_normalization: str = TabTransformerConfig.numerical_normalization,
                  **kwargs
                  ):
+        head = RegressionHead(num_outputs=num_outputs,
+                              units_values=head_units_values,
+                              activation_hidden="relu",
+                              normalization="batch",
+                              name="tabtransformer_regressor_head")
         super().__init__(features_metadata=features_metadata,
                          embedding_dim=embedding_dim,
                          num_transformer_layers=num_transformer_layers,
@@ -432,9 +433,10 @@ class TabTransformerRegressor(TabTransformer):
                          use_column_embedding=use_column_embedding,
                          encode_categorical_values=encode_categorical_values,
                          numerical_normalization=numerical_normalization,
-                         num_outputs=num_outputs,
-                         head_units_values=head_units_values,
+                         head=head,
                          **kwargs)
+        self.num_outputs = num_outputs
+        self.head_units_values = head_units_values
 
     @classmethod
     def from_pretrained(cls,
@@ -460,10 +462,16 @@ class TabTransformerRegressor(TabTransformer):
         """
         head = RegressionHead(num_outputs=num_outputs,
                               units_values=head_units_values,
-                              name="tabtransformer_regression_head")
+                              name="tabtransformer_regressor_head")
 
         model = keras.models.Sequential([pretrained_model, head],
                                         name="tabtransformer_regressor_pretrained")
         return model
 
+    def get_config(self):
+        config = super().get_config()
+        config.update({'num_outputs': self.num_outputs,
+                       'head_units_values': self.head_units_values,
+                       })
+        return config
 
