@@ -45,11 +45,13 @@ class SAINTTransformer(keras.layers.Layer):
         self.feed_forward = feed_forward
         self.transformer = transformer
 
+    def build(self, input_shape):
         # We build the inner SAINT Transformer block using keras Functional API
-        # Inter Sample Attention Block: this attention is applied to rows.
-        inputs = keras.layers.Input(shape=(self._num_features, self._embedding_dim))
-        intermediate_outputs = inputs
+        # and since we need the input dimensions that's why we're building it in the build method.
 
+        # Inter Sample Attention Block: this attention is applied to rows.
+        inputs = keras.layers.Input(shape=tuple(input_shape[1:]))
+        intermediate_outputs = inputs
         if self.apply_attention_to_rows:
             residual = inputs
             x = self.multi_head_inter_sample_attention(inputs)
