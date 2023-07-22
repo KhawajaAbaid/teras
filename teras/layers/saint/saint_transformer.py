@@ -1,6 +1,7 @@
 from tensorflow import keras
 from teras.layerflow.layers.saint.saint_transformer import SAINTTransformer as _SAINTTransformerLF
 from teras.layers.saint.multi_head_inter_sample_attention import MultiHeadInterSampleAttention
+from teras.layers.common.transformer import Transformer, FeedForward
 
 
 @keras.saving.register_keras_serializable(package="teras.layers.saint")
@@ -16,9 +17,9 @@ class SAINTTransformer(_SAINTTransformerLF):
         https://arxiv.org/abs/2106.01342
 
     Args:
-        input_dim: ``int``,
-            Dimensionality of the input dataset,
-            or the total number of features in the input dataset.
+        num_features: ``int``,
+            Total number of features in the input dataset,
+            aka the dimensionality of the input dataset.
 
         embedding_dim: ``int``, default 32,
             Embedding dimensions used to embedd numerical and
@@ -68,7 +69,7 @@ class SAINTTransformer(_SAINTTransformerLF):
             Also, note that, both CANNOT be False at the same time!
     """
     def __init__(self,
-                 input_dim: int,
+                 num_features: int,
                  embedding_dim: int = 32,
                  num_attention_heads: int = 8,
                  num_inter_sample_attention_heads: int = 8,
@@ -82,7 +83,7 @@ class SAINTTransformer(_SAINTTransformerLF):
                  **kwargs):
         multihead_inter_sample_attention = MultiHeadInterSampleAttention(
             num_heads=num_inter_sample_attention_heads,
-            key_dim=embedding_dim * input_dim,
+            key_dim=embedding_dim * num_features,
             dropout=inter_sample_attention_dropout,
             name="inter_sample_multihead_attention"
         )
@@ -97,12 +98,12 @@ class SAINTTransformer(_SAINTTransformerLF):
                                   norm_epsilon=norm_epsilon,
                                   name="inner_trasnformer_block_for_features")
 
-        super().__init__(multihead_inter_sample_attention=multihead_inter_sample_attention,
+        super().__init__(multi_head_inter_sample_attention=multihead_inter_sample_attention,
                          feed_forward=feed_forward,
                          transformer=transformer,
                          **kwargs)
 
-        self.input_dim = input_dim
+        self.num_features = num_features
         self.embedding_dim = embedding_dim
         self.num_attention_heads = num_attention_heads
         self.num_inter_sample_attention_heads = num_inter_sample_attention_heads
@@ -117,7 +118,7 @@ class SAINTTransformer(_SAINTTransformerLF):
     def get_config(self):
         config = {'name': self.name,
                   'trainable': self.trainable,
-                  'input_dim': self.input_dim,
+                  'num_features': self.num_features,
                   'embedding_dim': self.embedding_dim,
                   'num_attention_heads': self.num_attention_heads,
                   'num_inter_sample_attention_heads': self.num_inter_sample_attention_heads,
@@ -134,6 +135,6 @@ class SAINTTransformer(_SAINTTransformerLF):
 
     @classmethod
     def from_config(cls, config):
-        # input_dim is the only positional argument
-        input_dim = config.pop("input_dim")
-        return cls(input_dim, **config)
+        # num_features is the only positional argument
+        num_features = config.pop("num_features")
+        return cls(num_features, **config)
