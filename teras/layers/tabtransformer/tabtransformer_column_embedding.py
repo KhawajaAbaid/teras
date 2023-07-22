@@ -1,16 +1,11 @@
 import tensorflow as tf
 from tensorflow import keras
-from typing import Union, List, Tuple
-
-
-LIST_OR_TUPLE = Union[List[int], Tuple[int]]
-LAYER_OR_STR = Union[keras.layers.Layer, str]
 
 
 @keras.saving.register_keras_serializable(package="teras.layers.tabtransformer")
-class ColumnEmbedding(keras.layers.Layer):
+class TabTransformerColumnEmbedding(keras.layers.Layer):
     """
-    ColumnEmbedding layer as proposed by Xin Huang et al. in the paper
+    Column Embedding layer as proposed by Xin Huang et al. in the paper
     TabTransformer: Tabular Data Modeling Using Contextual Embeddings.
 
     Reference(s):
