@@ -22,9 +22,9 @@ class SAINTEncoder(_SAINTEncoderLF):
         https://arxiv.org/abs/2106.01342
 
     Args:
-        input_dim: ``int``,
-            Dimensionality of the input dataset,
-            or the total number of features in the input dataset.
+        num_features: ``int``,
+            Total number of features in the input dataset,
+            aka the dimensionality of the input dataset,
 
         num_transformer_layer: ``int``, default 6,
             Number of transformer layers to use in the Encoder
@@ -77,7 +77,7 @@ class SAINTEncoder(_SAINTEncoderLF):
             Also, note that, both CANNOT be False at the same time!
     """
     def __init__(self,
-                 input_dim: int,
+                 num_features: int,
                  num_transformer_layers: int = 6,
                  embedding_dim: int = 32,
                  num_attention_heads: int = 8,
@@ -99,7 +99,7 @@ class SAINTEncoder(_SAINTEncoderLF):
         saint_transformer_layers = keras.models.Sequential(name="saint_transformer_layers")
         for i in range(num_transformer_layers):
             saint_transformer_layers.add(SAINTTransformer(
-                input_dim=input_dim,
+                num_features=num_features,
                 embedding_dim=embedding_dim,
                 num_attention_heads=num_attention_heads,
                 num_inter_sample_attention_heads=num_inter_sample_attention_heads,
@@ -114,7 +114,7 @@ class SAINTEncoder(_SAINTEncoderLF):
         super().__init__(saint_transformer_layers=saint_transformer_layers,
                          **kwargs)
 
-        self.input_dim = input_dim
+        self.num_features = num_features
         self.num_transformer_layers = num_transformer_layers
         self.embedding_dim = embedding_dim
         self.num_attention_heads = num_attention_heads
@@ -130,7 +130,7 @@ class SAINTEncoder(_SAINTEncoderLF):
     def get_config(self):
         config = {'name': self.name,
                   'trainable': self.trainable,
-                  'input_dim': self.input_dim,
+                  'num_features': self.num_features,
                   'num_transformer_layers': self.num_transformer_layers,
                   'embedding_dim': self.embedding_dim,
                   'num_attention_heads': self.num_attention_heads,
@@ -147,6 +147,6 @@ class SAINTEncoder(_SAINTEncoderLF):
 
     @classmethod
     def from_config(cls, config):
-        # input_dim is the only positional argument
-        input_dim = config.pop("input_dim")
-        return cls(input_dim, **config)
+        # num_features is the only positional argument
+        num_features = config.pop("num_features")
+        return cls(num_features, **config)
