@@ -30,9 +30,9 @@ class SAINTProjectionHead(_SAINTProjectionHeadLF):
             `output_dim = embedding_dim * number_of_features // 5`
     """
     def __init__(self,
-                 hidden_dim: int = 32,
+                 hidden_dim: int = 64,
                  hidden_activation="relu",
-                 output_dim: int = 8,
+                 output_dim: int = 32,
                  **kwargs):
         hidden_block = keras.layers.Dense(units=hidden_dim,
                                           activation=hidden_activation)
