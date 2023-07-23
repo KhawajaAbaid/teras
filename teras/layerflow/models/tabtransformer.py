@@ -81,10 +81,14 @@ class TabTransformer(keras.Model):
             if column_embedding is not None:
                 x = column_embedding(x)
 
-            if encoder is not None:
-                x = encoder(x)
-                x = keras.layers.Flatten()(x)
-                categorical_out = x
+            if encoder is None:
+                raise ValueError("`encoder` is required to encode the categorical embedding, "
+                                 "but received `None`. "
+                                 "Please pass an instance of `Encode` layer. "
+                                 "You can import it as, `from teras.layerflow.layers import Encoder`")
+            x = encoder(x)
+            x = keras.layers.Flatten()(x)
+            categorical_out = x
 
         if numerical_feature_normalization is not None:
             numerical_out = numerical_feature_normalization(inputs)
