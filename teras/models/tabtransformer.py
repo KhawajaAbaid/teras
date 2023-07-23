@@ -1,10 +1,10 @@
 from tensorflow import keras
 from teras.config.tabtransformer import TabTransformerConfig
-from teras.layerflow.models import TabTransformer as TabTransformerLF
+from teras.layerflow.models.tabtransformer import TabTransformer as TabTransformerLF
 from teras.layers.common.transformer import Encoder
 from teras.layers.categorical_feature_embedding import CategoricalFeatureEmbedding
 from teras.layers.normalization import NumericalFeatureNormalization
-from teras.layers.tabtransformer import ColumnEmbedding
+from teras.layers.tabtransformer.tabtransformer_column_embedding import TabTransformerColumnEmbedding
 from teras.layers.common.head import ClassificationHead, RegressionHead
 from typing import List, Union, Tuple
 
@@ -109,8 +109,8 @@ class TabTransformer(TabTransformerLF):
             embedding_dim=embedding_dim,
             encode=encode_categorical_values
         )
-        column_embedding = ColumnEmbedding(embedding_dim=embedding_dim,
-                                           num_categorical_features=len(features_metadata["categorical"]))
+        column_embedding = TabTransformerColumnEmbedding(embedding_dim=embedding_dim,
+                                                         num_categorical_features=len(features_metadata["categorical"]))
         encoder = Encoder(num_transformer_layers=num_transformer_layers,
                           num_heads=num_attention_heads,
                           embedding_dim=embedding_dim,
@@ -324,7 +324,6 @@ class TabTransformerClassifier(TabTransformer):
         return config
 
 
-
 class TabTransformerRegressor(TabTransformer):
     """
     TabTransformerRegressor based on the TabTransformer architecture
@@ -474,4 +473,3 @@ class TabTransformerRegressor(TabTransformer):
                        'head_units_values': self.head_units_values,
                        })
         return config
-
