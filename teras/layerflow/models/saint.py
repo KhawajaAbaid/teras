@@ -130,7 +130,18 @@ class SAINTPretrainer(keras.Model):
         model: ``keras.Model``,
             An instance of the ``SAINT`` model that is to be pretrained.
 
-
+        features_metadata: ``dict``,
+            a nested dictionary of metadata for features where
+            categorical sub-dictionary is a mapping of categorical feature names to a tuple of
+            feature indices and the lists of unique values (vocabulary) in them,
+            while numerical dictionary is a mapping of numerical feature names to their indices.
+            `{feature_name: (feature_idx, vocabulary)}` for feature in categorical features.
+            `{feature_name: feature_idx}` for feature in numerical features.
+            You can get this dictionary from
+                >>> from teras.utils import get_features_metadata_for_embedding
+                >>> metadata_dict = get_features_metadata_for_embedding(dataframe,
+                ..                                                      numerical_features,
+                ..                                                      categorical_features)
 
         mixup: ``keras.layers.Layer``,
             An instance of ``MixUp`` layer or any custom layer that can work
@@ -171,6 +182,7 @@ class SAINTPretrainer(keras.Model):
     """
     def __init__(self,
                  model: keras.Model,
+                 features_metadata: dict,
                  mixup: keras.layers.Layer = None,
                  cutmix: keras.layers.Layer = None,
                  projection_head_1: keras.layers.Layer = None,
@@ -204,7 +216,7 @@ class SAINTPretrainer(keras.Model):
                              "Please pass an instance of `SAINTReconstructionHead` layer. "
                              "You can import it as, `from teras.layers import SAINTReconstructionHead`")
 
-        self.features_metadata = self.model.features_metadata
+        self.features_metadata = features_metadata
         self._categorical_features_exist = len(self.features_metadata["categorical"]) > 0
         self._numerical_features_exist = len(self.features_metadata["numerical"]) > 0
 
@@ -282,9 +294,6 @@ class SAINTPretrainer(keras.Model):
         # i.e. the `r_prime` through a reconstruction head
         reconstructed_samples = self.reconstruction_head(r_prime)
 
-        # Since we want to keep the encode value to what originally was,
-        # which is also stored in the model's encode_categorical_values attribute, so we set it equal to that
-        self.model.categorical_feature_embedding.encode = self.model.encode_categorical_values
         return z, z_prime, reconstructed_samples
 
     def train_step(self, data):
@@ -318,6 +327,7 @@ class SAINTPretrainer(keras.Model):
     def get_config(self):
         config = super().get_config()
         new_config = {'model': keras.layers.serialize(self.model),
+                      'features_metadata': self.features_metadata,
                       'mixup': keras.layers.serialize(self.mixup),
                       'cutmix': keras.layers.serialize(self.cutmix),
                       'projection_head_1': keras.layers.serialize(self.projection_head_1),
@@ -331,12 +341,14 @@ class SAINTPretrainer(keras.Model):
     @classmethod
     def from_config(cls, config):
         model = keras.layers.deserialize(config.pop("model"))
+        features_metadata = config.pop("features_metadata")
         mixup = keras.layers.deserialize(config.pop("mixup"))
         cutmix = keras.layers.deserialize(config.pop("cutmix"))
         projection_head_1 = keras.layers.deserialize(config.pop("projection_head_1"))
         projection_head_2 = keras.layers.deserialize(config.pop("projection_head_2"))
         reconstruction_head = keras.layers.deserialize(config.pop("reconstruction_head"))
         return cls(model=model,
+                   features_metadata=features_metadata,
                    mixup=mixup,
                    cutmix=cutmix,
                    projection_head_1=projection_head_1,
