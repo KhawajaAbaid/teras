@@ -3,6 +3,12 @@ from teras.layers.categorical_feature_embedding import CategoricalFeatureEmbeddi
 from teras.layers.saint.saint_numerical_feature_embedding import SAINTNumericalFeatureEmbedding
 from teras.layers.saint.saint_encoder import SAINTEncoder
 from teras.layers.common.head import ClassificationHead, RegressionHead
+from teras.layerflow.models.saint import (SAINT as _SAINTLF,
+                                          SAINTPretrainer as _SAINTPretrainerLF)
+from teras.layers.saint.saint_reconstruction_head import SAINTReconstructionHead
+from teras.layers.saint.saint_projection_head import SAINTProjectionHead
+from teras.layers.regularization import MixUp, CutMix
+
 
 from teras.config.saint import SAINTConfig
 from typing import Union, List, Tuple
@@ -11,7 +17,8 @@ from typing import Union, List, Tuple
 UNITS_VALUES_TYPE = Union[List[int], Tuple[int]]
 
 
-class SAINT(keras.Model):
+@keras.saving.register_keras_serializable("teras.models")
+class SAINT(_SAINTLF):
     """
     SAINT architecture proposed by Gowthami Somepalli et al.
     in the paper,
@@ -196,6 +203,7 @@ class SAINT(keras.Model):
         return cls(features_metadata, **config)
 
 
+@keras.saving.register_keras_serializable("teras.models")
 class SAINTClassifier(SAINT):
     """
     SAINTClassifier model based on the SAINT architecture proposed by
@@ -345,6 +353,7 @@ class SAINTClassifier(SAINT):
         return config
 
 
+@keras.saving.register_keras_serializable("teras.models")
 class SAINTRegressor(SAINT):
     """
     SAINTRegressor model based on the SAINT architecture proposed by
@@ -489,3 +498,117 @@ class SAINTRegressor(SAINT):
                        })
         return config
 
+
+@keras.saving.register_keras_serializable("teras.models")
+class SAINTPretrainer(_SAINTPretrainerLF):
+    """
+    SAINTPretrainer model based on the pretraining architecture
+    for the SAINT model proposed by Gowthami Somepalli et al.
+    in the paper,
+    SAINT: Improved Neural Networks for Tabular Data
+    via Row Attention and Contrastive Pre-Training.
+
+    SAINT performs attention over both rows and columns.
+
+    Reference(s):
+        https://arxiv.org/abs/2106.01342
+
+    Args:
+        model: ``SAINT``,
+            An instance of the ``SAINT`` model that you want to pretrain.
+            Note that, you should use the base ``SAINT`` model's instance,
+            not ``SAINTClassifier`` or ``SAINTRegressor``.
+            Using default API, you can import it as,
+                >>> from teras.models import SAINT
+            Using LayerFlow API, you can import it as,
+                >>> from teras.layerflow.models import SAINT
+                And REMEMBER to leave the ``head`` argment as None.
+
+        features_metadata: ``dict``,
+            a nested dictionary of metadata for features where
+            categorical sub-dictionary is a mapping of categorical feature names to a tuple of
+            feature indices and the lists of unique values (vocabulary) in them,
+            while numerical dictionary is a mapping of numerical feature names to their indices.
+            `{feature_name: (feature_idx, vocabulary)}` for feature in categorical features.
+            `{feature_name: feature_idx}` for feature in numerical features.
+            You can get this dictionary from
+                >>> from teras.utils import get_features_metadata_for_embedding
+                >>> metadata_dict = get_features_metadata_for_embedding(dataframe,
+                ..                                                      numerical_features,
+                ..                                                      categorical_features)
+
+        cutmix_probs: ``float``, default 0.1,
+            ``CutMix`` probability which is used in generation of mask
+            that is used to mix samples together.
+
+        mixup_alpha: ``float``, default 1.0,
+            Alpha value for the ``MixUp`` layer, that is used for the
+            Beta distribution to sample `lambda_`
+            which is used to interpolate samples.
+
+        temperature: ``float``, default 0.7,
+            Temperature value used in the computation of the InfoNCE contrastive loss.
+
+        lambda_: ``float``, default 10,
+            Controls the weightage of denoising loss in the summation of denoising and
+            contrastive loss.
+    """
+    def __init__(self,
+                 model: SAINT,
+                 features_metadata: dict,
+                 cutmix_probs: float = 0.3,
+                 mixup_alpha: float = 1.0,
+                 temperature: float = 0.7,
+                 lambda_: float = 10.,
+                 **kwargs):
+        mixup = MixUp(alpha=mixup_alpha)
+        cutmix = CutMix(probs=cutmix_probs)
+
+        # For the computation of contrastive loss, we use projection heads.
+        # Projection head hidden dimensions as calculated by the
+        # official implementation
+        projection_head_hidden_dim = 6 * model.embedding_dim * model.num_features // 5
+        projection_head_output_dim = model.embedding_dim * model.num_features // 2
+
+        projection_head_1 = SAINTProjectionHead(hidden_dim=projection_head_hidden_dim,
+                                                output_dim=projection_head_output_dim,
+                                                name="projection_head_for_original_data")
+
+        projection_head_2 = SAINTProjectionHead(hidden_dim=projection_head_hidden_dim,
+                                                output_dim=projection_head_output_dim,
+                                                name="projection_head_for_augmented_data")
+
+        reconstruction_head = SAINTReconstructionHead(features_metadata=model.features_metadata,
+                                                      embedding_dim=model.embedding_dim)
+
+        super().__init__(model=model,
+                         features_metadata=features_metadata,
+                         mixup=mixup,
+                         cutmix=cutmix,
+                         projection_head_1=projection_head_1,
+                         projection_head_2=projection_head_2,
+                         reconstruction_head=reconstruction_head)
+        self.model = model
+        self.features_metadata = features_metadata
+        self.cutmix_probs = cutmix_probs
+        self.mixup_alpha = mixup_alpha
+        self.temperature = temperature
+        self.lambda_ = lambda_
+
+    def get_config(self):
+        config = {'name': self.name,
+                  'trainable': self.trainable,
+                  'model': keras.layers.serialize(self.model),
+                  'features_metadata': self.features_metadata,
+                  'cutmix_probs': self.cutmix_probs,
+                  'mixup_alpha': self.mixup_alpha,
+                  'temperature': self.temperature,
+                  'lambda_': self.lambda_,
+                  }
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        model = keras.layers.deserialize(config.pop("model"))
+        features_metadata = config.pop("features_metadata")
+        return cls(model, features_metadata, **config)
