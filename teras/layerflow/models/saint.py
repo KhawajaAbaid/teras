@@ -50,15 +50,19 @@ class SAINT(keras.Model):
     """
     def __init__(self,
                  input_dim: int,
-                 encoder: keras.layers.Layer,
                  categorical_feature_embedding: keras.layers.Layer = None,
                  numerical_feature_embedding: keras.layers.Layer = None,
+                 encoder: keras.layers.Layer = None,
                  head: keras.layers.Layer = None,
                  **kwargs):
         if categorical_feature_embedding is None and numerical_feature_embedding is None:
             raise ValueError("Both `categorical_feature_embedding` and `numerical_feature_embedding` "
                              "cannot be None at the same time as a tabular dataset must contains "
                              "features of at least one of the types if not both. ")
+
+        if encoder is None:
+            raise ValueError("`encoder` cannot be None. Please pass an instance of `SAINTEncoder` layer. "
+                             "You can import it as, `from teras.layerflow.layers import SAINTEncoder``")
 
         inputs = keras.layers.Input(shape=(input_dim,))
         x = inputs
@@ -89,9 +93,9 @@ class SAINT(keras.Model):
     def get_config(self):
         config = super().get_config()
         config.update({'input_dim': self.input_dim,
-                       'encoder': keras.layers.serialize(self.encoder),
                        'categorical_feature_embedding': keras.layers.serialize(self.categorical_feature_embedding),
                        'numerical_feature_embedding': keras.layers.serialize(self.numerical_feature_embedding),
+                       'encoder': keras.layers.serialize(self.encoder),
                        'head': keras.layers.serialize(self.head),
                        })
         return config
@@ -104,9 +108,9 @@ class SAINT(keras.Model):
         numerical_feature_embedding = keras.layers.deserialize(config.pop("numerical_feature_embedding"))
         head = keras.layers.deserialize(config.pop("head"))
         return cls(input_dim,
-                   encoder,
                    categorical_feature_embedding=categorical_feature_embedding,
                    numerical_feature_embedding=numerical_feature_embedding,
+                   encoder=encoder,
                    head=head,
                    **config)
 
