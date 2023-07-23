@@ -1,16 +1,8 @@
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras import layers, initializers
-from teras.layers.common.head import (ClassificationHead as BaseClassificationHead,
-                                      RegressionHead as BaseRegressionHead)
-from typing import Union, List, Tuple
 
 
-LIST_OR_TUPLE = Union[List[int], Tuple[int]]
-LAYER_OR_STR = Union[keras.layers.Layer, str]
-
-
-class NumericalFeatureEmbedding(layers.Layer):
+class NumericalFeatureEmbedding(keras.layers.Layer):
     """
     Numerical Feature Embedding layer as proposed by
     Yury Gorishniy et al. in the paper,
@@ -26,19 +18,30 @@ class NumericalFeatureEmbedding(layers.Layer):
         https://arxiv.org/abs/2106.11959
 
     Args:
-        numerical_features_metadata: `dict`,
-            a dictionary of metadata for numerical features
-            that maps each feature name to its index in the dataset.
-        embedding_dim: `int`, default 32,
+        features_metadata: ``dict``,
+            A nested dictionary of metadata for features where
+            categorical sub-dictionary is a mapping of categorical feature names to a tuple of
+            feature indices and the lists of unique values (vocabulary) in them,
+            while numerical dictionary is a mapping of numerical feature names to their indices.
+            `{feature_name: (feature_idx, vocabulary)}` for feature in categorical features.
+            `{feature_name: feature_idx}` for feature in numerical features.
+            You can get this dictionary from
+                >>> from teras.utils import get_features_metadata_for_embedding
+                >>> metadata_dict = get_features_metadata_for_embedding(dataframe,
+                ..                                                      numerical_features,
+                ..                                                      categorical_features)
+
+        embedding_dim: ``int``, default 32,
             Dimensionality of embeddings, must be the same as the one
             used for embedding categorical features.
     """
     def __init__(self,
-                 numerical_features_metadata: dict,
+                 features_metadata: dict,
                  embedding_dim: int = 32,
                  ):
         super().__init__()
-        self.numerical_features_metadata = numerical_features_metadata
+        self.features_metadata = features_metadata
+        self.numerical_features_metadata = self.features_metadata["numerical"]
         self.embedding_dim = embedding_dim
 
         self._num_numerical_features = len(self.numerical_features_metadata)
@@ -46,8 +49,8 @@ class NumericalFeatureEmbedding(layers.Layer):
         self.embedding_layers = []
         for _ in range(self._num_numerical_features):
             self.embedding_layers.append(
-                    layers.Dense(units=self.embedding_dim)
-                )
+                keras.layers.Dense(units=self.embedding_dim)
+            )
 
         self._is_first_batch = True
         self._is_data_in_dict_format = False
@@ -83,11 +86,14 @@ class NumericalFeatureEmbedding(layers.Layer):
 
     def get_config(self):
         config = super().get_config()
-        new_config = {'numerical_features_metadata': self.numerical_features_metadata,
-                      'embedding_dim': self.embedding_dim}
-
-        config.update(new_config)
+        config.update({'features_metadata': self.features_metadata,
+                      'embedding_dim': self.embedding_dim})
         return config
+
+    @classmethod
+    def from_config(cls, config):
+        features_metadata = config.pop("features_metadata")
+        return cls(features_metadata, **config)
 
 
 # TODO rework this layer -- ideally making it simple!
@@ -101,17 +107,16 @@ class CLSToken(keras.layers.Layer):
         https://arxiv.org/abs/2106.11959
 
     Args:
-        embedding_dim: `int`, default 32,
+        embedding_dim: ``int``, default 32,
             Embedding dimensions used to embed the numerical
             and categorical features.
-        initialization: default "normal",
+
+        initialization: ``str``, default "normal",
             Initialization method to use for the weights.
-            Must be one of ["uniform", "normal"] if passed as string, otherwise
-            you can pass any Keras initializer object.
     """
     def __init__(self,
                  embedding_dim: int = 32,
-                 initialization="normal",
+                 initialization: str = "normal",
                  **kwargs):
         super().__init__(**kwargs)
         self.embedding_dim = embedding_dim
@@ -120,12 +125,7 @@ class CLSToken(keras.layers.Layer):
     def build(self, input_shape):
         initializer = self.initialization
         if isinstance(initializer, str):
-            assert self.initialization.lower() in ["uniform", "normal"], \
-                ("If passed by string, only uniform and normal values are supported. "
-                 "Please pass keras.initializers.<YourChoiceOfInitializer> instance"
-                 " if you want to use a different initializer.")
-            initializer = initializers.random_uniform if self.initialization == "uniform" \
-                else initializers.random_normal
+            initializer = keras.initializers.get(initializer)
         self.weight = self.add_weight(initializer=initializer,
                                       shape=(self.embedding_dim,))
 
@@ -139,78 +139,6 @@ class CLSToken(keras.layers.Layer):
 
     def get_config(self):
         config = super().get_config()
-        new_config = {'embedding_dim': self.embedding_dim,
-                      'initialization': self.initialization}
-
-        config.update(new_config)
+        config.update({'embedding_dim': self.embedding_dim,
+                      'initialization': self.initialization})
         return config
-
-
-class ClassificationHead(BaseClassificationHead):
-    """
-    Classification head for the FTTransformer Classifier architecture.
-
-    Args:
-        num_classes: `int`, default 2,
-            Number of classes to predict.
-        units_values: `List[int] | Tuple[int]`, default None,
-            For each value in the sequence,
-            a hidden layer of that dimension preceded by a normalization layer (if specified) is
-            added to the ClassificationHead.
-        activation_hidden: default "relu",
-            Activation function to use in hidden dense layers.
-        activation_out:
-            Activation function to use for the output layer.
-            If not specified, `sigmoid` is used for binary and `softmax` is used for
-            multiclass classification.
-        normalization: `Layer | str`, default "layer",
-            Normalization layer to use.
-            If specified a normalization layer is applied after each hidden layer.
-            If None, no normalization layer is applied.
-            You can either pass a keras normalization layer or name for a layer implemented by keras.
-    """
-    def __init__(self,
-                 num_classes: int = 2,
-                 units_values: LIST_OR_TUPLE = None,
-                 activation_hidden="relu",
-                 activation_out=None,
-                 normalization: LAYER_OR_STR = "layer",
-                 **kwargs):
-        super().__init__(num_classes=num_classes,
-                         units_values=units_values,
-                         activation_hidden=activation_hidden,
-                         activation_out=activation_out,
-                         normalization=normalization,
-                         **kwargs)
-
-
-class RegressionHead(BaseRegressionHead):
-    """
-    Regression head for the FTTransformer Regressor architecture.
-
-    Args:
-        num_outputs: `int`, default 1,
-            Number of regression outputs to predict.
-        units_values: `List[int] | Tuple[int]`, default None,
-            For each value in the sequence
-            a hidden layer of that dimension preceded by a normalization layer (if specified) is
-            added to the RegressionHead.
-        activation_hidden: default "relu",
-            Activation function to use in hidden dense layers.
-        normalization: `Layer | str`, default "layer",
-            Normalization layer to use.
-            If specified a normalization layer is applied after each hidden layer.
-            If None, no normalization layer is applied.
-            You can either pass a keras normalization layer or name for a layer implemented by keras.
-    """
-    def __init__(self,
-                 num_outputs: int = 1,
-                 units_values: LIST_OR_TUPLE = None,
-                 activation_hidden="relu",
-                 normalization: LAYER_OR_STR = "layer",
-                 **kwargs):
-        super().__init__(num_outputs=num_outputs,
-                         units_values=units_values,
-                         activation_hidden=activation_hidden,
-                         normalization=normalization,
-                         **kwargs)
