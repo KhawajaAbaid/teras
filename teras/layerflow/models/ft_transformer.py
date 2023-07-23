@@ -1,13 +1,8 @@
 from tensorflow import keras
-from tensorflow.keras import layers, models
-from teras.layerflow.layers.ft_transformer import (ClassificationHead,
-                                                   RegressionHead)
-from teras.models import (FTTransformer as _BaseFTTransformer,
-                          FTTransformerClassifier as _BaseFTTransformerClassifier,
-                          FTTransformerRegressor as _BaseFTTransformerRegressor)
 
 
-class FTTransformer(_BaseFTTransformer):
+@keras.saving.register_keras_serializable("teras.layerflow.models")
+class FTTransformer(keras.Model):
     """
     FTTransformer architecture with LayrFlow design.
     FT-Transformer is proposed by Yury Gorishniy et al.
@@ -18,227 +13,107 @@ class FTTransformer(_BaseFTTransformer):
         https://arxiv.org/abs/2106.11959
 
     Args:
-        features_metadata: `dict`,
-            a nested dictionary of metadata for features where
-            categorical sub-dictionary is a mapping of categorical feature names to a tuple of
-            feature indices and the lists of unique values (vocabulary) in them,
-            while numerical dictionary is a mapping of numerical feature names to their indices.
-            `{feature_name: (feature_idx, vocabulary)}` for feature in categorical features.
-            `{feature_name: feature_idx}` for feature in numerical features.
-            You can get this dictionary from
-                >>> from teras.utils import get_features_metadata_for_embedding
-                >>> metadata_dict = get_features_metadata_for_embedding(dataframe,
-                                                                        numerical_features,
-                                                                        categorical_features)
-        categorical_feature_embedding: `layers.Layer`,
-            An instance of `CategoricalFeatureEmbedding` layer to embedd categorical features
-            or any layer that can work in place of `CategoricalFeatureEmbedding` for that purpose.
-            If None, a `CategoricalFeatureEmbedding` layer with default values will be used.
-            You can import the `CategoricalFeatureEmbedding` layer as follows,
+        input_dim: ``int``,
+            Dimensionality of the input dataset.
+
+        categorical_feature_embedding: ``keras.layers.Layer``,
+            An instance of ``CategoricalFeatureEmbedding`` layer to embedd categorical features
+            or any layer that can work in its place.
+            You can import the ``CategoricalFeatureEmbedding`` layer as follows,
                 >>> from teras.layerflow.layers import CategoricalFeatureEmbedding
 
-        numerical_feature_embedding: `layers.Layer`,
-            An instance of `FTNumericalFeatureEmbedding` layer to embedd numerical features
-            or any layer that can work in place of `FTNumericalFeatureEmbedding` for that purpose.
-            If None, a `FTNumericalFeatureEmbedding` layer with default values will be used.
-            You can import the `FTNumericalFeatureEmbedding` layer as follows,
-                >>> from teras.layerflow.layers import FTNumericalFeatureEmbedding
+        numerical_feature_embedding: ``keras.layers.Layer``,
+            An instance of ``FTNumericalFeatureEmbedding`` layer to embedd numerical features
+            or any layer that can work in its place.
+            You can import the ``FTNumericalFeatureEmbedding`` layer as follows,
+                >>> from teras.layers import FTNumericalFeatureEmbedding
 
-        encoder: `layers.Layer`,
-            An instance of `Encoder` layer to encode the features embeddings,
-            or any layer that can work in place of `Encoder` for that purpose.
-            If None, a `Encoder` layer with default values will be used.
+        cls_token: ``keras.layers.Layer``,
+            An instance of ``FTCLSToken`` layer, it acts as BeRT-like CLS token,
+            or any layer than can work in its place.
+            You can import the ``FTCLSToken`` layer as follows,
+                >>> from teras.layers import FTCLSToken
+
+        encoder: ``keras.layers.Layer``,
+            An instance of ``Encoder`` layer to encode the features embeddings,
+            or any layer that can work in its palce.
             You can import the `Encoder` layer as follows,
                 >>> from teras.layerflow.layers import Encoder
 
-        head: `layers.Layer`,
-            An instance of FTClassificationHead or FTRegressionHead layer for final outputs,
-            or any layer that can work in place of a Head layer for that purpose.
+        head: ``keras.layers.Layer``,
+            An instance of ``Head`` layer to make classification or regression predictions.
+            In case you're using this model as a base model for pretraining, you MUST leave
+            this argument as None.
+            You can import the ``Head`` layer as follows,
+                >>> from teras.layerflow.layers import Head
     """
     def __init__(self,
-                 features_metadata: dict,
-                 categorical_feature_embedding: layers.Layer = None,
-                 numerical_feature_embedding: layers.Layer = None,
-                 cls_token: layers.Layer = None,
-                 encoder: layers.Layer = None,
-                 head: layers.Layer = None,
+                 input_dim: int,
+                 categorical_feature_embedding: keras.layers.Layer = None,
+                 numerical_feature_embedding: keras.layers.Layer = None,
+                 cls_token: keras.layers.Layer = None,
+                 encoder: keras.layers.Layer = None,
+                 head: keras.layers.Layer = None,
                  **kwargs):
-        super().__init__(features_metadata=features_metadata,
-                         **kwargs)
+        if categorical_feature_embedding is None and numerical_feature_embedding is None:
+            raise ValueError("Both `categorical_feature_embedding` and `numerical_feature_embedding` "
+                             "cannot be None at the same time as a tabular dataset must contains "
+                             "features of at least one of the types if not both. ")
+        if cls_token is None:
+            raise ValueError("`cls_token` cannot be None. Please pass an instance of `FTCLSToken` layer. "
+                             "You can import it as, `from teras.layers import FTCLSToken`")
+
+        if encoder is None:
+            raise ValueError("`encoder` cannot be None. Please pass an instance of `Encoder` layer. "
+                             "You can import it as, `from teras.layerflow.layers import Encoder``")
+
+        if isinstance(input_dim, int):
+            input_dim = (input_dim,)
+
+        inputs = keras.layers.Input(shape=input_dim)
+        categorical_out = None
+
         if categorical_feature_embedding is not None:
-            self.categorical_feature_embedding = categorical_feature_embedding
+            x = categorical_feature_embedding(inputs)
+            categorical_out = x
 
         if numerical_feature_embedding is not None:
-            self.numerical_feature_embedding = numerical_feature_embedding
-
-        if cls_token is not None:
-            self.cls_token = cls_token
-
-        if encoder is not None:
-            self.encoder = encoder
+            x = numerical_feature_embedding(inputs)
+            if categorical_out is not None:
+                x = keras.layers.Concatenate(axis=1)([categorical_out, x])
+        x = cls_token(x)
+        outputs = encoder(x)
 
         if head is not None:
-            self.head = head
+            outputs = head(outputs)
+
+        super().__init__(inputs=inputs,
+                         outputs=outputs,
+                         **kwargs)
 
     def get_config(self):
         config = super().get_config()
-        new_config = {'categorical_feature_embedding': keras.layers.serialize(self.categorical_feature_embedding),
-                      'numerical_feature_embedding': keras.layers.serialize(self.numerical_feature_embedding),
-                      'cls_token': keras.layers.serialize(self.cls_token),
-                      'encoder': keras.layers.serialize(self.encoder),
-                      'head': keras.layers.serialize(self.head),
-                      }
-        config.update(new_config)
+        config.update({'input_dim': self.input_dim,
+                       'categorical_feature_embedding': keras.layers.serialize(self.categorical_feature_embedding),
+                       'numerical_feature_embedding': keras.layers.serialize(self.numerical_feature_embedding),
+                       'cls_token': keras.layers.serialize(self.cls_token),
+                       'encoder': keras.layers.serialize(self.encoder),
+                       'head': keras.layers.serialize(self.head),
+                       })
         return config
 
-
-class FTTransformerClassifier(FTTransformer):
-    """
-    FTTransformerClassifier architecture with LayrFlow design.
-    It is based on the FT-Transformer architecture proposed by Yury Gorishniy et al.
-    in the paper Revisiting Deep Learning Models for Tabular Data
-    in their FTTransformer architecture.
-
-    Reference(s):
-        https://arxiv.org/abs/2106.11959
-
-    Args:
-        features_metadata: `dict`,
-            a nested dictionary of metadata for features where
-            categorical sub-dictionary is a mapping of categorical feature names to a tuple of
-            feature indices and the lists of unique values (vocabulary) in them,
-            while numerical dictionary is a mapping of numerical feature names to their indices.
-            `{feature_name: (feature_idx, vocabulary)}` for feature in categorical features.
-            `{feature_name: feature_idx}` for feature in numerical features.
-            You can get this dictionary from
-                >>> from teras.utils import get_features_metadata_for_embedding
-                >>> metadata_dict = get_features_metadata_for_embedding(dataframe,
-                                                                        numerical_features,
-                                                                        categorical_features)
-        categorical_feature_embedding: `layers.Layer`,
-            An instance of `CategoricalFeatureEmbedding` layer to embedd categorical features
-            or any layer that can work in place of `CategoricalFeatureEmbedding` for that purpose.
-            If None, a `CategoricalFeatureEmbedding` layer with default values will be used.
-            You can import the `CategoricalFeatureEmbedding` layer as follows,
-                >>> from teras.layerflow.layers import CategoricalFeatureEmbedding
-
-        numerical_feature_embedding: `layers.Layer`,
-            An instance of `FTNumericalFeatureEmbedding` layer to embedd numerical features
-            or any layer that can work in place of `FTNumericalFeatureEmbedding` for that purpose.
-            If None, a `FTNumericalFeatureEmbedding` layer with default values will be used.
-            You can import the `FTNumericalFeatureEmbedding` layer as follows,
-                >>> from teras.layerflow.layers import FTNumericalFeatureEmbedding
-
-        encoder: `layers.Layer`,
-            An instance of `Encoder` layer to encode the features embeddings,
-            or any layer that can work in place of `Encoder` for that purpose.
-            If None, a `Encoder` layer with default values will be used.
-            You can import the `Encoder` layer as follows,
-                >>> from teras.layerflow.layers import Encoder
-
-        head: `layers.Layer`,
-            An instance of `FTClassificationHead` layer for the final outputs,
-            or any layer that can work in place of a `FTClassificationHead` layer for that purpose.
-            If None, `FTClassificationHead` layer with default values will be used.
-            You can import the `FTClassificationHead` layer as follows,
-                >>> from teras.layerflow.layers import FTClassificationHead
-    """
-    def __init__(self,
-                 features_metadata: dict,
-                 categorical_feature_embedding: layers.Layer = None,
-                 numerical_feature_embedding: layers.Layer = None,
-                 cls_token: layers.Layer = None,
-                 encoder: layers.Layer = None,
-                 head: layers.Layer = None,
-                 **kwargs):
-        if head is None:
-            num_classes = 2
-            activation_out = None
-            if "num_classes" in kwargs:
-                num_classes = kwargs.pop("num_classes")
-            if "activation_out" in kwargs:
-                activation_out = kwargs.pop("activation_out")
-            head = ClassificationHead(num_classes=num_classes,
-                                      activation_out=activation_out,
-                                      name="ft_transformer_classification_head")
-        super().__init__(features_metadata=features_metadata,
-                         categorical_feature_embedding=categorical_feature_embedding,
-                         numerical_feature_embedding=numerical_feature_embedding,
-                         cls_token=cls_token,
-                         encoder=encoder,
-                         head=head,
-                         **kwargs)
-
-
-class FTTransformerRegressor(FTTransformer):
-    """
-    FTTransformerRegressor architecture with LayrFlow design.
-    It is based on the FT-Transformer architecture proposed by Yury Gorishniy et al.
-    in the paper Revisiting Deep Learning Models for Tabular Data
-    in their FTTransformer architecture.
-
-    Reference(s):
-        https://arxiv.org/abs/2106.11959
-
-    Args:
-        features_metadata: `dict`,
-            a nested dictionary of metadata for features where
-            categorical sub-dictionary is a mapping of categorical feature names to a tuple of
-            feature indices and the lists of unique values (vocabulary) in them,
-            while numerical dictionary is a mapping of numerical feature names to their indices.
-            `{feature_name: (feature_idx, vocabulary)}` for feature in categorical features.
-            `{feature_name: feature_idx}` for feature in numerical features.
-            You can get this dictionary from
-                >>> from teras.utils import get_features_metadata_for_embedding
-                >>> metadata_dict = get_features_metadata_for_embedding(dataframe,
-                                                                        numerical_features,
-                                                                        categorical_features)
-        categorical_feature_embedding: `layers.Layer`,
-            An instance of `CategoricalFeatureEmbedding` layer to embedd categorical features
-            or any layer that can work in place of `CategoricalFeatureEmbedding` for that purpose.
-            If None, a `CategoricalFeatureEmbedding` layer with default values will be used.
-            You can import the `CategoricalFeatureEmbedding` layer as follows,
-                >>> from teras.layerflow.layers import CategoricalFeatureEmbedding
-
-        numerical_feature_embedding: `layers.Layer`,
-            An instance of `FTNumericalFeatureEmbedding` layer to embedd numerical features
-            or any layer that can work in place of `FTNumericalFeatureEmbedding` for that purpose.
-            If None, a `FTNumericalFeatureEmbedding` layer with default values will be used.
-            You can import the `FTNumericalFeatureEmbedding` layer as follows,
-                >>> from teras.layerflow.layers import FTNumericalFeatureEmbedding
-
-        encoder: `layers.Layer`,
-            An instance of `Encoder` layer to encode the features embeddings,
-            or any layer that can work in place of `Encoder` for that purpose.
-            If None, a `Encoder` layer with default values will be used.
-            You can import the `Encoder` layer as follows,
-                >>> from teras.layerflow.layers import Encoder
-
-        head: `layers.Layer`,
-            An instance of `FTRegressionHead` layer for the final outputs,
-            or any layer that can work in place of a `FTRegressionHead` layer for that purpose.
-            If None, `FTRegressionHead` layer with default values will be used.
-            You can import the `FTRegressionHead` layer as follows,
-                >>> from teras.layerflow.layers import FTRegressionHead
-    """
-    def __init__(self,
-                 features_metadata: dict,
-                 categorical_feature_embedding: layers.Layer = None,
-                 numerical_feature_embedding: layers.Layer = None,
-                 cls_token: layers.Layer = None,
-                 encoder: layers.Layer = None,
-                 head: layers.Layer = None,
-                 **kwargs):
-        if head is None:
-            num_outputs = 1
-            if "num_outputs" in kwargs:
-                num_outputs = kwargs.pop("num_outputs")
-            head = RegressionHead(num_outputs=num_outputs,
-                                  name="ft_transformer_regression_head")
-        super().__init__(features_metadata=features_metadata,
-                         categorical_feature_embedding=categorical_feature_embedding,
-                         numerical_feature_embedding=numerical_feature_embedding,
-                         cls_token=cls_token,
-                         encoder=encoder,
-                         head=head,
-                         **kwargs)
+    @classmethod
+    def from_config(cls, config):
+        input_dim = config.pop("input_dim")
+        categorical_feature_embedding = keras.layers.deserialize(config.pop("categorical_feature_embedding"))
+        numerical_feature_embedding = keras.layers.deserialize(config.pop("numerical_feature_embedding"))
+        cls_token = keras.layers.deserialize(config.pop("cls_token"))
+        encoder = keras.layers.deserialize(config.pop("encoder"))
+        head = keras.layers.deserialize(config.pop("head"))
+        return cls(input_dim,
+                   categorical_feature_embedding=categorical_feature_embedding,
+                   numerical_feature_embedding=numerical_feature_embedding,
+                   cls_token=cls_token,
+                   encoder=encoder,
+                   head=head,
+                   **config)
