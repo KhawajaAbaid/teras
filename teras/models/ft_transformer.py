@@ -4,6 +4,7 @@ from teras.layers.categorical_feature_embedding import CategoricalFeatureEmbeddi
 from teras.layers.common.transformer import Encoder
 from teras.layers.common.head import ClassificationHead, RegressionHead
 from teras.layerflow.models.ft_transformer import FTTransformer as _FTTransformerLF
+from teras.utils.types import UnitsValuesType
 
 
 @keras.saving.register_keras_serializable("teras.models")
@@ -17,6 +18,10 @@ class FTTransformer(_FTTransformerLF):
         https://arxiv.org/abs/2106.11959
 
     Args:
+        input_dim: ``int``,
+            Dimensionality of the input dataset,
+            or the number of features in the dataset.
+
         features_metadata: ``dict``,
             A nested dictionary of metadata for features where
             categorical sub-dictionary is a mapping of categorical feature names to a tuple of
@@ -65,6 +70,7 @@ class FTTransformer(_FTTransformerLF):
             using keras's ``IntegerLookup`` layer.
     """
     def __init__(self,
+                 input_dim: int,
                  features_metadata: dict,
                  embedding_dim: int = 32,
                  num_transformer_layers: int = 8,
@@ -78,7 +84,6 @@ class FTTransformer(_FTTransformerLF):
         num_numerical_features = len(features_metadata["numerical"])
         categorical_features_exist = num_categorical_features > 0
         numerical_features_exist = num_numerical_features > 0
-        input_dim = num_numerical_features + num_categorical_features
 
         # Numerical/Continuous Features Embedding
         numerical_feature_embedding = None
@@ -153,6 +158,16 @@ class FTTransformerClassifier(FTTransformer):
         num_classes: ``int``, default 2,
             Number of classes to predict.
 
+        head_units_values: ``List[int]`` or ``Tuple[int]``, default None,
+            Units values to use in the hidden layers in the Classification head.
+            For each value in the list/tuple,
+            a hidden layer of that dimensionality is added to the head.
+            By default, no hidden layer is used.
+
+        input_dim: ``int``,
+            Dimensionality of the input dataset,
+            or the number of features in the dataset.
+
         features_metadata: ``dict``,
             A nested dictionary of metadata for features where
             categorical sub-dictionary is a mapping of categorical feature names to a tuple of
@@ -202,7 +217,9 @@ class FTTransformerClassifier(FTTransformer):
     """
     def __init__(self,
                  num_classes: int = 2,
+                 head_units_value: UnitsValuesType = None,
                  features_metadata: dict = None,
+                 input_dim: int = None,
                  embedding_dim: int = 32,
                  num_transformer_layers: int = 8,
                  num_attention_heads: int = 8,
@@ -214,7 +231,8 @@ class FTTransformerClassifier(FTTransformer):
         head = ClassificationHead(num_classes=num_classes,
                                   units_values=None,
                                   normalization="layer")
-        super().__init__(features_metadata=features_metadata,
+        super().__init__(input_dim=input_dim,
+                         features_metadata=features_metadata,
                          embedding_dim=embedding_dim,
                          num_transformer_layers=num_transformer_layers,
                          num_attention_heads=num_attention_heads,
@@ -225,10 +243,12 @@ class FTTransformerClassifier(FTTransformer):
                          head=head,
                          **kwargs)
         self.num_classes = num_classes
+        self.head_units_value = head_units_value
 
     def get_config(self):
         config = super().get_config()
-        config.update({'num_classes': self.num_classes})
+        config.update({'num_classes': self.num_classes,
+                       'head_units_value': self.head_units_value})
         return config
 
 
@@ -245,6 +265,16 @@ class FTTransformerRegressor(FTTransformer):
     Args:
         num_outputs: `int`, default 1,
             Number of outputs to predict.
+
+        head_units_values: ``List[int]`` or ``Tuple[int]``, default None,
+            Units values to use in the hidden layers in the Classification head.
+            For each value in the list/tuple,
+            a hidden layer of that dimensionality is added to the head.
+            By default, no hidden layer is used.
+
+        input_dim: ``int``,
+            Dimensionality of the input dataset,
+            or the number of features in the dataset.
 
         features_metadata: ``dict``,
             A nested dictionary of metadata for features where
@@ -296,6 +326,8 @@ class FTTransformerRegressor(FTTransformer):
 
     def __init__(self,
                  num_outputs: int = 1,
+                 head_units_value: UnitsValuesType = None,
+                 input_dim: int = None,
                  features_metadata: dict = None,
                  embedding_dim: int = 32,
                  num_transformer_layers: int = 8,
@@ -306,9 +338,10 @@ class FTTransformerRegressor(FTTransformer):
                  encode_categorical_values: bool = True,
                  **kwargs):
         head = RegressionHead(num_outputs=num_outputs,
-                              units_values=None,
+                              units_values=head_units_value,
                               normalization="layer")
-        super().__init__(features_metadata=features_metadata,
+        super().__init__(input_dim=input_dim,
+                         features_metadata=features_metadata,
                          embedding_dim=embedding_dim,
                          num_transformer_layers=num_transformer_layers,
                          num_attention_heads=num_attention_heads,
@@ -319,8 +352,10 @@ class FTTransformerRegressor(FTTransformer):
                          head=head,
                          **kwargs)
         self.num_outputs = num_outputs
+        self.head_units_value = head_units_value
 
     def get_config(self):
         config = super().get_config()
-        config.update({'num_outputs': self.num_classes})
+        config.update({'num_outputs': self.num_classes,
+                       'head_units_value': self.head_units_value})
         return config
