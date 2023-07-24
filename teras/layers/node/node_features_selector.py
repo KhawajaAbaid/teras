@@ -3,9 +3,9 @@ from tensorflow import keras
 
 
 @keras.saving.register_keras_serializable(package="teras.layers.node")
-class FeatureSelector(keras.layers.Layer):
+class NodeFeatureSelector(keras.layers.Layer):
     """
-    FeatureSelector layer for the ``NODE`` architecture.
+    NodeFeatureSelector layer for the ``NODE`` architecture.
     This is not part of the official architecture,
     it offers very basic functionality of selecting features
     in case the user specifies the max_features argument in
