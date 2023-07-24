@@ -26,6 +26,10 @@ class SAINT(_SAINTLF):
         https://arxiv.org/abs/2106.01342
 
     Args:
+        input_dim: ``int``,
+            Dimensionality of the input dataset,
+            or the number of features in the dataset.
+
         features_metadata: ``dict``,
             a nested dictionary of metadata for features where
             categorical sub-dictionary is a mapping of categorical feature names to a tuple of
@@ -95,6 +99,7 @@ class SAINT(_SAINTLF):
             same time!
     """
     def __init__(self,
+                 input_dim: int,
                  features_metadata: dict,
                  embedding_dim: int = SAINTConfig.embedding_dim,
                  numerical_embedding_hidden_dim: int = SAINTConfig.numerical_embedding_hidden_dim,
@@ -113,8 +118,6 @@ class SAINT(_SAINTLF):
                  ):
         num_categorical_features = len(features_metadata["categorical"])
         num_numerical_features = len(features_metadata["numerical"])
-        num_features = num_numerical_features + num_categorical_features
-
         numerical_features_exist = num_numerical_features > 0
         categorical_features_exist = num_categorical_features > 0
 
@@ -151,7 +154,7 @@ class SAINT(_SAINTLF):
                                num_embedded_features=self._num_embedded_features,
                                )
 
-        super().__init__(input_dim=num_features,
+        super().__init__(input_dim=input_dim,
                          encoder=encoder,
                          categorical_feature_embedding=categorical_feature_embedding,
                          numerical_feature_embedding=numerical_feature_embedding,
@@ -219,6 +222,10 @@ class SAINTClassifier(SAINT):
             Hidden units to use in the Classification head.
             For each value in the list/tuple,
             a hidden layer of that dimensionality is added to the head.
+
+        input_dim: ``int``,
+            Dimensionality of the input dataset,
+            or the number of features in the dataset.
 
         features_metadata: ``dict``,
             a nested dictionary of metadata for features where
@@ -291,6 +298,7 @@ class SAINTClassifier(SAINT):
     def __init__(self,
                  num_classes: int = 2,
                  head_units_values: UnitsValuesType = (64, 32),
+                 input_dim: int = None,
                  features_metadata: dict = None,
                  embedding_dim: int = SAINTConfig.embedding_dim,
                  numerical_embedding_hidden_dim: int = SAINTConfig.numerical_embedding_hidden_dim,
@@ -321,7 +329,8 @@ class SAINTClassifier(SAINT):
                                   activation_hidden="relu",
                                   normalization="batch",
                                   name="saint_classifier_head")
-        super().__init__(features_metadata=features_metadata,
+        super().__init__(input_dim=input_dim,
+                         features_metadata=features_metadata,
                          embedding_dim=embedding_dim,
                          numerical_embedding_hidden_dim=numerical_embedding_hidden_dim,
                          num_transformer_layers=num_transformer_layers,
@@ -369,6 +378,10 @@ class SAINTRegressor(SAINT):
             Hidden units to use in the Classification head.
             For each value in the list/tuple,
             a hidden layer of that dimensionality is added to the head.
+
+        input_dim: ``int``,
+            Dimensionality of the input dataset,
+            or the number of features in the dataset.
 
         features_metadata: ``dict``,
             a nested dictionary of metadata for features where
@@ -442,6 +455,7 @@ class SAINTRegressor(SAINT):
     def __init__(self,
                  num_outputs: int = 1,
                  head_units_values: UnitsValuesType = (64, 32),
+                 input_dim: int = None,
                  features_metadata: dict = None,
                  embedding_dim: int = SAINTConfig.embedding_dim,
                  numerical_embedding_hidden_dim: int = SAINTConfig.numerical_embedding_hidden_dim,
@@ -467,7 +481,8 @@ class SAINTRegressor(SAINT):
                               activation_hidden="relu",
                               normalization="batch",
                               name="saint_regressor_head")
-        super().__init__(features_metadata=features_metadata,
+        super().__init__(input_dim=input_dim,
+                         features_metadata=features_metadata,
                          embedding_dim=embedding_dim,
                          numerical_embedding_hidden_dim=numerical_embedding_hidden_dim,
                          num_transformer_layers=num_transformer_layers,
