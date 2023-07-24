@@ -1,5 +1,5 @@
 import tensorflow as tf
-from typing import Union, List, Callable
+from typing import Union, List, Callable, Tuple
 import numpy as np
 
 
@@ -36,3 +36,5 @@ ActivationType = Union[str,
                        Callable,
                 ]
 
+
+UnitsValuesType = Union[List[int], Tuple[int]]
