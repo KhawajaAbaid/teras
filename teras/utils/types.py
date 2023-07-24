@@ -1,5 +1,5 @@
 import tensorflow as tf
-from typing import Union, List
+from typing import Union, List, Callable
 import numpy as np
 
 
@@ -31,3 +31,8 @@ TensorLike = Union[
                 tf.SparseTensor,
                 tf.Variable,
             ]
+
+ActivationType = Union[str,
+                       Callable,
+                ]
+
