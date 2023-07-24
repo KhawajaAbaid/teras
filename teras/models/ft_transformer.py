@@ -229,7 +229,7 @@ class FTTransformerClassifier(FTTransformer):
                  encode_categorical_values: bool = True,
                  **kwargs):
         head = ClassificationHead(num_classes=num_classes,
-                                  units_values=None,
+                                  units_values=head_units_value,
                                   normalization="layer")
         super().__init__(input_dim=input_dim,
                          features_metadata=features_metadata,
