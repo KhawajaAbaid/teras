@@ -8,13 +8,8 @@ from teras.layerflow.models.saint import (SAINT as _SAINTLF,
 from teras.layers.saint.saint_reconstruction_head import SAINTReconstructionHead
 from teras.layers.saint.saint_projection_head import SAINTProjectionHead
 from teras.layers.regularization import MixUp, CutMix
-
-
 from teras.config.saint import SAINTConfig
-from typing import Union, List, Tuple
-
-
-UNITS_VALUES_TYPE = Union[List[int], Tuple[int]]
+from teras.utils.types import UnitsValuesType
 
 
 @keras.saving.register_keras_serializable("teras.models")
@@ -295,7 +290,7 @@ class SAINTClassifier(SAINT):
     """
     def __init__(self,
                  num_classes: int = 2,
-                 head_units_values: UNITS_VALUES_TYPE = (64, 32),
+                 head_units_values: UnitsValuesType = (64, 32),
                  features_metadata: dict = None,
                  embedding_dim: int = SAINTConfig.embedding_dim,
                  numerical_embedding_hidden_dim: int = SAINTConfig.numerical_embedding_hidden_dim,
@@ -446,7 +441,7 @@ class SAINTRegressor(SAINT):
 
     def __init__(self,
                  num_outputs: int = 1,
-                 head_units_values: UNITS_VALUES_TYPE = (64, 32),
+                 head_units_values: UnitsValuesType = (64, 32),
                  features_metadata: dict = None,
                  embedding_dim: int = SAINTConfig.embedding_dim,
                  numerical_embedding_hidden_dim: int = SAINTConfig.numerical_embedding_hidden_dim,
