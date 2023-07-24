@@ -1,12 +1,11 @@
 from tensorflow import keras
 from teras.layerflow.layers.common.common import HiLOL
-from teras.utils import (serialize_layers_collection,
-                         deserialize_layers_collection)
 from typing import List
 
 LIST_OF_LAYERS = List[keras.layers.Layer]
 
 
+@keras.saving.register_keras_serializable(package="teras.layerflow.layers.common")
 class FeedForward(HiLOL):
     """
     FeedForward layer with LayerFlow design.
@@ -34,6 +33,7 @@ class FeedForward(HiLOL):
                          **kwargs)
 
 
+@keras.saving.register_keras_serializable(package="teras.layerflow.layers.common")
 class Transformer(keras.layers.Layer):
     """
     Transformer layer with LayerFlow design.
@@ -119,6 +119,7 @@ class Transformer(keras.layers.Layer):
                    **config)
 
 
+@keras.saving.register_keras_serializable(package="teras.layerflow.layers.common")
 class Encoder(keras.layers.Layer):
     """
     Encoder layer with LayerFlow design.
@@ -130,6 +131,8 @@ class Encoder(keras.layers.Layer):
         transformer_layers: ``List[keras.layers.Layer]``,
             A list of ``Transformer`` layers that make up the encoder
             layer.
+            It can also be an instance of Keras Model made up of
+            ``Transformer`` or any other layers in the mix.
             You can import the ``Transformer`` layer as follows,
                 >>> from teras.layerflow.layers import Transformer
     """
@@ -137,18 +140,23 @@ class Encoder(keras.layers.Layer):
                  transformer_layers: LIST_OF_LAYERS,
                  **kwargs):
         super().__init__(**kwargs)
-        if transformer_layers is not None:
+        self.transformer_layers = transformer_layers
+        if isinstance(self.transformer_layers, (list, tuple)):
             self.transformer_layers = keras.models.Sequential(
-                transformer_layers,
+                self.transformer_layers,
                 name="transformer_layers"
             )
 
+    def call(self, inputs):
+        outputs = self.transformer_layers(inputs)
+        return outputs
+
     def get_config(self):
         config = super().get_config()
-        config.update({'transformer_layers': serialize_layers_collection(self.transformer_layers)})
+        config.update({'transformer_layers': keras.layers.serialize(self.transformer_layers)})
         return config
 
     @classmethod
     def from_config(cls, config):
-        transformer_layers = deserialize_layers_collection(config.pop("transformer_layers"))
+        transformer_layers = keras.layers.deserialize(config.pop("transformer_layers"))
         return cls(transformer_layers, **config)
