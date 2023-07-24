@@ -6,10 +6,7 @@ from teras.layers.categorical_feature_embedding import CategoricalFeatureEmbeddi
 from teras.layers.normalization import NumericalFeatureNormalization
 from teras.layers.tabtransformer.tabtransformer_column_embedding import TabTransformerColumnEmbedding
 from teras.layers.common.head import ClassificationHead, RegressionHead
-from typing import List, Union, Tuple
-
-LIST_OR_TUPLE_OF_INT = Union[List[int], Tuple[int]]
-LAYER_OR_MODEL = Union[keras.layers.Layer, keras.Model]
+from teras.utils.types import UnitsValuesType
 
 
 @keras.saving.register_keras_serializable("keras.models")
@@ -260,7 +257,7 @@ class TabTransformerClassifier(TabTransformer):
     """
     def __init__(self,
                  num_classes: int = 2,
-                 head_units_values: LIST_OR_TUPLE_OF_INT = (64, 32),
+                 head_units_values: UnitsValuesType = (64, 32),
                  input_dim: int = None,
                  features_metadata: dict = None,
                  embedding_dim: int = TabTransformerConfig.embedding_dim,
@@ -306,7 +303,7 @@ class TabTransformerClassifier(TabTransformer):
     def from_pretrained(cls,
                         pretrained_model: TabTransformer,
                         num_classes: int = 2,
-                        head_units_values: LIST_OR_TUPLE_OF_INT = (64, 32)
+                        head_units_values: UnitsValuesType = (64, 32)
                         ):
         """
         Class method to create a TabTransformer Classifier model instance from
@@ -421,7 +418,7 @@ class TabTransformerRegressor(TabTransformer):
     """
     def __init__(self,
                  num_outputs: int = 1,
-                 head_units_values: LIST_OR_TUPLE_OF_INT = (64, 32),
+                 head_units_values: UnitsValuesType = (64, 32),
                  input_dim: int = None,
                  features_metadata: dict = None,
                  embedding_dim: int = TabTransformerConfig.embedding_dim,
@@ -462,7 +459,7 @@ class TabTransformerRegressor(TabTransformer):
     def from_pretrained(cls,
                         pretrained_model: TabTransformer,
                         num_outputs: int = 1,
-                        head_units_values: LIST_OR_TUPLE_OF_INT = (64, 32)
+                        head_units_values: UnitsValuesType = (64, 32)
                         ):
         """
         Class method to create a TabTransformer Regressor model instance from
