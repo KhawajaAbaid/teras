@@ -29,6 +29,10 @@ class TabTransformer(TabTransformerLF):
         https://arxiv.org/abs/2012.06678
 
     Args:
+        input_dim: ``int``,
+            Dimensionality of the input dataset,
+            or the number of features in the dataset.
+
         features_metadata: ``dict``,
             A nested dictionary of metadata for features where
             categorical sub-dictionary is a mapping of categorical feature names to a tuple of
@@ -82,6 +86,7 @@ class TabTransformer(TabTransformerLF):
             using keras's ``IntegerLookup`` layer.
 """
     def __init__(self,
+                 input_dim: int,
                  features_metadata: dict,
                  embedding_dim: int = TabTransformerConfig.embedding_dim,
                  num_transformer_layers: int = TabTransformerConfig.num_transformer_layers,
@@ -128,6 +133,7 @@ class TabTransformer(TabTransformerLF):
                          numerical_feature_normalization=numerical_feature_normalization,
                          **kwargs)
 
+        self.input_dim = input_dim
         self.features_metadata = features_metadata
         self.embedding_dim = embedding_dim
         self.num_transformer_layers = num_transformer_layers
@@ -143,6 +149,7 @@ class TabTransformer(TabTransformerLF):
     def get_config(self):
         config = {'name': self.name,
                   'trainable': self.trainable,
+                  'input_dim': self.input_dim,
                   'features_metadata': self.features_metadata,
                   'embedding_dim': self.embedding_dim,
                   'num_transformer_layers': self.num_transformer_layers,
@@ -166,7 +173,9 @@ class TabTransformer(TabTransformerLF):
         #
         # !NOTE: Since in this default/parametric API version, we don't take any
         # sublayers as arguments, so, we don't need to deserialize anything.
-        return cls(**config)
+        input_dim = config.pop("input_dim")
+        features_metadata = config.pop("features_metadata")
+        return cls(input_dim, features_metadata, **config)
 
 
 class TabTransformerClassifier(TabTransformer):
@@ -185,13 +194,17 @@ class TabTransformerClassifier(TabTransformer):
         https://arxiv.org/abs/2012.06678
 
     Args:
-        num_classes: `int`, default 2,
+        num_classes: ``int``, default 2,
             Number of classes to predict.
 
         head_units_values: ``List[int]`` or ``Tuple[int]``, default [64, 32],
             Units values to use in the hidden layers in the Classification head.
             For each value in the list/tuple,
             a hidden layer of that dimensionality is added to the head.
+
+        input_dim: ``int``,
+            Dimensionality of the input dataset,
+            or the number of features in the dataset.
 
         features_metadata: ``dict``,
             A nested dictionary of metadata for features where
@@ -248,6 +261,7 @@ class TabTransformerClassifier(TabTransformer):
     def __init__(self,
                  num_classes: int = 2,
                  head_units_values: LIST_OR_TUPLE_OF_INT = (64, 32),
+                 input_dim: int = None,
                  features_metadata: dict = None,
                  embedding_dim: int = TabTransformerConfig.embedding_dim,
                  num_transformer_layers: int = TabTransformerConfig.num_transformer_layers,
@@ -271,7 +285,8 @@ class TabTransformerClassifier(TabTransformer):
                                   activation_hidden="relu",
                                   normalization="batch",
                                   name="tabtransformer_classifier_head")
-        super().__init__(features_metadata=features_metadata,
+        super().__init__(input_dim=input_dim,
+                         features_metadata=features_metadata,
                          embedding_dim=embedding_dim,
                          num_transformer_layers=num_transformer_layers,
                          num_attention_heads=num_attention_heads,
@@ -348,6 +363,10 @@ class TabTransformerRegressor(TabTransformer):
             For each value in the list/tuple,
             a hidden layer of that dimensionality is added to the head.
 
+        input_dim: ``int``,
+            Dimensionality of the input dataset,
+            or the number of features in the dataset.
+
         features_metadata: ``dict``,
             A nested dictionary of metadata for features where
             categorical sub-dictionary is a mapping of categorical feature names to a tuple of
@@ -403,6 +422,7 @@ class TabTransformerRegressor(TabTransformer):
     def __init__(self,
                  num_outputs: int = 1,
                  head_units_values: LIST_OR_TUPLE_OF_INT = (64, 32),
+                 input_dim: int = None,
                  features_metadata: dict = None,
                  embedding_dim: int = TabTransformerConfig.embedding_dim,
                  num_transformer_layers: int = TabTransformerConfig.num_transformer_layers,
@@ -421,7 +441,8 @@ class TabTransformerRegressor(TabTransformer):
                               activation_hidden="relu",
                               normalization="batch",
                               name="tabtransformer_regressor_head")
-        super().__init__(features_metadata=features_metadata,
+        super().__init__(input_dim=input_dim,
+                         features_metadata=features_metadata,
                          embedding_dim=embedding_dim,
                          num_transformer_layers=num_transformer_layers,
                          num_attention_heads=num_attention_heads,
