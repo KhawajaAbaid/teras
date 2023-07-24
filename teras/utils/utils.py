@@ -5,10 +5,10 @@ from typing import List, Union, Tuple
 import pandas as pd
 import numpy as np
 from warnings import warn
-
+from teras.utils.types import ActivationType
+from teras import activations
 
 LayerType = Union[str, layers.Layer]
-FEATURE_NAMES_TYPE = Union[List[str], Tuple[str]]
 LAYERS_COLLECTION = Union[List[layers.Layer], layers.Layer, models.Model]
 LAYERS_CONFIGS_COLLECTION = Union[List[dict], dict]
 
@@ -71,30 +71,45 @@ def get_normalization_layer(normalization: LayerType) -> layers.Layer:
     return normalization_layer
 
 
-
-def get_activation(activation: LayerType,
-                   units=None):
+def get_activation(activation: ActivationType):
     """
     Retrieves and returns a keras activation function if not already.
 
     Args:
-        activation: default None.
+        activation:
             If type of activation is a keras function, it is returned as is.
             If it is of type, str, that is, it is a name,
-            then relevant activation function is returned
+            then relevant activation function is returned, if it is offered
+            by either ``Teras`` or ``Keras``, otherwise an error is raised.
 
     Returns:
         Keras Activation function
     """
     if isinstance(activation, str):
         activation = activation.lower()
+        # First check if Keras offers that function
         try:
             activation_func = keras.activations.get(activation)
         except ValueError:
-            raise ValueError(f"{activation} function's name is either wrong or this activation is not supported by Keras."
-                             f"Please contact Teras team, and we'll make sure to add this to Teras.")
-    else:
+            # Then check if Teras offers it
+            if activation == "glu":
+                activation_func = activations.glu
+            elif activation == "geglu":
+                activation_func = activations.geglu
+            elif activation == "gumblesoftmax":
+                activation_func = activations.gumbel_softmax
+            elif activation == "sparsemax":
+                activation_func = activations.sparsemax
+            else:
+                # Otherwise return error
+                raise ValueError(f"{activation} function's name is either incorrect "
+                                 f"or this activation is not offered by either Keras and Teras. ")
+    elif callable(activation):
         activation_func = activation
+
+    else:
+        TypeError("Unsupported type for `activation` argument. "
+                  f"Expected type(s): [`str`, `callable`]. Received: {type(activation)}")
     return activation_func
 
 
