@@ -1,4 +1,5 @@
 import tensorflow as tf
+from tensorflow import keras
 from typing import Union, List, Callable, Tuple
 import numpy as np
 
@@ -38,3 +39,10 @@ ActivationType = Union[str,
 
 
 UnitsValuesType = Union[List[int], Tuple[int]]
+
+LayersList = List[keras.layers.Layer]
+
+LayersCollection = Union[keras.layers.Layer,
+                         List[keras.layers.Layer],
+                         keras.Model]
+
