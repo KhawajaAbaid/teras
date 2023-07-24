@@ -4,14 +4,17 @@ from tensorflow import keras
 
 # ================================= GLU =======================================
 @keras.saving.register_keras_serializable(package="teras.activations")
-def glu(logits: tf.Tensor, units: int) -> tf.Tensor:
+def glu(logits: tf.Tensor) -> tf.Tensor:
     """
     Generalized linear unit nonlinear activation.
 
     logits: ``Tensor``,
         Input tensor of logits.
     """
-    return logits[:, :units] * tf.nn.sigmoid(logits[:, units:])
+    x, gates = tf.split(logits,
+                        num_or_size_splits=2,
+                        axis=-1)
+    return x * tf.nn.sigmoid(gates)
 
 
 # ================================= GEGLU =======================================
