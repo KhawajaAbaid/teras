@@ -44,25 +44,62 @@ class Transformer(keras.layers.Layer):
         multi_head_attention: ``keras.layers.Layer``,
             An instance of ``MultiHeadAttention`` layer or any layer
             that can be sued in place of ``MultiHeadAttention`` layer.
+            You can import this layer as follows,
+                >>> from keras.layers import MultiHeadAttention
 
         feed_forward: ``keras.layers.Layer``,
             An instance of ``FeedForward`` layer or any layer that
             can be used in its place.
             You can import the ``FeedForward`` layer as follows,
                 >>> from teras.layerflow.layers import FeedForward
+
+        layer_norm_1: ``keras.layers.Layer``,
+            An instance of ``LayerNormalization`` instance applied after
+            first skip connection.
+            If None, a default ``LayerNormalization`` instance is used.
+            You can import this layer as follows,
+                >>> from keras.layers import LayerNormalization
+
+        layer_norm_1: ``keras.layers.Layer``, optional,
+            An instance of ``LayerNormalization`` instance applied after
+            second skip connection.
+            If None, a default ``LayerNormalization`` instance is used.
+            You can import this layer as follows,
+                >>> from keras.layers import LayerNormalization
     """
     def __init__(self,
                  multi_head_attention: keras.layers.Layer,
                  feed_forward: keras.layers.Layer,
+                 layer_norm_1: keras.layers.Layer = None,
+                 layer_norm_2: keras.layers.Layer = None,
                  **kwargs):
         super().__init__(**kwargs)
         self.multi_head_attention = multi_head_attention
+        self.skip_1 = keras.layers.Add(name="skip_1")
+        self.layer_norm_1 = layer_norm_1
+        if self.layer_norm_1 is None:
+            self.layer_norm_1 = keras.layers.LayerNormalization()
         self.feed_forward = feed_forward
+        self.skip_2 = keras.layers.Add(name="skip_2")
+        self.layer_norm_2 = layer_norm_2
+        if self.layer_norm_2 is None:
+            self.layer_norm_2 = keras.layers.LayerNormalization()
+
+    def call(self, inputs):
+        attention_out = self.multi_head_attention(inputs, inputs)
+        x = self.skip_1([attention_out, inputs])
+        x = self.layer_norm_1(x)
+        feedforward_out = self.feed_forward(x)
+        x = self.skip_2([feedforward_out, x])
+        x = self.layer_norm_2(x)
+        return x
 
     def get_config(self):
         config = super().get_config()
         new_config = {'multi_head_attention': keras.layers.serialize(self.multi_head_attention),
                       'feed_forward': keras.layers.serialize(self.feed_forward),
+                      'layer_norm_1': keras.layers.deserialize(self.layer_norm_1),
+                      'layer_norm_2': keras.layers.deserialize(self.layer_norm_2)
                       }
         config.update(new_config)
         return config
@@ -72,9 +109,13 @@ class Transformer(keras.layers.Layer):
         multi_head_attention = keras.layers.deserialize(config.pop("multi_head_attention"))
         feed_forward = keras.layers.deserialize(config.pop("feed_forward"))
         transformer = keras.layers.deserialize(config.pop("transformer"))
+        layer_norm_1 = keras.layers.deserialize(config.pop("layer_norm_1"))
+        layer_norm_2 = keras.layers.deserialize(config.pop("layer_norm_2"))
         return cls(multi_head_attention=multi_head_attention,
                    feed_forward=feed_forward,
                    transformer=transformer,
+                   layer_norm_1=layer_norm_1,
+                   layer_norm_2=layer_norm_2,
                    **config)
 
 
