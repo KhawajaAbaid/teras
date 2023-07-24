@@ -1,18 +1,12 @@
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras import layers, models
-from typing import Union
-
-
-LAYER_OR_STR = Union[keras.layers.Layer, str]
 
 
 @keras.saving.register_keras_serializable(package="teras.layerflow.layers")
-class NumericalFeatureNormalization(layers.Layer):
+class NumericalFeatureNormalization(keras.layers.Layer):
     """
     NumericalFeatureNormalization layer that applies specified
     type of normalization over the numerical features only.
-
 
     Args:
         features_metadata: ``dict``,
@@ -27,12 +21,13 @@ class NumericalFeatureNormalization(layers.Layer):
                 >>> features_metadata = get_features_metadata_for_embedding(dataset,
                 ..                                                          categorical_features,
                 ..                                                          numerical_features)
+
         normalization: ``layers.Layer``, default ``LayerNormalization``,
             Normalization to apply over the numerical features.
     """
     def __init__(self,
                  features_metadata: dict,
-                 normalization: layers.Layer = layers.LayerNormalization(),
+                 normalization: keras.layers.Layer = keras.layers.LayerNormalization(),
                  **kwargs):
         super().__init__(**kwargs)
         self.features_metadata = features_metadata
