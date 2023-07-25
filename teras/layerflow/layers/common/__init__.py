@@ -22,5 +22,3 @@ from teras.layerflow.layers.common.transformer import (FeedForward,
                                                        Transformer,
                                                        Encoder)
 
-# Head layers
-from teras.layerflow.layers.common.head import Head
