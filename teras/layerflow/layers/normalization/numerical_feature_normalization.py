@@ -2,7 +2,7 @@ import tensorflow as tf
 from tensorflow import keras
 
 
-@keras.saving.register_keras_serializable(package="teras.layerflow.layers")
+@keras.saving.register_keras_serializable(package="teras.layerflow.layers.normalization")
 class NumericalFeatureNormalization(keras.layers.Layer):
     """
     NumericalFeatureNormalization layer that applies specified
