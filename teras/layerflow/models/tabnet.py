@@ -1,14 +1,10 @@
 from tensorflow import keras
-from tensorflow.keras import layers, models
-from teras.models.tabnet import (TabNet as _BaseTabNet,
-                                 TabNetPretrainer as _BaseTabNetPretrainer)
-from teras.layerflow.layers.tabnet import ClassificationHead, RegressionHead
-from teras.layerflow.models import SimpleModel
+from teras.layers.common.head import ClassificationHead, RegressionHead
 
 
-class TabNet(_BaseTabNet):
+class TabNet(keras.Model):
     """
-    Base TabNet model class with LayerFlow design.
+    TabNet model class with LayerFlow design.
 
     TabNet is a novel high-performance and interpretable canonical
     deep tabular data learning architecture.
@@ -23,7 +19,7 @@ class TabNet(_BaseTabNet):
         https://arxiv.org/abs/1908.07442
 
     Args:
-        features_metadata: `dict`,
+        features_metadata: ``dict``,
             a nested dictionary of metadata for features where
             categorical sub-dictionary is a mapping of categorical feature names to a tuple of
             feature indices and the lists of unique values (vocabulary) in them,
@@ -33,31 +29,38 @@ class TabNet(_BaseTabNet):
             You can get this dictionary from
                 >>> from teras.utils import get_features_metadata_for_embedding
                 >>> metadata_dict = get_features_metadata_for_embedding(dataframe,
-                                                                        numerical_features,
-                                                                        categorical_features)
+                ..                                                      categorical_features,
+                ..                                                      numerical_features)
 
-        categorical_feature_embedding: `layers.Layer`,
+        categorical_feature_embedding: ``keras.layers.Layer``,
             An instance of `CategoricalFeatureEmbedding` layer to embedd categorical features
             or any layer that can work in place of `CategoricalFeatureEmbedding` for that purpose.
             If None, a `CategoricalFeatureEmbedding` layer with default values will be used.
             You can import the `CategoricalFeatureEmbedding` layer as follows,
-                >>> from teras.layerflow.layers import CategoricalFeatureEmbedding
+                >>> from teras.layers import CategoricalFeatureEmbedding
 
-        encoder: `layers.Layer`,
+        encoder: ``keras.layers.Layer``,
             An instance of Encoder layer to encode feature embeddings,
             or any layer that can work in place of Encoder for that purpose.
             If None, an Encoder layer with default values will be used.
-                >>> from teras.layerflow.layers import Encoder
+                >>> from teras.layers import TabNetEncoder
 
-        head: `layers.Layer`,
-            An instance of ClassificationHead or RegressionHead layer for final outputs,
-            or any layer that can work in place of a Head layer for that purpose.
+        head: ``keras.layers.Layer``,
+            An instance of either ``ClassificationHead`` or ``RegressionHead`` layers,
+            depending on the task at hand.
+
+            REMEMBER: In case you're using this model as a base model for pretraining, you MUST leave
+            this argument as None.
+
+            You can import the ``ClassificationHead`` and ``RegressionHead`` layers as follows,
+                >>> from teras.layers import ClassificationHead
+                >>> from teras.layers import RegressionHead
     """
     def __init__(self,
                  features_metadata: dict,
-                 categorical_features_embedding: layers.Layer = None,
-                 encoder: layers.Layer = None,
-                 head: layers.Layer = None,
+                 categorical_features_embedding: keras.layers.Layer = None,
+                 encoder: keras.layers.Layer = None,
+                 head: keras.layers.Layer = None,
                  **kwargs):
         super().__init__(features_metadata=features_metadata,
                          **kwargs)
@@ -80,209 +83,7 @@ class TabNet(_BaseTabNet):
         return config
 
 
-class TabNetClassifier(TabNet):
-    """
-    TabNetClassifier with LayerFlow desing.
-    It is based on the TabNet archietcture.
-
-    TabNet is a novel high-performance and interpretable canonical
-    deep tabular data learning architecture.
-    TabNet uses sequential attention to choose which features to reason
-    from at each decision step, enabling interpretability and more
-    efficient learning as the learning capacity is used for the most
-    salient features.
-
-    TabNet is proposed by Sercan et al. in TabNet paper.
-
-    Reference(s):
-        https://arxiv.org/abs/1908.07442
-
-    Args:
-        features_metadata: `dict`,
-            a nested dictionary of metadata for features where
-            categorical sub-dictionary is a mapping of categorical feature names to a tuple of
-            feature indices and the lists of unique values (vocabulary) in them,
-            while numerical dictionary is a mapping of numerical feature names to their indices.
-            `{feature_name: (feature_idx, vocabulary)}` for feature in categorical features.
-            `{feature_name: feature_idx}` for feature in numerical features.
-            You can get this dictionary from
-                >>> from teras.utils import get_features_metadata_for_embedding
-                >>> metadata_dict = get_features_metadata_for_embedding(dataframe,
-                                                                        numerical_features,
-                                                                        categorical_features)
-
-        categorical_feature_embedding: `layers.Layer`,
-            An instance of `CategoricalFeatureEmbedding` layer to embedd categorical features
-            or any layer that can work in place of `CategoricalFeatureEmbedding` for that purpose.
-            If None, a `CategoricalFeatureEmbedding` layer with default values will be used.
-            You can import the `CategoricalFeatureEmbedding` layer as follows,
-                >>> from teras.layerflow.layers import CategoricalFeatureEmbedding
-
-        encoder: `layers.Layer`,
-            An instance of Encoder layer to encode feature embeddings,
-            or any layer that can work in place of Encoder for that purpose.
-            If None, an Encoder layer with default values will be used.
-                >>> from teras.layerflow.layers import Encoder
-
-        head: `layers.Layer`,
-            An instance of `TabNetClassificationHead` layer for the final outputs,
-            or any layer that can work in place of a `TabNetClassificationHead` layer for that purpose.
-            If None, `TabNetClassificationHead` layer with default values will be used.
-            You can import the `TabNetClassificationHead` layer as follows,
-                >>> from teras.layerflow.layers import TabNetClassificationHead
-    """
-    def __init__(self,
-                 features_metadata: dict,
-                 categorical_features_embedding: layers.Layer = None,
-                 encoder: layers.Layer = None,
-                 head: layers.Layer = None,
-                 **kwargs):
-        if head is None:
-            num_classes = 2
-            activation_out = None
-            if "num_classes" in kwargs:
-                num_classes = kwargs.pop("num_classes")
-            if "activation_out" in kwargs:
-                activation_out = kwargs.pop("activation_out")
-            head = ClassificationHead(num_classes=num_classes,
-                                      activation_out=activation_out,
-                                      name="tabnet_classification_head")
-        super().__init__(features_metadata=features_metadata,
-                         categorical_features_embedding=categorical_features_embedding,
-                         encoder=encoder,
-                         head=head,
-                         **kwargs)
-
-    @classmethod
-    def from_pretrained(cls,
-                        pretrained_model: TabNet,
-                        head: layers.Layer = None
-                        ):
-        """
-        Class method to create a TabNet Classifier model instance from
-        a pretrained base TabNet model instance.
-
-        Args:
-            pretrained_model: `TabNet`,
-                A pretrained base TabNet model instance.
-           head: `layers.Layer`,
-                An instance of ClassificationHead layer for the final outputs,
-                or any layer that can work in place of a ClassificationHead layer for that purpose.
-                If None, ClassificationHead layer with default values will be used.
-                You can import the `TabNetClassificationHead` layer as follows,
-                    >>> from teras.layerflow.layers import TabNetClassificationHead
-
-        Returns:
-            A TabNet Classifier instance based of the pretrained model.
-        """
-        if head is None:
-            head = ClassificationHead(name="tabnet_classification_head")
-        model = SimpleModel(body=pretrained_model,
-                            head=head,
-                            name="tabnet_classifier_pretrained")
-        return model
-
-
-class TabNetRegressor(TabNet):
-    """
-    TabNetRegressor with LayerFlow desing.
-    It is based on the TabNet archietcture.
-
-    TabNet is a novel high-performance and interpretable canonical
-    deep tabular data learning architecture.
-    TabNet uses sequential attention to choose which features to reason
-    from at each decision step, enabling interpretability and more
-    efficient learning as the learning capacity is used for the most
-    salient features.
-
-    TabNet is proposed by Sercan et al. in TabNet paper.
-
-    Reference(s):
-        https://arxiv.org/abs/1908.07442
-
-    Args:
-        features_metadata: `dict`,
-            a nested dictionary of metadata for features where
-            categorical sub-dictionary is a mapping of categorical feature names to a tuple of
-            feature indices and the lists of unique values (vocabulary) in them,
-            while numerical dictionary is a mapping of numerical feature names to their indices.
-            `{feature_name: (feature_idx, vocabulary)}` for feature in categorical features.
-            `{feature_name: feature_idx}` for feature in numerical features.
-            You can get this dictionary from
-                >>> from teras.utils import get_features_metadata_for_embedding
-                >>> metadata_dict = get_features_metadata_for_embedding(dataframe,
-                                                                        numerical_features,
-                                                                        categorical_features)
-
-        categorical_feature_embedding: `layers.Layer`,
-            An instance of `CategoricalFeatureEmbedding` layer to embedd categorical features
-            or any layer that can work in place of `CategoricalFeatureEmbedding` for that purpose.
-            If None, a `CategoricalFeatureEmbedding` layer with default values will be used.
-            You can import the `CategoricalFeatureEmbedding` layer as follows,
-                >>> from teras.layerflow.layers import CategoricalFeatureEmbedding
-
-        encoder: `layers.Layer`,
-            An instance of Encoder layer to encode feature embeddings,
-            or any layer that can work in place of Encoder for that purpose.
-            If None, an Encoder layer with default values will be used.
-                >>> from teras.layerflow.layers import Encoder
-
-        head: `layers.Layer`,
-            An instance of `TabNetRegressionHead` layer for the final outputs,
-            or any layer that can work in place of a `TabNetRegressionHead` layer for that purpose.
-            If None, `TabNetRegressionHead` layer with default values will be used.
-            You can import the `TabNetRegressionHead` layer as follows,
-                >>> from teras.layerflow.layers import TabNetRegressionHead
-    """
-    def __init__(self,
-                 features_metadata: dict,
-                 categorical_features_embedding: layers.Layer = None,
-                 encoder: layers.Layer = None,
-                 head: layers.Layer = None,
-                 **kwargs):
-        if head is None:
-            num_outputs = 1
-            if "num_outputs" in kwargs:
-                num_outputs = kwargs.pop("num_outputs")
-            head = RegressionHead(num_outputs=num_outputs,
-                                  name="tabnet_regression_head")
-        super().__init__(features_metadata=features_metadata,
-                         categorical_features_embedding=categorical_features_embedding,
-                         encoder=encoder,
-                         head=head,
-                         **kwargs)
-
-    @classmethod
-    def from_pretrained(cls,
-                        pretrained_model: TabNet,
-                        head: layers.Layer = None
-                        ):
-        """
-        Class method to create a TabNet Regressor model instance from
-        a pretrained base TabNet model instance.
-
-        Args:
-            pretrained_model: `TabNet`,
-                A pretrained base TabNet model instance.
-           head: `layers.Layer`,
-                An instance of RegressionHead layer for the final outputs,
-                or any layer that can work in place of a RegressionHead layer for that purpose.
-                If None, RegressionHead layer with default values will be used.
-                You can import the `TabNetRegressionHead` layer as follows,
-                    >>> from teras.layerflow.layers import TabNetRegressionHead
-
-        Returns:
-            A TabNet Regressor instance based of the pretrained model.
-        """
-        if head is None:
-            head = ClassificationHead(name="tabnet_regression_head")
-        model = SimpleModel(body=pretrained_model,
-                            head=head,
-                            name="tabnet_regressor_pretrained")
-        return model
-
-
-class TabNetPretrainer(_BaseTabNetPretrainer):
+class TabNetPretrainer(keras.Model):
     """
     TabNetPretrainer with LayerFlow desing.
 
@@ -296,25 +97,26 @@ class TabNetPretrainer(_BaseTabNetPretrainer):
         https://arxiv.org/abs/1908.07442
 
     Args:
-        model: `TabNet`,
-            An instance of base `TabNet` model to pretrain.
-        decoder: `layers.Layer`,
-            An instance of `Decoder` layer or any custom layer
+        model: ``TabNet``,
+            An instance of base ``TabNet`` model to pretrain.
+
+        decoder: `keras.layers.Layer`,
+            An instance of ``TabNetDecoder`` layer or any custom layer
             that can be used in its place to reconstruct the input
             features from the encoded representations.
-            You can import the Decoder layer as
-                >>> from teras.layerflow.layers import TabNetDecoder
+            You can import the ``TabNetDecoder`` layer as
+                >>> from teras.layers import TabNetDecoder
 
-        missing_feature_probability: `float`, default 3, Fraction of features to randomly mask
-            -- i.e. make them missing.
+        missing_feature_probability: ``float``, default 3,
+            Fraction of features to randomly mask i.e. make them missing.
             Missing features are introduced in the pretraining dataset and
             the probability of missing features is controlled by the parameter.
             The pretraining objective is to predict values for these missing features,
-            (pre)training the TabNet model in the process.
+            (pre)training the ``TabNet`` model in the process.
     """
     def __init__(self,
                  model: TabNet,
-                 decoder: layers.Layer = None,
+                 decoder: keras.layers.Layer = None,
                  missing_feature_probability: float = 0.3,
                  **kwargs):
         super().__init__(model=model,

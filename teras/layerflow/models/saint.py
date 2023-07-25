@@ -44,9 +44,15 @@ class SAINT(keras.Model):
                 >>> from teras.layers import SAINTNumericalFeatureEmbedding
 
         head: ``keras.layers.Layer``,
-            An instance of ``Head`` layer to make classification or regression predictions.
-            In case you're using this model as a base model for pretraining, you MUST leave
+            An instance of either ``ClassificationHead`` or ``RegressionHead`` layers,
+            depending on the task at hand.
+
+            REMEMBER: In case you're using this model as a base model for pretraining, you MUST leave
             this argument as None.
+
+            You can import the ``ClassificationHead`` and ``RegressionHead`` layers as follows,
+                >>> from teras.layers import ClassificationHead
+                >>> from teras.layers import RegressionHead
     """
     def __init__(self,
                  input_dim: int,
