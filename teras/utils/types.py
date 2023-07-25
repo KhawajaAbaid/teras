@@ -46,3 +46,5 @@ LayersCollection = Union[keras.layers.Layer,
                          List[keras.layers.Layer],
                          keras.Model]
 
+NormalizationType = Union[keras.layers.Layer, str]
+
