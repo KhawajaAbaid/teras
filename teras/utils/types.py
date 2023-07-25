@@ -35,6 +35,7 @@ TensorLike = Union[
 
 ActivationType = Union[str,
                        Callable,
+                       keras.layers.Layer,
                 ]
 
 
