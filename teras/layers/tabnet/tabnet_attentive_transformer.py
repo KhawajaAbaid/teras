@@ -2,6 +2,7 @@ from tensorflow import keras
 from teras.activations import sparsemax
 
 
+@keras.saving.register_keras_serializable("teras.layers.tabnet")
 class TabNetAttentiveTransformer(keras.layers.Layer):
     """
     Attentive Transformer layer for mask generation

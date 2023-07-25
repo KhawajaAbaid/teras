@@ -3,6 +3,7 @@ from tensorflow import keras
 from teras.layers.tabnet import TabNetFeatureTransformer
 
 
+@keras.saving.register_keras_serializable("teras.layers.tabnet")
 class TabNetDecoder(keras.layers.Layer):
     """
     TabNetDecoder as proposed by Sercan et al. in TabNet paper.

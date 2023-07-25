@@ -3,6 +3,7 @@ from tensorflow import keras
 from teras.activations import glu
 
 
+@keras.saving.register_keras_serializable("teras.layers.tabnet")
 class TabNetFeatureTransformerBlock(keras.layers.Layer):
     """
     Feature Transformer block layer is used in constructing the FeatureTransformer

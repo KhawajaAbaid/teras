@@ -2,6 +2,7 @@ from tensorflow import keras
 from teras.layers.tabnet.tabnet_feature_transformer_block import TabNetFeatureTransformerBlock
 
 
+@keras.saving.register_keras_serializable("teras.layers.tabnet")
 class TabNetFeatureTransformer(keras.layers.Layer):
     """
     Feature Transformer as proposed by Sercan et al. in TabNet paper.

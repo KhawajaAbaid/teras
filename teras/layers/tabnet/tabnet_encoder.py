@@ -4,6 +4,7 @@ from teras.layers.tabnet.tabnet_feature_transformer import TabNetFeatureTransfor
 from teras.layers.tabnet.tabnet_attentive_transformer import TabNetAttentiveTransformer
 
 
+@keras.saving.register_keras_serializable("teras.layers.tabnet")
 class TabNetEncoder(keras.layers.Layer):
     """
     TabNetEncoder layer based on the TabNet architecture
