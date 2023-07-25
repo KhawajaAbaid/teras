@@ -1,34 +1,38 @@
 from tensorflow import keras
-from tensorflow.keras import layers, models
 from teras.utils import get_normalization_layer
-from typing import List, Tuple, Union
-
-
-LIST_OR_TUPLE = Union[List[int], Tuple[int]]
-LAYER_OR_STR = Union[keras.layers.Layer, str]
+from teras.utils.types import (UnitsValuesType,
+                               NormalizationType,
+                               ActivationType)
 
 
 @keras.saving.register_keras_serializable(package="teras.layers.common")
-class RegressionHead(layers.Layer):
+class RegressionHead(keras.layers.Layer):
     """
-    Regression head to use on top of the architectures for regression.
+    Regression Head to use on top of the architectures for regression.
 
     Args:
-        num_outputs: `int`, default 1, Number of regression outputs to predict.
-        units_values: `List[int] | Tuple[int]`, default (64, 32), for each value in the sequence
-            a hidden layer of that dimension preceded by a normalization layer (if specified) is
-            added to the RegressionHead.
-        activation_hidden: default "relu", Activation function to use in hidden dense layers.
-        normalization: `Layer | str`, default "batch", Normalization layer to use.
+        num_outputs: ``int``, default 1,
+            Number of regression outputs to predict.
+
+        units_values: ``List[int]`` or ``Tuple[int]``, default (64, 32),
+            For each value in the sequence a hidden layer of that dimension
+            preceded by a normalization layer (if specified) is
+            added to the ``RegressionHead``.
+
+        activation_hidden: ``callable`` or ``str``, default "relu",
+            Activation function to use in hidden dense layers.
+
+        normalization: ``keras.layers.Layer`` or ``str``, default "batch",
+            Normalization layer to use.
             If specified a normalization layer is applied after each hidden layer.
             If None, no normalization layer is applied.
             You can either pass a keras normalization layer or name for a layer implemented by keras.
     """
     def __init__(self,
                  num_outputs: int = 1,
-                 units_values: LIST_OR_TUPLE = (64, 32),
-                 activation_hidden="relu",
-                 normalization: LAYER_OR_STR = "batch",
+                 units_values: UnitsValuesType = (64, 32),
+                 activation_hidden: ActivationType = "relu",
+                 normalization: NormalizationType = "batch",
                  **kwargs):
         super().__init__(**kwargs)
         self.num_outputs = num_outputs
@@ -42,12 +46,9 @@ class RegressionHead(layers.Layer):
             for units in self.units_values:
                 if self.normalization is not None:
                     self.hidden_block.add(get_normalization_layer(self.normalization))
-                self.hidden_block.add(layers.Dense(units,
-                                                   activation=self.activation_hidden))
-        self.output_layer = layers.Dense(self.num_outputs)
-
-    # def build(self, input_shape):
-    #     self.hidden_block.build(input_shape)
+                self.hidden_block.add(keras.layers.Dense(units,
+                                                         activation=self.activation_hidden))
+        self.output_layer = keras.layers.Dense(self.num_outputs)
 
     def call(self, inputs):
         x = inputs
@@ -58,39 +59,59 @@ class RegressionHead(layers.Layer):
 
     def get_config(self):
         config = super().get_config()
-        new_config = {'num_outputs': self.num_outputs,
-                      'units_values': self.units_values,
-                      'activation_hidden': self.activation_hidden,
-                      'normalization': self.normalization}
-        config.update(new_config)
+
+        if isinstance(self.activation_hidden, str):
+            activation_hidden_serialized = self.activation_hidden
+        else:
+            activation_hidden_serialized = keras.layers.serialize(self.activation_hidden)
+
+        if isinstance(self.normalization, str):
+            normalization_serialized = self.normalization
+        else:
+            normalization_serialized = keras.layers.serialize(self.normalization)
+
+        config.update({'num_outputs': self.num_outputs,
+                       'units_values': self.units_values,
+                       'activation_hidden': activation_hidden_serialized,
+                       'normalization': normalization_serialized}
+                      )
         return config
 
 
 @keras.saving.register_keras_serializable(package="teras.layers.common")
-class ClassificationHead(layers.Layer):
+class ClassificationHead(keras.layers.Layer):
     """
     Classification head to use on top of the architectures for classification.
 
     Args:
-        num_classes: `int`, default 2, Number of classes to predict.
-        units_values: `List[int] | Tuple[int]`, default (64, 32), for each value in the sequence
-            a hidden layer of that dimension preceded by a normalization layer (if specified) is
-            added to the ClassificationHead.
-        activation_hidden: default "relu", Activation function to use in hidden dense layers.
-        activation_out: Activation function to use for the output layer.
+        num_classes: ``int``, default 2,
+            Number of classes to predict.
+
+        units_values: ``List[int]`` or ``Tuple[int]``, default (64, 32),
+            For each value in the sequence a hidden layer of that dimension
+            preceded by a normalization layer (if specified) is
+            added to the ``ClassificationHead``.
+
+        activation_hidden: ``callable``, ``keras.layers.Layer``, or ``str``, default "relu",
+            Activation function to use in hidden dense layers.
+
+        activation_out: ``callable``, ``keras.layers.Layer``, or ``str``,
+            Activation function to use for the output layer.
             If not specified, `sigmoid` is used for binary and `softmax` is used for
             multiclass classification.
-        normalization: `Layer | str`, default "batch", Normalization layer to use.
+
+        normalization: ``keras.layers.Layer`` or ``str``, default "batch",
+            Normalization layer to use.
             If specified a normalization layer is applied after each hidden layer.
             If None, no normalization layer is applied.
             You can either pass a keras normalization layer or name for a layer implemented by keras.
     """
     def __init__(self,
                  num_classes: int = 2,
-                 units_values: LIST_OR_TUPLE = (64, 32),
-                 activation_hidden="relu",
-                 activation_out=None,
-                 normalization: LAYER_OR_STR = "batch",
+                 units_values: UnitsValuesType = (64, 32),
+                 activation_hidden: ActivationType = "relu",
+                 activation_out: ActivationType = None,
+                 normalization: NormalizationType = "batch",
                  **kwargs):
         super().__init__(**kwargs)
         self.num_classes = 1 if num_classes <= 2 else num_classes
@@ -107,10 +128,10 @@ class ClassificationHead(layers.Layer):
             for units in self.units_values:
                 if self.normalization is not None:
                     self.hidden_block.add(get_normalization_layer(self.normalization))
-                self.hidden_block.add(layers.Dense(units,
-                                                   activation=self.activation_hidden))
-        self.output_layer = layers.Dense(self.num_classes,
-                                         activation=self.activation_out)
+                self.hidden_block.add(keras.layers.Dense(units,
+                                                         activation=self.activation_hidden))
+        self.output_layer = keras.layers.Dense(self.num_classes,
+                                               activation=self.activation_out)
 
     def call(self, inputs):
         x = inputs
@@ -121,10 +142,26 @@ class ClassificationHead(layers.Layer):
 
     def get_config(self):
         config = super().get_config()
-        new_config = {'num_classes': self.num_classes,
-                      'units_values': self.units_values,
-                      'activation_hidden': self.activation_hidden,
-                      'activation_out': self.activation_out,
-                      'normalization': self.normalization}
-        config.update(new_config)
+
+        if isinstance(self.activation_hidden, str):
+            activation_hidden_serialized = self.activation_hidden
+        else:
+            activation_hidden_serialized = keras.layers.serialize(self.activation_hidden)
+
+        if isinstance(self.activation_out, str):
+            activation_out_serialized = self.activation_out
+        else:
+            activation_out_serialized = keras.layers.serialize(self.activation_out)
+
+        if isinstance(self.normalization, str):
+            normalization_serialized = self.normalization
+        else:
+            normalization_serialized = keras.layers.serialize(self.normalization)
+
+        config.update({'num_classes': self.num_classes,
+                       'units_values': self.units_values,
+                       'activation_hidden': activation_hidden_serialized,
+                       'activation_out': activation_out_serialized,
+                       'normalization': normalization_serialized}
+                      )
         return config
