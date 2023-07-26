@@ -3,7 +3,7 @@ from tensorflow import keras
 from teras.activations import gumbel_softmax
 
 
-@keras.saving.register_keras_serializable(package="teras.layers.activations")
+@keras.saving.register_keras_serializable(package="teras.layers.activation")
 class GumbelSoftmax(keras.layers.Layer):
     """
     Implementation of the Gumbel Softmax activation
