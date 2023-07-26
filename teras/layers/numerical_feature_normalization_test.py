@@ -20,14 +20,14 @@ def setup_data():
 def test_numerical_feature_normalization_valid_call(setup_data):
     inputs, metadata = setup_data
     normalization = NumericalFeatureNormalization(features_metadata=metadata,
-                                                  normalization_type="layer")
+                                                  normalization="layer")
     outputs = normalization(inputs)
 
 
 def test_numerical_feature_normalization_output_shape(setup_data):
     inputs, metadata = setup_data
     normalization = NumericalFeatureNormalization(features_metadata=metadata,
-                                                  normalization_type="batch")
+                                                  normalization="batch")
     outputs = normalization(inputs)
     assert len(tf.shape(outputs)) == 2
     assert tf.shape(outputs)[0] == 8
