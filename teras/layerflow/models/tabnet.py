@@ -173,6 +173,19 @@ class TabNetPretrainer(keras.Model):
         model: ``TabNet``,
             An instance of base ``TabNet`` model to pretrain.
 
+        features_metadata: ``dict``,
+            A nested dictionary of metadata for features where
+            categorical sub-dictionary is a mapping of categorical feature names to a tuple of
+            feature indices and the lists of unique values (vocabulary) in them,
+            while numerical dictionary is a mapping of numerical feature names to their indices.
+            ``{feature_name: (feature_idx, vocabulary)}`` for feature in categorical features.
+            ``{feature_name: feature_idx}`` for feature in numerical features.
+            You can get this dictionary from
+                >>> from teras.utils import get_features_metadata_for_embedding
+                >>> metadata_dict = get_features_metadata_for_embedding(dataframe,
+                ..                                                      categorical_features,
+                ..                                                      numerical_features)
+
         decoder: ``keras.layers.Layer``,
             An instance of ``TabNetDecoder`` layer or any custom layer
             that can be used in its place to reconstruct the input
