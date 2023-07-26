@@ -1,22 +1,23 @@
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras import layers
-import numpy as np
+from teras.utils.types import Number
 
 
-class LabelEncoding(layers.Layer):
+class LabelEncoding(keras.layers.Layer):
     """
     Standalone Encoding layer
     Essentially it acts as a Label encoder.
     It maps the numeric values (int/float) to their indices.
 
     Args:
-        inputs: `numpy ndarray` or `tensorflow tensors`,
+        inputs: ``numpy ndarray`` or ``tf.Tensor``,
             Inputs with categorical features that should be encoded
-        concatenate_numerical_features: `bool`, default False,
+
+        concatenate_numerical_features: ``bool``, default False,
             Whether to concatenate numerical features
             to the encoded categorical features.
-        keep_features_order: `bool`, default True,
+
+        keep_features_order: ``bool``, default True,
             If True, the returning dataset will have the features in the same
             order as the input.
             If False, the returning dataset, will have k categorical features
@@ -40,9 +41,7 @@ class LabelEncoding(layers.Layer):
         self.keep_features_order = keep_features_order
 
         self._categorical_features_idx = list(map(lambda x: x[0], self.features_metadata["categorical"].values()))
-        self._categorical_features_names = list(self.features_metadata["categorical"].keys())
         self._num_categorical_features = len(self._categorical_features_idx)
-        self._numerical_features_names = list(self.features_metadata["numerical"].keys())
         self._numerical_features_idx = list(self.features_metadata["numerical"].values())
         self._num_numerical_features = len(self._numerical_features_idx)
         self._num_features = self._num_numerical_features + self._num_categorical_features
@@ -54,13 +53,13 @@ class LabelEncoding(layers.Layer):
         lookup_tables = []
         for feature_name, (feature_idx, vocabulary) in self.features_metadata["categorical"].items():
             # Lookup Table to convert int/float values to integer indices
-            if isinstance(vocabulary[0], (int, np.int32, np.int64, np.float32, np.float64)):
-                lookup = layers.IntegerLookup(vocabulary=vocabulary,
-                                              mask_token=None,
-                                              output_mode="int",
-                                              )
+            if isinstance(vocabulary[0], Number):
+                lookup = keras.layers.IntegerLookup(vocabulary=vocabulary,
+                                                    mask_token=None,
+                                                    output_mode="int",
+                                                    )
             else:
-                raise TypeError("`CategoricalFeatureEmbedding` layer can only encode values of type int "
+                raise TypeError("`LabelEncoding` layer can only encode values of type int "
                                 f"but received type: {type(vocabulary[0])} for feature {feature_name}.")
             lookup_tables.append(lookup)
         return lookup_tables
@@ -73,7 +72,7 @@ class LabelEncoding(layers.Layer):
             encoded_features = tf.TensorArray(size=self._num_categorical_features,
                                               dtype=tf.float32)
         current_idx = 0
-        for feature_name, (feature_idx, _) in self.features_metadata["categorical"].items():
+        for feature_idx in self._categorical_features_idx:
             feature = tf.expand_dims(inputs[:, feature_idx], 1)
             # Convert string input values to integer indices
             lookup = self.lookup_tables[current_idx]
@@ -83,8 +82,7 @@ class LabelEncoding(layers.Layer):
             current_idx += 1
 
         if self.concatenate_numerical_features:
-            for i, (feature_idx, feature_name) in enumerate(zip(self._numerical_features_idx,
-                                                                self._numerical_features_names)):
+            for i, feature_idx in enumerate(self._numerical_features_idx):
                 feature = tf.cast(tf.expand_dims(inputs[:, feature_idx], 1), tf.float32)
                 encoded_features = encoded_features.write(index=feature_idx if self.keep_features_order else current_idx,
                                                           value=feature)
@@ -106,4 +104,3 @@ class LabelEncoding(layers.Layer):
                       'keep_features_order': self.keep_features_order}
         config.update(new_config)
         return config
-
