@@ -13,4 +13,4 @@
 # limitations under the License.
 
 
-from teras.layers.preprocessing.oenf import PeriodicEmbedding
+from teras.layers.preprocessing.periodic_embedding import PeriodicEmbedding
