@@ -43,6 +43,14 @@ class CategoricalFeatureEmbedding(keras.layers.Layer):
                  encode: bool = True,
                  **kwargs):
         super().__init__(**kwargs)
+        if not len(features_metadata["categorical"]) > 0:
+            raise ValueError("`features_metadata` does not contain any categorical features. "
+                             "Either you forgot to pass categorical features names list to the "
+                             "`get_features_metadata_for_embedding` or the dataset does not contain "
+                             "any categorical features to begin with. \n"
+                             "In either case, "
+                             "`CategoricalFeatureEmbedding` cannot be called on inputs with no categorical features. ")
+
         self.features_metadata = features_metadata
         self.embedding_dim = embedding_dim
         self.encode = encode
