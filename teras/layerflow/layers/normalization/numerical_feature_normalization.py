@@ -30,6 +30,13 @@ class NumericalFeatureNormalization(keras.layers.Layer):
                  normalization: keras.layers.Layer = keras.layers.LayerNormalization(),
                  **kwargs):
         super().__init__(**kwargs)
+        if not len(features_metadata["numerical"]) > 0:
+            raise ValueError("`features_metadata` contains no numerical features. "
+                             "Either you forgot to pass numerical features names list to the "
+                             "`get_features_metadata_for_embedding` or the dataset does not contain "
+                             "any numerical features to begin with. \n"
+                             "In either case, "
+                             "`NumericalFeatureNormalization` cannot be called on inputs with no numerical features. ")
         self.features_metadata = features_metadata
         self.normalization = normalization
 
