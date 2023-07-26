@@ -37,7 +37,7 @@ class NumericalFeaturesExtractor(keras.layers.Layer):
                              "Either you forgot to pass numerical features names list to the "
                              "`get_features_metadata_for_embedding` or the dataset does not contain "
                              "any numerical features to begin with. \n"
-                             "In either case, you must put a check before instantiating this layer as "
+                             "In either case, "
                              "`NumericalFeaturesExtractor` cannot be called on inputs with no numerical features. ")
         self._numerical_features_idx = list(self.features_metadata["numerical"].values())
 
