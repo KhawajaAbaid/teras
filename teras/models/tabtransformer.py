@@ -3,7 +3,7 @@ from teras.config.tabtransformer import TabTransformerConfig
 from teras.layerflow.models.tabtransformer import TabTransformer as TabTransformerLF
 from teras.layers.common.transformer import Encoder
 from teras.layers.categorical_feature_embedding import CategoricalFeatureEmbedding
-from teras.layers.normalization import NumericalFeatureNormalization
+from teras.layers.numerical_feature_normalization import NumericalFeatureNormalization
 from teras.layers.tabtransformer.tabtransformer_column_embedding import TabTransformerColumnEmbedding
 from teras.layers.common.head import ClassificationHead, RegressionHead
 from teras.utils.types import UnitsValuesType
