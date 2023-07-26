@@ -2,7 +2,7 @@ from tensorflow import keras
 from typing import List
 from teras.utils.utils import (serialize_layers_collection,
                                deserialize_layers_collection)
-from teras.layers.node.node_features_selector import NodeFeatureSelector
+from teras.layers.node.node_feature_selector import NodeFeatureSelector
 
 LIST_OF_LAYERS = List[keras.layers.Layer]
 
