@@ -52,3 +52,5 @@ NormalizationType = Union[keras.layers.Layer, str]
 FloatSequence = Union[List[float],
                       Tuple[float]]
 
+IntegerSequence = Union[List[int],
+                        Tuple[int]]
