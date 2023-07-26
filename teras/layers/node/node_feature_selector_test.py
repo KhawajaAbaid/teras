@@ -1,4 +1,4 @@
-from teras.layers.node.node_features_selector import NodeFeatureSelector
+from teras.layers.node.node_feature_selector import NodeFeatureSelector
 import tensorflow as tf
 
 
