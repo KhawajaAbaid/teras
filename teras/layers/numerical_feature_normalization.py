@@ -1,10 +1,11 @@
+import tensorflow as tf
 from tensorflow import keras
 from teras.utils import get_normalization_layer
-from teras.layerflow.layers.normalization import NumericalFeatureNormalization
+from teras.utils.types import NormalizationType
 
 
 @keras.saving.register_keras_serializable(package="teras.layers")
-class NumericalFeatureNormalization(NumericalFeatureNormalization):
+class NumericalFeatureNormalization(keras.layers.Layer):
     """
     NumericalFeatureNormalization layer that applies specified
     type of normalization over the numerical features only.
@@ -23,7 +24,7 @@ class NumericalFeatureNormalization(NumericalFeatureNormalization):
                 >>> features_metadata = get_features_metadata_for_embedding(dataset,
                 ..                                                            categorical_features,
                 ..                                                            numerical_features)
-        normalization_type: ``str``, default "layer",
+        normalization: ``str``, default "layer",
             Normalization type to apply over the numerical features.
             By default, ``LayerNormalization`` is applied.
             Allowed values ["layer", "batch", "unit", "group"] or their full names,
@@ -32,19 +33,37 @@ class NumericalFeatureNormalization(NumericalFeatureNormalization):
     """
     def __init__(self,
                  features_metadata: dict,
-                 normalization_type: str = "layer",
+                 normalization: NormalizationType = "layer",
                  **kwargs):
-        normalization = get_normalization_layer(normalization_type)
-        super().__init__(features_metadata=features_metadata,
-                         normalization=normalization,
-                         **kwargs)
-
+        super().__init__(**kwargs)
+        if not len(features_metadata["numerical"]) > 0:
+            raise ValueError("`features_metadata` contains no numerical features. "
+                             "Either you forgot to pass numerical features names list to the "
+                             "`get_features_metadata_for_embedding` or the dataset does not contain "
+                             "any numerical features to begin with. \n"
+                             "In either case, "
+                             "`NumericalFeatureNormalization` cannot be called on inputs with no numerical features. ")
         self.features_metadata = features_metadata
-        self.normalization_type = normalization_type
+        self.normalization = normalization
+        self.norm = get_normalization_layer(normalization)
+
+        self._numerical_features_idx = list(self.features_metadata["numerical"].values())
+
+    def call(self, inputs):
+        numerical_features = tf.gather(inputs,
+                                       indices=self._numerical_features_idx,
+                                       axis=1)
+        numerical_features = self.norm(numerical_features)
+        return numerical_features
 
     def get_config(self):
-        config = {"name":self.name,
-                  "trainable": self.trainable,
-                  "features_metadata": self.features_metadata,
-                  "normalization_type": self.normalization_type}
+        config = super().get_config()
+        if isinstance(self.normalization, str):
+            normalization_serialized = self.normalization
+        else:
+            normalization_serialized = keras.layers.serialize(self.normalization)
+
+        config.update({'features_metadata': self.features_metadata,
+                       'normalization': normalization_serialized,
+                       })
         return config
