@@ -6,6 +6,7 @@ import math
 PERIOD_INITIALIZATIONS = Literal["log-linear", "normal"]
 
 
+@keras.saving.register_keras_serializable(package="teras.layers.preprocessing")
 class PeriodicEmbedding(keras.layers.Layer):
     """
     PeriodicEmbedding layer for numerical features
