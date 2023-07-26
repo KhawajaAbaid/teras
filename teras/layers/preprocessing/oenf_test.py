@@ -1,5 +1,5 @@
 import tensorflow as tf
-from teras.layers.oenf import PeriodicEmbedding
+from teras.layers.preprocessing.oenf import PeriodicEmbedding
 
 
 def test_oenf_periodic_embedding_output_shape():
