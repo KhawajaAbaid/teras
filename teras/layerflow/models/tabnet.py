@@ -6,6 +6,7 @@ from teras.losses.tabnet import reconstruction_loss
 import tensorflow_probability as tfp
 
 
+@keras.saving.register_keras_serializable(package="keras.layerflow.models")
 class TabNet(keras.Model):
     """
     TabNet model class with LayerFlow design.
@@ -154,6 +155,7 @@ class TabNet(keras.Model):
                    **config)
 
 
+@keras.saving.register_keras_serializable(package="keras.layerflow.models")
 class TabNetPretrainer(keras.Model):
     """
     TabNetPretrainer with LayerFlow desing.

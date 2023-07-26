@@ -10,6 +10,7 @@ from teras.layerflow.models.tabnet import (TabNet as _TabNetLF,
 from teras.utils.types import UnitsValuesType
 
 
+@keras.saving.register_keras_serializable(package="keras.models")
 class TabNet(_TabNetLF):
     """
     TabNet model as proposed by Sercan et al. in TabNet paper.
@@ -177,6 +178,7 @@ class TabNet(_TabNetLF):
                    **config)
 
 
+@keras.saving.register_keras_serializable(package="keras.models")
 class TabNetClassifier(TabNet):
     """
     TabNet Classifier based on the TabNet architecture
@@ -322,6 +324,7 @@ class TabNetClassifier(TabNet):
         return config
 
 
+@keras.saving.register_keras_serializable(package="keras.models")
 class TabNetRegressor(TabNet):
     """
     TabNet Regressor based on the TabNet architecture
@@ -469,6 +472,7 @@ class TabNetRegressor(TabNet):
         return config
 
 
+@keras.saving.register_keras_serializable(package="keras.models")
 class TabNetPretrainer(_TabNetPretrainerLF):
     """
     TabNetPretrainer model based on the architecture
