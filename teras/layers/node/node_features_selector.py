@@ -8,7 +8,7 @@ class NodeFeatureSelector(keras.layers.Layer):
     NodeFeatureSelector layer for the ``NODE`` architecture.
     This is not part of the official architecture,
     it offers very basic functionality of selecting features
-    in case the user specifies the max_features argument in
+    in case the user specifies the ``max_features`` argument in
     the NODE architecture.
     Strictly speaking, it isn't really needed, but since
     in Teras, we're following a functional approach for our
@@ -20,20 +20,26 @@ class NodeFeatureSelector(keras.layers.Layer):
     architecture-specific layers such as ``ObliviousDecisionTree``
 
     Args:
+        data_dim: ``int``,
+            Dimensionality of the input dataset,
+            or the number of features in the input dataset.
+
         max_features: ``int``, default None,
             Maximum number of features to use.
             If None, all features in the input dataset will be used,
             and the ``FeatureSelector`` layer returns inputs as is.
     """
     def __init__(self,
+                 data_dim: int,
                  max_features: int = None,
                  **kwargs):
         super().__init__(**kwargs)
+        self.data_dim = data_dim
         self.max_features = max_features
 
     def call(self, inputs):
         x = inputs
-        initial_features = x.shape[-1]
+        initial_features = self.data_dim
         if self.max_features is None:
             return x
         tail_features = min(self.max_features, x.shape[-1]) - initial_features
