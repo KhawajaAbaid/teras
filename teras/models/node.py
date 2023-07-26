@@ -2,7 +2,7 @@ from tensorflow import keras
 from teras.layers.node import ObliviousDecisionTree
 from teras.utils.node import sparsemoid
 from teras.activations import sparsemax
-from teras.layers.node.node_features_selector import NodeFeatureSelector
+from teras.layers.node.node_feature_selector import NodeFeatureSelector
 from teras.layerflow.models.node import NODE as _NodeLF
 from teras.layers.common.head import ClassificationHead, RegressionHead
 from teras.utils.types import UnitsValuesType
@@ -101,7 +101,8 @@ class NODE(_NodeLF):
                                              threshold_init_beta=threshold_init_beta,
                                              threshold_init_cutoff=threshold_init_cutoff)
                        for _ in range(num_layers)]
-        feature_selector = NodeFeatureSelector(max_features=max_features,
+        feature_selector = NodeFeatureSelector(data_dim=input_dim,
+                                               max_features=max_features,
                                                name="feature_selector")
         dropout = keras.layers.Dropout(input_dropout,
                                        name="input_dropout")
