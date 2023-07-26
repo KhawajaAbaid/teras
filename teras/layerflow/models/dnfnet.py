@@ -1,16 +1,8 @@
 from tensorflow import keras
-from tensorflow.keras import layers, models
-from teras.layerflow.layers import DNNF, DNFNetClassificationHead, DNFNetRegressionHead
-from teras.models import (DNFNet as _BaseDNFNet)
-from typing import List, Union
-from teras.utils import serialize_layers_collection
-
-LIST_OF_INT = List[int]
-LIST_OF_FLOAT = List[float]
-PACK_OF_LAYERS = Union[layers.Layer, List[layers.Layer], models.Model]
+from teras.utils.types import LayersCollection
 
 
-class DNFNet(_BaseDNFNet):
+class DNFNet(keras.Model):
     """
     DNFNet model based on the DNFNet architecture with LayerFlow design.
     DNFNet architecture is proposed by Liran Katzir et al.
@@ -21,120 +13,63 @@ class DNFNet(_BaseDNFNet):
         https://openreview.net/forum?id=73WTGs96kho
 
     Args:
-        dnnf_layers: `List[layers.Layer] | keras.Model`,
-            List of `DNNF` layers to use in the DNFNet model.
-            You can pass either pass a list of instances of `DNNF` layers,
-            or pack them in a Keras model.
-            You can import the DNNF layer as follows,
-                >>> from teras.layerflow.layers import DNNF
-        head: `layers.Layer`,
-            An instance of `DNFNetClassificationHead` or `DNFNetRegressionHead`
-            layer for final outputs,
-            or any layer that can work in place of a head layer for that purpose.
+        input_dim: ``int``,
+            Dimensionality of the input dataset,
+            or the number of features in the input dataset.
+
+        dnnf_layers: ``List[layers.Layer]`` or ``keras.Model``,
+            A list of instances of ``DNNF`` layers or
+            a Keras layer or model made up of ``DNNF`` layers.
+            You can import the ``DNNF`` layer as follows,
+                >>> from teras.layers import DNNF
+
+        head: ``keras.layers.Layer``,
+            An instance of either ``ClassificationHead`` or ``RegressionHead`` layers,
+            depending on the task at hand.
+            You can import the ``ClassificationHead`` and ``RegressionHead`` layers as follows,
+                >>> from teras.layers import ClassificationHead
+                >>> from teras.layers import RegressionHead
     """
     def __init__(self,
-                 dnnf_layers: PACK_OF_LAYERS = None,
-                 head: layers.Layer = None,
+                 input_dim: int,
+                 dnnf_layers: LayersCollection,
+                 head: keras.layers.Layer = None,
                  **kwargs):
-        super().__init__(**kwargs)
-        if dnnf_layers is not None:
-            if isinstance(dnnf_layers, (layers.Layer, models.Model)):
-                # keep it as is
-                dnnf_layers = dnnf_layers
-            elif isinstance(dnnf_layers, (list, tuple)):
-                dnnf_layers = models.Sequential(dnnf_layers,
-                                                name="dnnf_layers")
-            else:
-                raise ValueError("`dnnf_layers` can either be a Keras Layer, list of `DNNF` layers "
-                                 f"or a Keras model model but received type: {type(dnnf_layers)}.")
-            self.dnnf_layers = dnnf_layers
-
+        if isinstance(dnnf_layers, (keras.layers.Layer, keras.models.Model)):
+            # keep it as is
+            dnnf_layers = dnnf_layers
+        elif isinstance(dnnf_layers, (list, tuple)):
+            dnnf_layers = keras.models.Sequential(dnnf_layers,
+                                                  name="dnnf_layers")
+        else:
+            raise ValueError("`dnnf_layers` can either be a list of `DNNF` layers, a Keras Layer, "
+                             f"or a Keras model model but received type: {type(dnnf_layers)}.")
+        inputs = keras.layers.Input(shape=(input_dim,))
+        outputs = dnnf_layers(inputs)
         if head is not None:
-            self.head = head
+            outputs = head(outputs)
+        super().__init__(inputs=inputs,
+                         outputs=outputs,
+                         **kwargs)
+        self.input_dim = input_dim
+        self.dnnf_layers = dnnf_layers
+        self.head = head
 
     def get_config(self):
         config = super().get_config()
-        new_config = {'dnnf_layers': serialize_layers_collection(self.dnnf_layers),
-                      'head': keras.layers.serialize(self.head)
-                      }
-        config.update(new_config)
+        config.update({'input_dim': self.input_dim,
+                       'dnnf_layers': keras.layers.serialize(self.dnnf_layers),
+                       'head': keras.layers.serialize(self.head)
+                       }
+                      )
         return config
 
-
-class DNFNetClassifier(DNFNet):
-    """
-    DNFNetClassifier with LayerFlow design.
-    It is based on the DNFNet architecture proposed by Liran Katzir et al.
-    in the paper,
-    NET-DNF: Effective Deep Modeling Of Tabular Data.
-
-    Reference(s):
-        https://openreview.net/forum?id=73WTGs96kho
-
-    Args:
-        dnnf_layers: `List[layers.Layer] | keras.Model`,
-            List of `DNNF` layers to use in the DNFNet model.
-            You can pass either pass a list of instances of `DNNF` layers,
-            or pack them in a Keras model.
-            You can import the DNNF layer as follows,
-                >>> from teras.layerflow.layers import DNNF
-        head: `layers.Layer`,
-            An instance of `DNFNetClassificationHead`  layer for final outputs,
-            or any layer that can work in place of this layer for the purpose.
-            You can import the `DNFNetClassificationHead` layer as follows,
-                >>> from teras.layerflow.layers import DNFNetClassificationHead
-    """
-    def __init__(self,
-                 dnnf_layers: PACK_OF_LAYERS = None,
-                 head: layers.Layer = None,
-                 **kwargs):
-        if head is None:
-            num_classes = 2
-            activation_out = None
-            if "num_classes" in kwargs:
-                num_classes = kwargs.pop("num_classes")
-            if "activation_out" in kwargs:
-                activation_out = kwargs.pop("activation_out")
-            head = DNFNetClassificationHead(num_classes=num_classes,
-                                            activation_out=activation_out,
-                                            name="dnfnet_classification_head")
-        super().__init__(dnnf_layers=dnnf_layers,
-                         head=head,
-                         **kwargs)
-
-
-class DNFNetRegressor(DNFNet):
-    """
-    DNFNetRegressor based on the DNFNet architecture proposed by Liran Katzir et al.
-    in the paper,
-    NET-DNF: Effective Deep Modeling Of Tabular Data.
-
-    Reference(s):
-        https://openreview.net/forum?id=73WTGs96kho
-
-    Args:
-        dnnf_layers: `List[layers.Layer] | keras.Model`,
-            List of `DNNF` layers to use in the DNFNet model.
-            You can pass either pass a list of instances of `DNNF` layers,
-            or pack them in a Keras model.
-            You can import the DNNF layer as follows,
-                >>> from teras.layerflow.layers import DNNF
-        head: `layers.Layer`,
-            An instance of `DNFNetRegressionHead`  layer for final outputs,
-            or any layer that can work in place of this layer for the purpose.
-            You can import the `DNFNetRegressionHead` layer as follows,
-                >>> from teras.layerflow.layers import DNFNetRegressionHead
-    """
-    def __init__(self,
-                 dnnf_layers: PACK_OF_LAYERS = None,
-                 head: layers.Layer = None,
-                 **kwargs):
-        if head is None:
-            num_outputs = 1
-            if "num_outputs" in kwargs:
-                num_outputs = kwargs.pop("num_outputs")
-            head = DNFNetRegressionHead(num_outputs=num_outputs,
-                                        name="dnfnet_regression_head")
-        super().__init__(dnnf_layers=dnnf_layers,
-                         head=head,
-                         **kwargs)
+    @classmethod
+    def from_config(cls, config):
+        input_dim = config.pop("input_dim")
+        dnnf_layers = keras.layers.deserialize(config.pop("dnnf_layers"))
+        head = keras.layers.deserialize(config.pop("head"))
+        return cls(input_dim=input_dim,
+                   dnnf_layers=dnnf_layers,
+                   head=head,
+                   **config)
