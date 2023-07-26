@@ -3,6 +3,7 @@ from tensorflow import keras
 import tensorflow_probability as tfp
 
 
+@keras.saving.register_keras_serializable(package="teras.layers.regularization")
 class MixUp(keras.layers.Layer):
     """
     MixUp is a regularization layer proposed by Hongyi Zhang et al.

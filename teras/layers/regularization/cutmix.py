@@ -3,6 +3,7 @@ from tensorflow import keras
 import tensorflow_probability as tfp
 
 
+@keras.saving.register_keras_serializable(package="teras.layers.regularization")
 class CutMix(keras.layers.Layer):
     """
     CutMix is a regularization layer proposed by Sangdoo Yun et al.
