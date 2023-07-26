@@ -49,4 +49,6 @@ LayersCollection = Union[keras.layers.Layer,
 
 NormalizationType = Union[keras.layers.Layer, str]
 
-FloatsList = List[float]
+FloatSequence = Union[List[float],
+                      Tuple[float]]
+
