@@ -77,7 +77,8 @@ class LabelEncoding(keras.layers.Layer):
             # Convert string input values to integer indices
             lookup = self.lookup_tables[current_idx]
             feature = tf.cast(lookup(feature), dtype=tf.float32)
-            encoded_features = encoded_features.write(index=feature_idx if self.keep_features_order else current_idx,
+            encoded_features = encoded_features.write(index=feature_idx if (self.concatenate_numerical_features
+                                                                            and self.keep_features_order) else current_idx,
                                                       value=feature)
             current_idx += 1
 
