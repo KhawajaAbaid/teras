@@ -89,8 +89,12 @@ class PeriodicEmbedding(keras.layers.Layer):
         numerical_features = tf.gather(inputs,
                                        indices=self._numerical_features_indices,
                                        axis=1)
+        numerical_features = tf.cast(numerical_features, dtype=tf.float32)
+
         pi = tf.constant(math.pi)
-        return self.cos_sin(2 * pi * self.coefficients[None] * numerical_features[..., None])
+        return self.cos_sin(2. * pi
+                            * tf.expand_dims(self.coefficients, axis=0)
+                            * tf.expand_dims(numerical_features, axis=-1))
 
     def get_config(self):
         config = super().get_config()
