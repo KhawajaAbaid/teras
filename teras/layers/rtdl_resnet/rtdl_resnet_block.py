@@ -4,6 +4,7 @@ from teras.utils.types import (NormalizationType,
                                ActivationType)
 
 
+@keras.saving.register_keras_serializable(package="teras.layers.rtdl_resnet")
 class RtdlResNetBlock(keras.layers.Layer):
     """
     The ResNet block proposed by Yury Gorishniy et al.
