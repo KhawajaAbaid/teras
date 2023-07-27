@@ -1,16 +1,11 @@
 from tensorflow import keras
 from tensorflow.keras import layers, models
 from teras.models.rtdl_resnet import RTDLResNet as _BaseRTDLResNet
-from teras.layerflow.layers import RTDLResNetClassificationHead, RTDLResNetRegressionHead
-from typing import List, Union
 
 
-LAYER_OR_MODEL = Union[layers.Layer, models.Model]
-
-
-class RTDLResNet(_BaseRTDLResNet):
+class RtdlResNet(_BaseRTDLResNet):
     """
-    RTDLResNet model with LayerFlow desing.
+    RtdlResNet model with LayerFlow desing.
     It is based on the ResNet architecture proposed by Yury Gorishniy et al.
     in the paper,
     Revisiting Deep Learning Models for Tabular Data.
@@ -19,12 +14,13 @@ class RTDLResNet(_BaseRTDLResNet):
         https://arxiv.org/abs/2106.11959
 
     Args:
-        resnet_blocks: `List[layers.Layer] | models.Model`,
+        resnet_blocks: ``List[layers.Layer]`` or ``models.Model`` or ``keras.layers.Layer``,
             List of `RTDLResNetBlock` layers to use in the RTDLResNet model.
             You can pass either pass a list of instances of `RTDLResNetBlock` layers,
             or pack them in a Keras model.
             You can import the `RTDLResNetBlock` layer as follows,
-                >>> from teras.layerflow.layers import RTDLResNetBlock
+                >>> from teras.layers import RTDLResNetBlock
+
         head: `layers.Layer`,
             An instance of `RTDLResNetClassificationHead` or `RTDLResNetRegressionHead`
             layer for final outputs,

@@ -13,4 +13,4 @@
 # limitations under the License.
 
 
-from teras.layers.rtdl_resnet.rtdl_resnet_block import RtdlResNetBlock
+from teras.layers.rtdl_resnet.rtdl_resnet_block import RTDLResNetBlock
