@@ -56,3 +56,6 @@ IntegerSequence = Union[List[int],
                         Tuple[int]]
 
 InitializerType = Union[str, keras.initializers.Initializer]
+
+
+LayerOrModelType = Union[keras.layers.Layer, keras.Model]
