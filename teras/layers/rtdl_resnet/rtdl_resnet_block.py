@@ -31,7 +31,7 @@ class RTDLResNetBlock(keras.layers.Layer):
         activation_out: ``callable`` or ``str`` or ``keras.layers.Layer``, default "relu",
             Activation function to use in the output layer.
 
-        normalization: default "batch",
+        normalization: ``str`` or ``keras.layers.Layer``, default "batch",
             Normalization layer to normalize the inputs to the RestNet block.
 
         use_skip_connection: ``bool``, default True,
