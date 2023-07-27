@@ -13,5 +13,5 @@
 # limitations under the License.
 
 
-from teras.layers.ft_transfromer.ft_numerical_feature_embedding import FTNumericalFeatureEmbedding
-from teras.layers.ft_transfromer.ft_cls_token import FTCLSToken
+from teras.layers.ft_transformer.ft_numerical_feature_embedding import FTNumericalFeatureEmbedding
+from teras.layers.ft_transformer.ft_cls_token import FTCLSToken

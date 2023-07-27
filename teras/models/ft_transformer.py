@@ -1,5 +1,6 @@
 from tensorflow import keras
-from teras.layers import FTNumericalFeatureEmbedding, FTCLSToken
+from teras.layers.ft_transformer.ft_numerical_feature_embedding import FTNumericalFeatureEmbedding
+from teras.layers.ft_transformer.ft_cls_token import FTCLSToken
 from teras.layers.categorical_feature_embedding import CategoricalFeatureEmbedding
 from teras.layers.common.transformer import Encoder
 from teras.layers.common.head import ClassificationHead, RegressionHead
