@@ -1,6 +1,7 @@
 from tensorflow import keras
 
 
+@keras.saving.register_keras_serializable(package="teras.layers.ctgan")
 class CTGANGeneratorBlock(keras.layers.Layer):
     """
     Residual Block for Generator as used by the authors of CTGAN

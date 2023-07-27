@@ -1,6 +1,7 @@
 from tensorflow import keras
 
 
+@keras.saving.register_keras_serializable(package="teras.layers.ctgan")
 class CTGANDiscriminatorBlock(keras.layers.Layer):
     """
     Discriminator Block based on the architecture proposed by
