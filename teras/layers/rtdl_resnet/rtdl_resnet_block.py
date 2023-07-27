@@ -5,7 +5,7 @@ from teras.utils.types import (NormalizationType,
 
 
 @keras.saving.register_keras_serializable(package="teras.layers.rtdl_resnet")
-class RtdlResNetBlock(keras.layers.Layer):
+class RTDLResNetBlock(keras.layers.Layer):
     """
     The ResNet block proposed by Yury Gorishniy et al.
     in the paper Revisiting Deep Learning Models for Tabular Data.
