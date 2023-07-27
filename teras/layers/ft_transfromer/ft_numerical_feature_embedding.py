@@ -28,8 +28,8 @@ class FTNumericalFeatureEmbedding(keras.layers.Layer):
             You can get this dictionary from
                 >>> from teras.utils import get_features_metadata_for_embedding
                 >>> metadata_dict = get_features_metadata_for_embedding(dataframe,
-                ..                                                      numerical_features,
-                ..                                                      categorical_features)
+                ..                                                      categorical_features,
+                ..                                                      numerical_features)
 
         embedding_dim: ``int``, default 32,
             Dimensionality of embeddings, must be the same as the one
@@ -38,8 +38,16 @@ class FTNumericalFeatureEmbedding(keras.layers.Layer):
     def __init__(self,
                  features_metadata: dict,
                  embedding_dim: int = 32,
+                 **kwargs
                  ):
-        super().__init__()
+        super().__init__(**kwargs)
+        if not len(features_metadata["numerical"]) > 0:
+            raise ValueError("`features_metadata` contains no numerical features. "
+                             "Either you forgot to pass numerical features names list to the "
+                             "`get_features_metadata_for_embedding` or the dataset does not contain "
+                             "any numerical features to begin with. \n"
+                             "In either case, "
+                             "`FTNumericalFeatureEmbedding` cannot be called on inputs with no numerical features. ")
         self.features_metadata = features_metadata
         self.numerical_features_metadata = self.features_metadata["numerical"]
         self.embedding_dim = embedding_dim
