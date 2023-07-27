@@ -3,6 +3,7 @@ from tensorflow import keras
 from teras.utils.types import Number
 
 
+@keras.saving.register_keras_serializable(package="teras.layers.preprocessing")
 class LabelEncoding(keras.layers.Layer):
     """
     Standalone Encoding layer
