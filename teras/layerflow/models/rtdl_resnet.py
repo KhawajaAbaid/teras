@@ -2,6 +2,7 @@ from tensorflow import keras
 from teras.utils.types import LayersCollection
 
 
+@keras.saving.register_keras_serializable(package="teras.layerflow.models")
 class RtdlResNet(keras.Model):
     """
     RtdlResNet model with LayerFlow desing.
