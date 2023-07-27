@@ -71,7 +71,7 @@ class TabNetDecoder(keras.layers.Layer):
             determines the scale of normalization.
     """
     def __init__(self,
-                 input_dim: int,
+                 data_dim: int,
                  feature_transformer_dim: int = 32,
                  decision_step_output_dim: int = 32,
                  num_decision_steps: int = 5,
@@ -82,7 +82,7 @@ class TabNetDecoder(keras.layers.Layer):
                  residual_normalization_factor: float = 0.5,
                  **kwargs):
         super().__init__(**kwargs)
-        self.input_dim = input_dim
+        self.data_dim = data_dim
         self.feature_transformer_dim = feature_transformer_dim
         self.decision_step_output_dim = decision_step_output_dim
         self.num_shared_layers = num_shared_layers
