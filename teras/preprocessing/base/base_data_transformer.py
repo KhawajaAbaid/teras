@@ -24,24 +24,24 @@ class BaseDataTransformer:
     def transform(self, x, **kwargs):
         pass
 
-    def get_meta_data(self):
+    def get_metadata(self):
         """
         Returns:
-            named tuple of features meta data.
+            named tuple of features metadata.
         """
         MetaData = namedtuple("MetaData", self.meta_data.keys())
 
         CategoricalMetaData = namedtuple("CategoricalMetaData",
                                          self.meta_data["categorical"].keys())
-        categorical_meta_data = CategoricalMetaData(**self.meta_data["categorical"])
+        categorical_metadata = CategoricalMetaData(**self.meta_data["categorical"])
 
         NumericalMetaData = namedtuple("NumericalMetaData",
                                        self.meta_data["numerical"].keys())
-        numerical_meta_data = NumericalMetaData(**self.meta_data["numerical"])
+        numerical_metadata = NumericalMetaData(**self.meta_data["numerical"])
 
         meta_data_copy = deepcopy(self.meta_data)
-        meta_data_copy["categorical"] = categorical_meta_data
-        meta_data_copy["numerical"] = numerical_meta_data
+        meta_data_copy["categorical"] = categorical_metadata
+        meta_data_copy["numerical"] = numerical_metadata
         meta_data_tuple = MetaData(**meta_data_copy)
         return meta_data_tuple
 

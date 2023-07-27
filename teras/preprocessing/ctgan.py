@@ -361,7 +361,7 @@ class DataTransformer(BaseDataTransformer):
         x_transformed = np.concatenate([x_numerical, x_categorical.toarray()], axis=1)
         return x_transformed
 
-    def get_meta_data(self):
+    def get_metadata(self):
         """
         Returns:
             named tuple of features meta data.
@@ -447,7 +447,7 @@ class DataSampler:
         categorical_features: List of categorical features names
         numerical_features: List of numerical features names
         meta_data: Namedtuple of features meta data computed during data transformation.
-            You can access it from the `.get_meta_data()` of DataTransformer instance.
+            You can access it from the `.get_metadata()` of DataTransformer instance.
     """
     def __init__(self,
                  batch_size=512,
@@ -464,7 +464,7 @@ class DataSampler:
             raise ValueError("`meta_data` must not be None. "
                              "DataSampler requires meta data computed in the transformation step "
                              "to sample data. "
-                             "Use DataTransformer's `get_meta_data` method to "
+                             "Use DataTransformer's `get_metadata` method to "
                              "access meta data and pass it as argument to DataSampler.")
 
         self.batch_size = batch_size
