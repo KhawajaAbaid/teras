@@ -47,6 +47,6 @@ class VimeMaskGenerationAndCorruption(keras.layers.Layer):
 
     def get_config(self):
         config = super().get_config()
-        config.update({'p_m': self.input_dim,
+        config.update({'p_m': self.p_m,
                        })
         return config
