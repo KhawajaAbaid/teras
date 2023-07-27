@@ -104,6 +104,9 @@ class TabNetEncoder(keras.layers.Layer):
 
         self.inputs_norm = keras.layers.BatchNormalization(momentum=batch_momentum)
 
+        # To avoid shared layers errors, we should clear them before instantiating
+        # the TabNetEncoder layer.
+        TabNetFeatureTransformer.reset_shared_layers()
         self.features_transformers_per_step = [TabNetFeatureTransformer(
             units=self.feature_transformer_dim,
             num_shared_layers=self.num_shared_layers,
