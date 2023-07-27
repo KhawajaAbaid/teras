@@ -2,13 +2,13 @@ import tensorflow as tf
 from teras.layers.ctgan.ctgan_discriminator_block import CTGANDiscriminatorBlock
 
 
-def test_discriminator_block_valid_call():
+def test_ctgan_discriminator_block_valid_call():
     disc_block = CTGANDiscriminatorBlock(units=32)
     inputs = tf.ones((8, 5), dtype=tf.float32)
     outputs = disc_block(inputs)
 
 
-def test_discriminator_block_output_shape():
+def test_ctgan_discriminator_block_output_shape():
     disc_block = CTGANDiscriminatorBlock(units=32)
     inputs = tf.ones((8, 5), dtype=tf.float32)
     outputs = disc_block(inputs)
