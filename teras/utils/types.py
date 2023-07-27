@@ -54,3 +54,5 @@ FloatSequence = Union[List[float],
 
 IntegerSequence = Union[List[int],
                         Tuple[int]]
+
+InitializerType = Union[str, keras.initializers.Initializer]
