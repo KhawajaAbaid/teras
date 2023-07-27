@@ -1,6 +1,7 @@
 from tensorflow import keras
 
 
+@keras.saving.register_keras_serializable(package="teras.layers.gain")
 class GAINDiscriminatorBlock(keras.layers.Layer):
     """
     GAINDiscriminatorBlock that is used in construction of hidden block
