@@ -15,4 +15,6 @@
 
 from .oenf import PiecewiseLinearEncoding
 
-from .ctgan import ModeSpecificNormalization
+from teras.preprocessing.ctgan import ModeSpecificNormalization
+from teras.preprocessing.ctgan import (DataTransformer as CTGANDataTransformer,
+                                       DataSampler as CTGANDataSampler)
