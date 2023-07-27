@@ -2,6 +2,7 @@ import tensorflow as tf
 from tensorflow import keras
 
 
+@keras.saving.register_keras_serializable(package="teras.layers.ft_transformer")
 class FTCLSToken(keras.layers.Layer):
     """
     CLS Token as proposed and implemented by Yury Gorishniy et al.

@@ -2,6 +2,7 @@ import tensorflow as tf
 from tensorflow import keras
 
 
+@keras.saving.register_keras_serializable(package="teras.layers.ft_transformer")
 class FTNumericalFeatureEmbedding(keras.layers.Layer):
     """
     Numerical Feature Emebdding layer as proposed by
