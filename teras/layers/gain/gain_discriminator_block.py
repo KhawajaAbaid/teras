@@ -26,9 +26,9 @@ class GAINDiscriminatorBlock(keras.layers.Layer):
         self.units = units
         self.activation = activation
         self.kernel_initializer = kernel_initializer
-        self.dense = layers.Dense(units,
-                                  activation=self.activation,
-                                  kernel_initializer=self.kernel_initializer)
+        self.dense = keras.layers.Dense(units,
+                                        activation=self.activation,
+                                        kernel_initializer=self.kernel_initializer)
 
     def call(self, inputs):
         return self.dense(inputs)
