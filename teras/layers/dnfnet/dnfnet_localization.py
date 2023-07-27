@@ -2,6 +2,7 @@ import tensorflow as tf
 from tensorflow import keras
 
 
+@keras.saving.register_keras_serializable(package="teras.layers.dnfnet")
 class DNFNetLocalization(keras.layers.Layer):
     """
     DNFNetLocalization layer based on the localization component

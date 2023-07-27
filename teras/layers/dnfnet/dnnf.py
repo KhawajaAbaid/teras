@@ -15,6 +15,7 @@ from teras.utils.types import (IntegerSequence,
                                FloatSequence)
 
 
+@keras.saving.register_keras_serializable(package="teras.layers.dnfnet")
 class DNNF(keras.layers.Layer):
     """
     Disjunctive Normal Neural Form (DNNF) layer

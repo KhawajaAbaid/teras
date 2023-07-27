@@ -7,6 +7,7 @@ from teras.utils.dnfnet import (tf_matmul_sparse_dense,
 from teras.utils.types import FloatSequence
 
 
+@keras.saving.register_keras_serializable(package="teras.layers.dnfnet")
 class DNFNetFeatureSelection(keras.layers.Layer):
     """
     DNFNetFeatureSelection layer based on the Feature Selection component
