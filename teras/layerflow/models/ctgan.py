@@ -47,6 +47,10 @@ class CTGAN(keras.Model):
         self.num_discriminator_steps = num_discriminator_steps
         self.latent_dim = latent_dim
 
+        # Loss trackers
+        self.generator_loss_tracker = keras.metrics.Mean(name="generator_loss")
+        self.discriminator_loss_tracker = keras.metrics.Mean(name="discriminator_loss")
+
     def compile(self,
                 generator_optimizer=keras.optimizers.Adam(learning_rate=1e-3,
                                                           beta_1=0.5, beta_2=0.9),
