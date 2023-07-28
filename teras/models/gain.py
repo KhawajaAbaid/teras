@@ -15,13 +15,16 @@ class GAINGenerator(keras.Model):
 
     Args:
         data_dim: ``int``,
-            The dimensionality of the dataset.
-            It will also be the dimensionality of the output produced
-            by the generator.
+            The dimensionality of the input dataset.
+
             Note the dimensionality must be equal to the dimensionality of dataset
-            that is passed to the `fit` method and not necessarily the dimensionality
+            that is passed to the fit method and not necessarily the dimensionality
             of the raw input dataset as sometimes data transformation alters the
             dimensionality of the dataset.
+
+            You can access the dimensionality of the transformed dataset through the
+            ``.data_dim`` attribute of the ``GAINDataSampler`` instance used in sampling
+            the dataset.
 
         units_values: ``List[int]`` or ``Tuple[int]``,
             A list or tuple of units for constructing hidden block.
@@ -128,13 +131,16 @@ class GAINDiscriminator(keras.Model):
 
     Args:
         data_dim: ``int``,
-            The dimensionality of the dataset.
-            It will also be the dimensionality of the output produced
-            by the generator.
+            The dimensionality of the input dataset.
+
             Note the dimensionality must be equal to the dimensionality of dataset
-            that is passed to the `fit` method and not necessarily the dimensionality
+            that is passed to the fit method and not necessarily the dimensionality
             of the raw input dataset as sometimes data transformation alters the
             dimensionality of the dataset.
+
+            You can access the dimensionality of the transformed dataset through the
+            ``.data_dim`` attribute of the ``GAINDataSampler`` instance used in sampling
+            the dataset.
 
         units_values: ``List[int]`` or ``Tuple[int]``,
             A list or tuple of units for constructing hidden block.
@@ -263,8 +269,8 @@ class GAIN(keras.Model):
             of the raw input dataset as sometimes data transformation alters the
             dimensionality of the dataset.
 
-            You can access the dimensionailty of the transformed dataset throught the
-            ``.data_dim`` attribute of the ``CTGANDataSampler`` instance used in sampling
+            You can access the dimensionality of the transformed dataset through the
+            ``.data_dim`` attribute of the ``GAINDataSampler`` instance used in sampling
             the dataset.
 
         generator_units_values: ``List[int]`` or ``Tuple[int]``,
