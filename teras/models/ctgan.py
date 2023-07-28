@@ -7,6 +7,7 @@ from tqdm import tqdm
 from teras.utils.types import UnitsValuesType
 
 
+@keras.saving.register_keras_serializable(package="teras.models")
 class CTGANGenerator(keras.Model):
     """
     CTGANGenerator for CTGAN architecture as proposed by
@@ -161,6 +162,7 @@ class CTGANGenerator(keras.Model):
                    **config)
 
 
+@keras.saving.register_keras_serializable(package="teras.models")
 class CTGANDiscriminator(keras.Model):
     """
     CTGANDiscriminator for CTGAN architecture as proposed by
@@ -289,6 +291,7 @@ class CTGANDiscriminator(keras.Model):
         return config
 
 
+@keras.saving.register_keras_serializable(package="teras.models")
 class CTGAN(keras.Model):
     """
     CTGAN is a state-of-the-art tabular data generation architecture
