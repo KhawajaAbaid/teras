@@ -1,51 +1,116 @@
 import tensorflow as tf
 import numpy as np
-from teras.preprocessing.ctgan import (DataTransformer,
-                                       DataSampler as _BaseDataSampler)
+from teras.preprocessing.ctgan import (CTGANDataTransformer as _BaseDataTransformer,
+                                       CTGANDataSampler as _BaseDataSampler)
 from teras.utils import tf_random_choice
+from teras.utils.types import FeaturesNamesType
 
 
-class DataSampler(_BaseDataSampler):
+class TVAEDataTransformer(_BaseDataTransformer):
     """
-    DataSampler class for TVAE that subclass the DataSampler class
-    from CTGAN.
+    TVAEDataTransformer class that is exactly similar to the
+    CTGANDataTransformer, it just acts as a wrapper for convenience.
+
+    Reference(s):
+        https://arxiv.org/abs/1907.00503
+        https://github.com/sdv-dev/CTGAN/
+
+    Args:
+        categorical_features: ``List[str]``,
+            List of categorical features names in the dataset.
+
+        numerical_features: ``List[str]``,
+            List of numerical features names in the dataset.
+
+        max_clusters: ``int``, default 10,
+            Maximum Number of clusters to use in ``ModeSpecificNormalization``
+
+        std_multiplier: ``int``, default 4,
+            Multiplies the standard deviation in the normalization.
+
+        weight_threshold: ``float``, default 0.005,
+            The minimum value a component weight can take to be considered a valid component.
+            `weights_` under this value will be ignored.
+            (Taken from the official implementation.)
+
+        covariance_type: ``str``, default "full",
+            Parameter for the ``GaussianMixtureModel`` class of sklearn.
+
+        weight_concentration_prior_type: ``str``, default "dirichlet_process",
+            Parameter for the ``GaussianMixtureModel`` class of sklearn
+
+        weight_concentration_prior: ``float``, default 0.001,
+            Parameter for the ``GaussianMixtureModel`` class of sklearn.
+    """
+    def __init__(self,
+                 numerical_features: FeaturesNamesType = None,
+                 categorical_features: FeaturesNamesType = None,
+                 max_clusters: int = 10,
+                 std_multiplier: int = 4,
+                 weight_threshold: float = 0.005,
+                 covariance_type: str = "full",
+                 weight_concentration_prior_type: str = "dirichlet_process",
+                 weight_concentration_prior: float = 0.001
+                 ):
+        super().__init__(numerical_features=numerical_features,
+                         categorical_features=categorical_features,
+                         max_clusters=max_clusters,
+                         std_multiplier=std_multiplier,
+                         weight_threshold=weight_threshold,
+                         covariance_type=covariance_type,
+                         weight_concentration_prior_type=weight_concentration_prior_type,
+                         weight_concentration_prior=weight_concentration_prior)
+
+
+class TVAEDataSampler(_BaseDataSampler):
+    """
+    TVAEDataSampler class for TVAE architecture.
+    It subclasses the ``CTGANDataSampler`` class from CTGAN architecture.
+
     The two classes share much functionality since TVAE and CTGAN
     are proposed in the same paper and almost all preprocessing
     for both is same.
-    There are, however, are a few differences in the `get_dataset`
-    and `generator` method, hence this new subclassed class.
+    There are, however, are a few differences in the ``get_dataset``
+    and ``generator`` methods, hence this new subclassed class.
 
     Args:
-        batch_size: `int`, default 512, Batch size to use for the dataset.
-        categorical_features: List of categorical features names
-        numerical_features: List of numerical features names
-        meta_data: Namedtuple of features meta data computed during data transformation.
-            You can access it from the `.get_meta_data()` of DataTransformer instance.
+        batch_size: ``int``, default 512,
+            Batch size to use for the dataset.
+
+        categorical_features: ``List[str]``,
+            List of categorical features names
+
+        numerical_features: ``List[str]``,
+            List of numerical features names
+
+        metadata:
+            A dictionary of metadata computed during data transformation.
+            You can access it from the ``.get_metadata()`` of ``CTGANDataTransformer`` instance.
     """
     def __init__(self,
-                 batch_size=512,
-                 categorical_features=None,
-                 numerical_features=None,
-                 meta_data=None
+                 batch_size: int = 512,
+                 categorical_features: FeaturesNamesType = None,
+                 numerical_features: FeaturesNamesType = None,
+                 metadata: dict = None
                  ):
         super().__init__(batch_size=batch_size,
                          categorical_features=categorical_features,
                          numerical_features=numerical_features,
-                         meta_data=meta_data)
+                         metadata=metadata)
 
     def get_dataset(self,
                     x_transformed,
                     x_original=None):
         """
         Args:
-            x_transformed: Dataset transformed using DataTransformer class
+            x_transformed: Dataset transformed using ``CTGANDataTransformer`` class
             x_original: Original Dataset - a pandas DataFrame.
                 It is used for computing categorical values' probabilities
                 for later sampling.
         Returns:
-            Returns a tensorflow dataset that utilizes the sample_data method
+            Returns a tensorflow dataset that utilizes the ``generator`` method
             to create batches of data. This way user can just pass the dataset object to the fit
-            method of the model and each batch generated will satisfies all out requirements of sampling
+            method of the model and each batch generated will satisfy all out requirements of sampling
         """
         self.num_samples, self.data_dim = x_transformed.shape
         # adapting the approach from the official implementation
@@ -66,11 +131,15 @@ class DataSampler(_BaseDataSampler):
     def generator(self, x_transformed):
         """
         Used to create a tensorflow dataset.
+
+        Args:
+            x_transformed: Dataset transformed by the ``TVAEDataTransformer`` class.
+
         Returns:
             A batch of data
         """
         # This random_feature_indices variable is required during the sample_cond vector method
-        # but since we're using sample_data function to create out tensorflow dataset, this
+        # but since we're using `generator` function to create out tensorflow dataset, this
         # gets called first to generate a batch, so keep in mind that this is where this
         # variable gets its values. We could alternatively just return these indices
         # and pass them as argument to the sample cond_vec but for now let's just work with it.
@@ -81,7 +150,7 @@ class DataSampler(_BaseDataSampler):
                                                     dtype=tf.int32)
             # NOTE: We've precomputed the probabilities in the DataTransformer class for each feature already
             # to speed things up.
-            random_features_categories_probs = tf.gather(tf.ragged.constant(self.meta_data.categorical.categories_probs_all),
+            random_features_categories_probs = tf.gather(tf.ragged.constant(self.metadata["categorical"]["categories_probs_all"]),
                                                          indices=random_features_idx)
             random_values_idx = [tf_random_choice(np.arange(len(feature_probs)),
                                                   n_samples=1,
