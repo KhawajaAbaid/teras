@@ -8,7 +8,7 @@ from teras.utils.types import UnitsValuesType
 
 
 @keras.saving.register_keras_serializable(package="teras.models")
-class CTGANGenerator(_CTGAN_LF):
+class CTGANGenerator(keras.Model):
     """
     CTGANGenerator for CTGAN architecture as proposed by
     Lei Xu et al. in the paper,
@@ -292,7 +292,7 @@ class CTGANDiscriminator(keras.Model):
 
 
 @keras.saving.register_keras_serializable(package="teras.models")
-class CTGAN(keras.Model):
+class CTGAN(_CTGAN_LF):
     """
     CTGAN is a state-of-the-art tabular data generation architecture
     proposed by Lei Xu et al. in the paper,
