@@ -59,3 +59,6 @@ InitializerType = Union[str, keras.initializers.Initializer]
 
 
 LayerOrModelType = Union[keras.layers.Layer, keras.Model]
+
+FeaturesNamesType = Union[List[str], Tuple[str]]
+
