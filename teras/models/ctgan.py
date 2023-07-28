@@ -55,8 +55,6 @@ class CTGANGenerator(keras.Model):
             to form its ``hidden block``.
             You can access the ``CTGANGeneratorBlock`` as follows,
                 >>> from teras.layers import CTGANGeneratorBlock
-
-
     """
     def __init__(self,
                  data_dim: int,
@@ -97,7 +95,7 @@ class CTGANGenerator(keras.Model):
         and since each type of feature, i.e. numerical or categorical require
         different activation functions to be applied, the process of applying those
         activations becomes rather tricky as it requires knowledge of underlying
-        data transformation and features meta data.
+        data transformation and features metadata.
         To ease the user's burden, in case a user wants to subclass this
         Generator model and completely customize the inner workings of the generator
         but would want to use the activation method specific to the CTGAN architecture,
@@ -371,7 +369,7 @@ class CTGAN(keras.Model):
                  discriminator_units_values: UnitsValuesType = (256, 256),
                  num_discriminator_steps: int = 1,
                  latent_dim: int = 128,
-                 packing_degree: int =8,
+                 packing_degree: int = 8,
                  gradient_penalty_lambda: float = 10,
                  **kwargs):
         super().__init__(**kwargs)
