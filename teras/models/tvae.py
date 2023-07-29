@@ -205,15 +205,15 @@ class TVAE(_TVAE_LF):
         self.loss_factor = loss_factor
 
     def get_config(self):
-        config = super().get_config()
-        new_config = {'input_dim': self.input_dim,
-                      'metadata': self.metadata,
-                      'encoder_units_values': self.encoder_units_values,
-                      'decoder_units_values': self.decoder_units_values,
-                      'latent_dim': self.latent_dim,
-                      'loss_factor': self.loss_factor,
-                      }
-        config.update(new_config)
+        config = {'name': self.name,
+                  'trainable': self.trainable,
+                  'input_dim': self.input_dim,
+                  'metadata': self.metadata,
+                  'encoder_units_values': self.encoder_units_values,
+                  'decoder_units_values': self.decoder_units_values,
+                  'latent_dim': self.latent_dim,
+                  'loss_factor': self.loss_factor,
+                  }
         return config
 
     @classmethod
