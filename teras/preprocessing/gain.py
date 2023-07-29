@@ -1,17 +1,14 @@
 import tensorflow as tf
 import pandas as pd
 import numpy as np
-from typing import List
 from sklearn.preprocessing import OrdinalEncoder
-from teras.preprocessing.base.base_data_transformer import BaseDataTransformer
+from teras.preprocessing.base.base_data_transformer import _BaseDataTransformer
+from teras.utils.types import FeaturesNamesType
 
 
-FEATURE_NAMES_TYPE = List[str]
-
-
-class DataTransformer(BaseDataTransformer):
+class GAINDataTransformer(_BaseDataTransformer):
     """
-    DataTransformer class that performs the required transformations
+    GAINDataTransformer class that performs the required transformations
     on the raw dataset required by the GAIN architecture proposed by
     Jinsung Yoon et al. in the paper
     GAIN: Missing Data Imputation using Generative Adversarial Nets.
@@ -20,10 +17,13 @@ class DataTransformer(BaseDataTransformer):
         https://arxiv.org/abs/1806.02920
 
     Args:
-        categorical_features: A list of names of categorical features.
+        categorical_features: ``List[str]``,
+            List of categorical features names in the dataset.
             Categorical features are encoded by ordinal encoder method.
             And then MinMax normalization is applied.
-        numerical_features: A list of names of categorical/continuous features.
+
+        numerical_features: ``List[str]``,
+            List of numerical features names in the dataset.
             Numerical features are encoded using MinMax normalization.
 
     Example:
@@ -37,8 +37,9 @@ class DataTransformer(BaseDataTransformer):
             transformed_df = data_transformer.transform(input_df)
     """
     def __init__(self,
-                 categorical_features: FEATURE_NAMES_TYPE = None,
-                 numerical_features: FEATURE_NAMES_TYPE = None):
+                 categorical_features: FeaturesNamesType = None,
+                 numerical_features: FeaturesNamesType = None
+                 ):
         super().__init__()
         self.categorical_features = categorical_features
         self.numerical_features = numerical_features
@@ -72,7 +73,7 @@ class DataTransformer(BaseDataTransformer):
         """
         Transforms the data (applying normalization etc)
         and returns a tensorflow dataset.
-        It also stores the meta data of features
+        It also stores the metadata of features
         that is used in the reverse transformation step.
 
         Args:
@@ -142,9 +143,9 @@ class DataTransformer(BaseDataTransformer):
         return x
 
 
-class DataSampler:
+class GAINDataSampler:
     """
-    DataSampler class that prepares the transformed data in the format
+    GAINDataSampler class that prepares the transformed data in the format
     that is expected and digestible by the GAIN architecture proposed by
     Jinsung Yoon et al. in the paper
     GAIN: Missing Data Imputation using Generative Adversarial Nets.
@@ -153,9 +154,14 @@ class DataSampler:
         https://arxiv.org/abs/1806.02920
 
     Args:
-        batch_size: default 512, Batch size to use for dataset.
-        shuffle: default True, Whether to shuffle the data.
-        random_seed: default None, Random seed to use when shuffling.
+        batch_size: ``int``, default 512,
+            Batch size to use for dataset.
+
+        shuffle: ``bool``, default True,
+            Whether to shuffle the data.
+
+        random_seed: ``int``, default None,
+            Random seed to use when shuffling.
 
     Example:
         ```python
@@ -180,7 +186,7 @@ class DataSampler:
     def get_dataset(self, x_transformed):
         """
         Args:
-            x_transformed: `np.ndarray` or `pd.DataFrame`,
+            x_transformed: ``np.ndarray`` or ``pd.DataFrame``,
                 Transformed dataset.
         Returns:
              A tensorflow dataset, that generates batches of
@@ -196,7 +202,7 @@ class DataSampler:
                                    output_signature=(
                                        tf.TensorSpec(shape=(None, self.data_dim), dtype=tf.float32, name="x_generator"),
                                        tf.TensorSpec(shape=(None, self.data_dim), dtype=tf.float32, name="x_discriminator"),
-                                        ),
+                                   ),
                                    args=[x_transformed]
                                    )
                    )
