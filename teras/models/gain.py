@@ -401,18 +401,19 @@ class GAIN(keras.Model):
         self.alpha = alpha
 
     def get_config(self):
-        config = super().get_config()
-        config.update({'input_dim': self.input_dim,
-                       "generator_units_values": self.generator_units_values,
-                       "discriminator_units_values": self.discriminator_units_values,
-                       "generator_activation_hidden": self.generator_activation_hidden,
-                       "discriminator_activation_hidden": self.discriminator_activation_hidden,
-                       "generator_activation_out": self.generator_activation_out,
-                       "discriminator_activation_out":  self.discriminator_activation_out,
-                       'num_discriminator_steps': self.num_discriminator_steps,
-                       'hint_rate': self.hint_rate,
-                       'alpha': self.alpha,
-                       })
+        config = {"name": self.name,
+                  "trainable": self.trainable,
+                  "input_dim": self.input_dim,
+                  "generator_units_values": self.generator_units_values,
+                  "discriminator_units_values": self.discriminator_units_values,
+                  "generator_activation_hidden": self.generator_activation_hidden,
+                  "discriminator_activation_hidden": self.discriminator_activation_hidden,
+                  "generator_activation_out": self.generator_activation_out,
+                  "discriminator_activation_out":  self.discriminator_activation_out,
+                  "num_discriminator_steps": self.num_discriminator_steps,
+                  "hint_rate": self.hint_rate,
+                  "alpha": self.alpha,
+                  }
         return config
 
     @classmethod
