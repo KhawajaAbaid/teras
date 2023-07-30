@@ -14,8 +14,9 @@
 
 
 # CTGAN models
-from ..models.ctgan import CTGAN
+from teras.models.ctgan import CTGAN
+
 
 # TVAE models
-from ..models.tvae import TVAE
+from teras.models.tvae import TVAE
 

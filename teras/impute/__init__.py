@@ -14,4 +14,4 @@
 
 
 # GAIN
-from ..models.gain import GAIN
+from teras.models.gain import GAIN
