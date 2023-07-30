@@ -14,10 +14,10 @@ def vime_mask_generator(p_m, x):
 
     """
     mask = tf.random.stateless_binomial(shape=tf.shape(x),
-                                           seed=(0, 0),
-                                           counts=1,
-                                           probs=p_m,
-                                           output_dtype=tf.float32)
+                                        seed=(0, 0),
+                                        counts=1,
+                                        probs=p_m,
+                                        output_dtype=tf.float32)
     return mask
 
 @tf.function
@@ -54,9 +54,9 @@ def vime_pretext_generator(m, x):
 
 
 def preprocess_input_vime_semi(x_labeled,
-                         y_labeled,
-                         x_unlabeled,
-                         batch_size=None):
+                               y_labeled,
+                               x_unlabeled,
+                               batch_size=None):
     """
     VIME's semi supervised training requires a labeled and an unlabeled training set.
     It also allows user to specify the unlabeled/labeled split.
@@ -125,9 +125,9 @@ def preprocess_input_vime_self(x_unlabeled,
     """
 
     if m_labeled is None and x_tilde is None:
-        m_unlabeled = mask_generator(p_m,
-                                     x_unlabeled)
-        m_labeled, x_tilde = pretext_generator(m_unlabeled, x_unlabeled)
+        m_unlabeled = vime_mask_generator(p_m,
+                                          x_unlabeled)
+        m_labeled, x_tilde = vime_pretext_generator(m_unlabeled, x_unlabeled)
 
     dataset = tf.data.Dataset.from_tensor_slices((x_tilde,
                                                   {"mask_estimator": m_labeled, "feature_estimator": x_unlabeled}))
