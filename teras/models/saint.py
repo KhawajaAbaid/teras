@@ -126,9 +126,9 @@ class SAINT(_SAINTLF):
         if numerical_features_exist:
             # If numerical features exist, then they must be embedded
             numerical_feature_embedding = SAINTNumericalFeatureEmbedding(
-                embedding_dim=self.embedding_dim,
-                hidden_dim=self.numerical_embedding_hidden_dim,
-                numerical_features_metadata=self._numerical_features_metadata
+                features_metadata=features_metadata,
+                embedding_dim=embedding_dim,
+                hidden_dim=numerical_embedding_hidden_dim
             )
 
         # Categorical Features Embedding
@@ -136,22 +136,22 @@ class SAINT(_SAINTLF):
         if categorical_features_exist:
             # If categorical features exist, then they must be embedded
             categorical_feature_embedding = CategoricalFeatureEmbedding(
-                categorical_features_metadata=self._categorical_features_metadata,
-                embedding_dim=self.embedding_dim,
-                encode=self.encode_categorical_values)
+                features_metadata=features_metadata,
+                embedding_dim=embedding_dim,
+                encode=encode_categorical_values)
 
-        encoder = SAINTEncoder(num_transformer_layers=self.num_transformer_layers,
-                               embedding_dim=self.embedding_dim,
-                               num_attention_heads=self.num_attention_heads,
-                               num_inter_sample_attention_heads=self.num_inter_sample_attention_heads,
-                               attention_dropout=self.attention_dropout,
-                               inter_sample_attention_dropout=self.inter_sample_attention_dropout,
-                               feedforward_dropout=self.feedforward_dropout,
-                               feedforward_multiplier=self.feedforward_multiplier,
-                               norm_epsilon=self.norm_epsilon,
-                               apply_attention_to_features=self.apply_attention_to_features,
-                               apply_attention_to_rows=self.apply_attention_to_rows,
-                               num_embedded_features=self._num_embedded_features,
+        encoder = SAINTEncoder(data_dim=input_dim,
+                               num_transformer_layers=num_transformer_layers,
+                               embedding_dim=embedding_dim,
+                               num_attention_heads=num_attention_heads,
+                               num_inter_sample_attention_heads=num_inter_sample_attention_heads,
+                               attention_dropout=attention_dropout,
+                               inter_sample_attention_dropout=inter_sample_attention_dropout,
+                               feedforward_dropout=feedforward_dropout,
+                               feedforward_multiplier=feedforward_multiplier,
+                               norm_epsilon=norm_epsilon,
+                               apply_attention_to_features=apply_attention_to_features,
+                               apply_attention_to_rows=apply_attention_to_rows,
                                )
 
         super().__init__(input_dim=input_dim,
