@@ -49,10 +49,10 @@ class FeedForward(_FeedForwardLF):
                  activation="geglu",
                  **kwargs):
         hidden_block = keras.models.Sequential(name="feed_forward_hidden_block")
-        hidden_block.add(keras.layers.Dense(self.embedding_dim * self.multiplier,
-                                            activation=get_activation(self.activation)))
-        hidden_block.add(keras.layers.Dropout(self.dropout))
-        output_layer = keras.layers.Dense(self.embedding_dim)
+        hidden_block.add(keras.layers.Dense(embedding_dim * multiplier,
+                                            activation=get_activation(activation)))
+        hidden_block.add(keras.layers.Dropout(dropout))
+        output_layer = keras.layers.Dense(embedding_dim)
 
         super().__init__(hidden_block=hidden_block,
                          output_layer=output_layer,
