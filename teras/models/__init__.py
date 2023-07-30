@@ -13,11 +13,10 @@
 # limitations under the License.
 
 
-
 # NODE models
-from .node import (NODE,
-                   NODEClassifier,
-                   NODERegressor)
+from teras.models.node import (NODE,
+                               NODEClassifier,
+                               NODERegressor)
 
 # TabNet models
 from teras.models.tabnet import (TabNet,
@@ -28,20 +27,18 @@ from teras.models.tabnet import (TabNet,
 # TabTransformer models
 from teras.models.tabtransformer import (TabTransformer,
                                          TabTransformerClassifier,
-                                         TabTransformerRegressor,
-                                         )
-from teras.layerflow.models.tabtransformer import TabTransformerPretrainer
+                                         TabTransformerRegressor)
+
 
 # DNFNet models
-from .dnfnet import (DNFNet,
-                     DNFNetRegressor,
-                     DNFNetClassifier)
+from teras.models.dnfnet import (DNFNet,
+                                 DNFNetRegressor,
+                                 DNFNetClassifier)
 
 # SAINT models
-from .saint import (SAINT,
-                    SAINTClassifier,
-                    SAINTRegressor,
-                    SAINTPretrainer)
+from teras.models.saint import (SAINT,
+                                SAINTClassifier,
+                                SAINTRegressor)
 
 
 # RTDL ResNet models
@@ -54,30 +51,30 @@ from teras.models.ft_transformer import (FTTransformer,
                                          FTTransformerRegressor)
 
 # VIME models
-from .vime import (VimeSelf,
-                   VimeSemi)
+from teras.models.vime import (VimeSelf,
+                               VimeSemi)
 
 
 # CTGAN models
-from .ctgan import (CTGAN,
-                    Generator as CTGANGenerator,
-                    Discriminator as CTGANDiscriminator,
-                    )
+from teras.models.ctgan import (CTGANGenerator,
+                                CTGANDiscriminator,
+                                CTGAN)
 
 
 # TVAE models
-from .tvae import (Encoder as TVAEEncoder,
-                   Decoder as TVAEDecoder,
-                   TVAE)
+from teras.models.tvae import (TVAEEncoder,
+                               TVAEDecoder,
+                               TVAE)
 
 
 # GAIN models
-from teras.models.gain import (Generator as GAINGenerator,
-                               Discriminator as GAINDiscriminator,
+from teras.models.gain import (GAINGenerator,
+                               GAINDiscriminator,
                                GAIN)
 
+
 # PCGAIN models
-from teras.models.pcgain import (Generator as PCGAINGenerator,
-                                 Discriminator as PCGAINDiscriminator,
-                                 Classifier as PCGAINClassifier,
+from teras.models.pcgain import (PCGAINGenerator,
+                                 PCGAINDiscriminator,
+                                 PCGAINClassifier,
                                  PCGAIN)
