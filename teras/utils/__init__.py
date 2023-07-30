@@ -32,7 +32,7 @@ from teras.utils.node import sparsemoid
 
 
 # VIME utility function(s)
-from teras.utils.vime import (mask_generator as vime_mask_generator,
-                              pretext_generator as vime_pretext_generator,
+from teras.utils.vime import (vime_mask_generator,
+                              vime_pretext_generator,
                               preprocess_input_vime_self,
                               preprocess_input_vime_semi)
