@@ -14,31 +14,25 @@
 
 
 # General purpose utility functions
-from .utils import (tf_random_choice,
-                    get_normalization_layer,
-                    get_categorical_features_cardinalities,
-                    get_activation,
-                    get_initializer,
-                    get_features_metadata_for_embedding,
-                    dataframe_to_tf_dataset,
-                    convert_dict_to_array_tensor,
-                    serialize_layers_collection,
-                    inject_missing_values)
-
-
-# DNFNet utility function(s)
-# Since all the DNFNet utility functions are so specific to the architecture,
-# and some even contain generic names, so it's better not to import them here
-# and rather import them from the path .NetDNF
+from teras.utils.utils import (tf_random_choice,
+                               get_normalization_layer,
+                               get_categorical_features_cardinalities,
+                               get_activation,
+                               get_initializer,
+                               get_features_metadata_for_embedding,
+                               dataframe_to_tf_dataset,
+                               convert_dict_to_array_tensor,
+                               serialize_layers_collection,
+                               deserialize_layers_collection,
+                               inject_missing_values)
 
 
 # NODE utility function(s)
-from .node import sparsemoid
+from teras.utils.node import sparsemoid
 
 
 # VIME utility function(s)
-from .vime import (mask_generator as vime_mask_generator,
-                   pretext_generator as vime_pretext_generator,
-                   preprocess_input_vime_self,
-                   preprocess_input_vime_semi)
-
+from teras.utils.vime import (mask_generator as vime_mask_generator,
+                              pretext_generator as vime_pretext_generator,
+                              preprocess_input_vime_self,
+                              preprocess_input_vime_semi)
