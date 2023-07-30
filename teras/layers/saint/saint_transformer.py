@@ -17,9 +17,9 @@ class SAINTTransformer(_SAINTTransformerLF):
         https://arxiv.org/abs/2106.01342
 
     Args:
-        num_features: ``int``,
-            Total number of features in the input dataset,
-            aka the dimensionality of the input dataset.
+        data_dim: ``int``,
+            Dimensionality of the input dataset,
+            or the total number of features in the dataset.
 
         embedding_dim: ``int``, default 32,
             Embedding dimensions used to embedd numerical and
@@ -69,7 +69,7 @@ class SAINTTransformer(_SAINTTransformerLF):
             Also, note that, both CANNOT be False at the same time!
     """
     def __init__(self,
-                 num_features: int,
+                 data_dim: int,
                  embedding_dim: int = 32,
                  num_attention_heads: int = 8,
                  num_inter_sample_attention_heads: int = 8,
@@ -83,7 +83,7 @@ class SAINTTransformer(_SAINTTransformerLF):
                  **kwargs):
         multihead_inter_sample_attention = MultiHeadInterSampleAttention(
             num_heads=num_inter_sample_attention_heads,
-            key_dim=embedding_dim * num_features,
+            key_dim=embedding_dim * data_dim,
             dropout=inter_sample_attention_dropout,
             name="inter_sample_multihead_attention"
         )
@@ -103,7 +103,7 @@ class SAINTTransformer(_SAINTTransformerLF):
                          transformer=transformer,
                          **kwargs)
 
-        self.num_features = num_features
+        self.data_dim = data_dim
         self.embedding_dim = embedding_dim
         self.num_attention_heads = num_attention_heads
         self.num_inter_sample_attention_heads = num_inter_sample_attention_heads
@@ -118,7 +118,7 @@ class SAINTTransformer(_SAINTTransformerLF):
     def get_config(self):
         config = {'name': self.name,
                   'trainable': self.trainable,
-                  'num_features': self.num_features,
+                  'data_dim': self.data_dim,
                   'embedding_dim': self.embedding_dim,
                   'num_attention_heads': self.num_attention_heads,
                   'num_inter_sample_attention_heads': self.num_inter_sample_attention_heads,
@@ -135,6 +135,6 @@ class SAINTTransformer(_SAINTTransformerLF):
 
     @classmethod
     def from_config(cls, config):
-        # num_features is the only positional argument
-        num_features = config.pop("num_features")
-        return cls(num_features, **config)
+        # data_dim is the only positional argument
+        data_dim = config.pop("data_dim")
+        return cls(data_dim=data_dim, **config)

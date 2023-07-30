@@ -99,7 +99,7 @@ class SAINTEncoder(_SAINTEncoderLF):
         saint_transformer_layers = keras.models.Sequential(name="saint_transformer_layers")
         for i in range(num_transformer_layers):
             saint_transformer_layers.add(SAINTTransformer(
-                num_features=data_dim,
+                data_dim=data_dim,
                 embedding_dim=embedding_dim,
                 num_attention_heads=num_attention_heads,
                 num_inter_sample_attention_heads=num_inter_sample_attention_heads,
