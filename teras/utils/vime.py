@@ -2,12 +2,16 @@ import tensorflow as tf
 
 
 @tf.function
-def vime_mask_generator(p_m, x):
+def vime_mask_generator(x,
+                        p_m: float = 0.3):
     """
     Generates mask vector for self and semi-supervised learning
     Args:
-        p_m: corruption probability
-        x: feature matrix
+        x:
+            Dataset.
+
+        p_m: ``float``, default 0.3,
+            Corruption probability
 
     Returns:
         mask: binary mask matrix
@@ -20,20 +24,22 @@ def vime_mask_generator(p_m, x):
                                         output_dtype=tf.float32)
     return mask
 
+
 @tf.function
-def vime_pretext_generator(m, x):
+def vime_pretext_generator(x, mask):
     """
     Generates corrupted samples for self and semi-supervised learning
 
     Args:
-        m: mask matrix
-        x: feature matrix
-        batch_size: When X is passed from within the keras model during training, its batch dimension is none, to handle
-        that particular case, pass batch_size explicity
+        x:
+            Dataset.
+
+        mask:
+            Mask matrix
 
     Returns:
-        m_new: final mask matrix after corruption
-        x_tilde: corrupted feature matrix
+        mask_corrupted: Final mask matrix after corruption
+        x_tilde: Corrupted feature matrix
     """
     x = tf.cast(x, dtype=tf.float32)
     num_samples = tf.shape(x)[0]
@@ -46,7 +52,7 @@ def vime_pretext_generator(m, x):
     x_bar = tf.transpose(x_bar.stack())
 
     # Corrupt Samples
-    x_tilde = x * (1 - m) + x_bar * m
+    x_tilde = x * (1 - mask) + x_bar * mask
 
     m_new = (x != x_tilde)
     m_new = tf.cast(m_new, dtype="float32")
