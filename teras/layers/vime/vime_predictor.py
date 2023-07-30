@@ -21,21 +21,16 @@ class VimePredictor(keras.layers.Layer):
 
         activation: ``str`` or ``callable`` or ``keras.layers.Layer``, default "relu",
             Activation function to use in for the hidden layers.
-
-        batch_size: ``int``, default 512,
-            Batch size being used.
     """
     def __init__(self,
                  num_labels: int = 2,
                  hidden_dim: int = 32,
                  activation: ActivationType = "relu",
-                 batch_size: int = 512,
                  **kwargs):
         super().__init__(**kwargs)
         self.num_labels = num_labels
         self.hidden_dim = hidden_dim
         self.activation = activation
-        self.batch_size = batch_size
 
         self.predictor_block = keras.models.Sequential(name="predictor_block")
         self.inter_layer_1 = keras.layers.Dense(self.hidden_dim,
@@ -65,7 +60,6 @@ class VimePredictor(keras.layers.Layer):
         config.update({'num_labels': self.num_labels,
                        'hidden_dim': self.hidden_dim,
                        'activation': activation_serialized,
-                       'batch_size': self.batch_size,
                        }
                       )
         return config
