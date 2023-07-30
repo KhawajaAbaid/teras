@@ -2,7 +2,7 @@ import tensorflow as tf
 
 
 @tf.function
-def mask_generator(p_m, x):
+def vime_mask_generator(p_m, x):
     """
     Generates mask vector for self and semi-supervised learning
     Args:
@@ -21,7 +21,7 @@ def mask_generator(p_m, x):
     return mask
 
 @tf.function
-def pretext_generator(m, x):
+def vime_pretext_generator(m, x):
     """
     Generates corrupted samples for self and semi-supervised learning
 
