@@ -34,3 +34,6 @@ from teras.preprocessing.gain import (GAINDataTransformer,
 from teras.preprocessing.pcgain import (PCGAINDataTransformer,
                                         PCGAINDataSampler)
 
+# Vime preprocessing classes
+from teras.preprocessing.vime import (VimeDataTransformer,
+                                      VimeDataSampler)
