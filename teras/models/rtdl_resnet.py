@@ -87,8 +87,6 @@ class RTDLResNet(_RTDLResNetLF):
         self.use_skip_connection = use_skip_connection
 
     def get_config(self):
-        config = super().get_config()
-
         activation_hidden_serialized = self.block_activation_hidden
         if not isinstance(self.block_activation_hidden, str):
             activation_hidden_serialized = keras.layers.serialize(self.block_activation_hidden)
@@ -101,17 +99,18 @@ class RTDLResNet(_RTDLResNetLF):
         if not isinstance(self.block_normalization, str):
             normalization_serialized = keras.layers.serialize(self.block_normalization)
 
-        config.update({'input_dim': self.input_dim,
-                       'num_blocks': self.num_blocks,
-                       'block_hidden_dim': self.block_hidden_dim,
-                       'block_dropout_hidden': self.block_dropout_hidden,
-                       'block_dropout_out': self.block_dropout_out,
-                       'block_activation_hidden': activation_hidden_serialized,
-                       'block_activation_out': activation_out_serialized,
-                       'block_normalization': normalization_serialized,
-                       'use_skip_connection': self.use_skip_connection,
-                       }
-                      )
+        config = {'name': self.name,
+                  'trainable': self.trainable,
+                  'input_dim': self.input_dim,
+                  'num_blocks': self.num_blocks,
+                  'block_hidden_dim': self.block_hidden_dim,
+                  'block_dropout_hidden': self.block_dropout_hidden,
+                  'block_dropout_out': self.block_dropout_out,
+                  'block_activation_hidden': activation_hidden_serialized,
+                  'block_activation_out': activation_out_serialized,
+                  'block_normalization': normalization_serialized,
+                  'use_skip_connection': self.use_skip_connection,
+                  }
         return config
 
     @classmethod
