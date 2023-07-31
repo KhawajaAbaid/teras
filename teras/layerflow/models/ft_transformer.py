@@ -20,7 +20,7 @@ class FTTransformer(keras.Model):
             An instance of ``CategoricalFeatureEmbedding`` layer to embedd categorical features
             or any layer that can work in its place.
             You can import the ``CategoricalFeatureEmbedding`` layer as follows,
-                >>> from teras.layerflow.layers import CategoricalFeatureEmbedding
+                >>> from teras.layers import CategoricalFeatureEmbedding
 
         numerical_feature_embedding: ``keras.layers.Layer``,
             An instance of ``FTNumericalFeatureEmbedding`` layer to embedd numerical features
@@ -114,7 +114,7 @@ class FTTransformer(keras.Model):
         cls_token = keras.layers.deserialize(config.pop("cls_token"))
         encoder = keras.layers.deserialize(config.pop("encoder"))
         head = keras.layers.deserialize(config.pop("head"))
-        return cls(input_dim,
+        return cls(input_dim=input_dim,
                    categorical_feature_embedding=categorical_feature_embedding,
                    numerical_feature_embedding=numerical_feature_embedding,
                    cls_token=cls_token,
