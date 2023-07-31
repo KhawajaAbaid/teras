@@ -1,5 +1,5 @@
 import tensorflow as tf
-from teras.layers.ft_transfromer.ft_numerical_feature_embedding import FTNumericalFeatureEmbedding
+from teras.layers.ft_transformer.ft_numerical_feature_embedding import FTNumericalFeatureEmbedding
 from teras.utils import get_features_metadata_for_embedding
 import pandas as pd
 import pytest
