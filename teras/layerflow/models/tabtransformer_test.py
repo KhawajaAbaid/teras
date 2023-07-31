@@ -45,7 +45,7 @@ class TabTransformerTest(tf.test.TestCase):
                                numerical_feature_normalization=self.numerical_feature_normalization,
                                encoder=self.encoder,
                                head=self.head)
-        save_path = os.path.join(self.get_temp_dir(), "tabtransformer_classifier.keras")
+        save_path = os.path.join(self.get_temp_dir(), "tabtransformer_lf.keras")
         model.save(save_path, save_format="keras_v3")
         reloaded_model = keras.models.load_model(save_path)
         outputs_original = model(self.data_batch)
@@ -97,7 +97,7 @@ class TabTransformerPretrainerTest(tf.test.TestCase):
                                     encoder=self.encoder)
         pretrainer = TabTransformerPretrainer(model=base_model,
                                               features_metadata=self.features_metadata)
-        save_path = os.path.join(self.get_temp_dir(), "tabtransformer_pretrainer.keras")
+        save_path = os.path.join(self.get_temp_dir(), "tabtransformer_pretrainer_lf.keras")
         pretrainer.save(save_path, save_format="keras_v3")
         reloaded_model = keras.models.load_model(save_path)
         outputs_original = pretrainer(self.data_batch, mask=self.mask)
