@@ -52,7 +52,7 @@ class NODE(_NodeLF):
         response_initializer: default "random_normal",
             Initializer for tree output tensor. Any format that is acceptable by the keras initializers.
 
-        selection_logits_intializer: default "random_uniform",
+        selection_logits_initializer: default "random_uniform",
             Initializer for logits that select features for the tree
             Both thresholds and scales are initialized with data-aware initialization function.
 
@@ -97,7 +97,7 @@ class NODE(_NodeLF):
                                              choice_function=choice_func,
                                              bin_function=bin_func,
                                              response_initializer=response_initializer,
-                                             selection_logits_intializer=selection_logits_initializer,
+                                             selection_logits_initializer=selection_logits_initializer,
                                              threshold_init_beta=threshold_init_beta,
                                              threshold_init_cutoff=threshold_init_cutoff)
                        for _ in range(num_layers)]
@@ -140,7 +140,7 @@ class NODE(_NodeLF):
                   'choice_function': self.choice_function,
                   'bin_function': self.bin_function,
                   'response_initializer': self.response_initializer,
-                  'selection_logits_intializer': self.selection_logits_intializer,
+                  'selection_logits_initializer': self.selection_logits_initializer,
                   'threshold_init_beta': self.threshold_init_beta,
                   'threshold_init_cutoff': self.threshold_init_cutoff,
                   }
@@ -149,7 +149,7 @@ class NODE(_NodeLF):
     @classmethod
     def from_config(cls, config):
         input_dim = config.pop("input_dim")
-        return cls(input_dim, **config)
+        return cls(input_dim=input_dim, **config)
 
 
 @keras.saving.register_keras_serializable("teras.models")
@@ -205,7 +205,7 @@ class NODERegressor(NODE):
         response_initializer: default "random_normal",
             Initializer for tree output tensor. Any format that is acceptable by the keras initializers.
 
-        selection_logits_intializer: default "random_uniform",
+        selection_logits_initializer: default "random_uniform",
             Initializer for logits that select features for the tree
             Both thresholds and scales are initialized with data-aware initialization function.
 
@@ -239,7 +239,7 @@ class NODERegressor(NODE):
                  choice_function=None,
                  bin_function=None,
                  response_initializer="random_normal",
-                 selection_logits_intializer="random_uniform",
+                 selection_logits_initializer="random_uniform",
                  threshold_init_beta: float = 1.0,
                  threshold_init_cutoff: float = 1.0,
                  **kwargs):
@@ -256,7 +256,7 @@ class NODERegressor(NODE):
                          choice_function=choice_function,
                          bin_function=bin_function,
                          response_initializer=response_initializer,
-                         selection_logits_intializer=selection_logits_intializer,
+                         selection_logits_initializer=selection_logits_initializer,
                          threshold_init_beta=threshold_init_beta,
                          threshold_init_cutoff=threshold_init_cutoff,
                          head=head,
@@ -326,7 +326,7 @@ class NODEClassifier(NODE):
         response_initializer: default "random_normal",
             Initializer for tree output tensor. Any format that is acceptable by the keras initializers.
 
-        selection_logits_intializer: default "random_uniform",
+        selection_logits_initializer: default "random_uniform",
             Initializer for logits that select features for the tree
             Both thresholds and scales are initialized with data-aware initialization function.
 
@@ -360,7 +360,7 @@ class NODEClassifier(NODE):
                  choice_function=None,
                  bin_function=None,
                  response_initializer="random_normal",
-                 selection_logits_intializer="random_uniform",
+                 selection_logits_initializer="random_uniform",
                  threshold_init_beta: float = 1.0,
                  threshold_init_cutoff: float = 1.0,
                  **kwargs):
@@ -377,7 +377,7 @@ class NODEClassifier(NODE):
                          choice_function=choice_function,
                          bin_function=bin_function,
                          response_initializer=response_initializer,
-                         selection_logits_intializer=selection_logits_intializer,
+                         selection_logits_initializer=selection_logits_initializer,
                          threshold_init_beta=threshold_init_beta,
                          threshold_init_cutoff=threshold_init_cutoff,
                          head=head,

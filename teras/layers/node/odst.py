@@ -42,7 +42,7 @@ class ObliviousDecisionTree(keras.layers.Layer):
        response_initializer: default "random_normal",
            Initializer for tree output tensor. Any format that is acceptable by the keras initializers.
 
-       selection_logits_intializer: default "random_uniform",
+       selection_logits_initializer: default "random_uniform",
            Initializer for logits that select features for the tree
            Both thresholds and scales are initialized with data-aware initialization function.
 
@@ -70,7 +70,7 @@ class ObliviousDecisionTree(keras.layers.Layer):
                  choice_function=None,
                  bin_function=None,
                  response_initializer="random_normal",
-                 selection_logits_intializer="random_uniform",
+                 selection_logits_initializer="random_uniform",
                  threshold_init_beta: float = 1.0,
                  threshold_init_cutoff: float = 1.0,
                  **kwargs):
@@ -81,7 +81,7 @@ class ObliviousDecisionTree(keras.layers.Layer):
         self.choice_function = sparsemax if choice_function is None else choice_function
         self.bin_function = sparsemoid if bin_function is None else bin_function
         self.response_initializer = response_initializer
-        self.selection_logits_initializer = selection_logits_intializer
+        self.selection_logits_initializer = selection_logits_initializer
         self.threshold_init_beta = threshold_init_beta
         self.threshold_init_cutoff = threshold_init_cutoff
         self.initialized = False
@@ -167,7 +167,7 @@ class ObliviousDecisionTree(keras.layers.Layer):
                       'choice_function': self.choice_function,
                       'bin_function': self.bin_function,
                       'response_initializer': self.response_initializer,
-                      'selection_logits_intializer': self.selection_logits_intializer,
+                      'selection_logits_initializer': self.selection_logits_initializer,
                       'threshold_init_beta': self.threshold_init_beta,
                       'threshold_init_cutoff': self.threshold_init_cutoff,
                       }
