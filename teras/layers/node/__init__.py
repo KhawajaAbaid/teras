@@ -14,3 +14,4 @@
 
 
 from teras.layers.node.odst import ObliviousDecisionTree
+from teras.layers.node.node_feature_selector import NodeFeatureSelector
