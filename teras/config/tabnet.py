@@ -3,7 +3,7 @@ from teras.config.base import BaseConfig
 
 class TabNetConfig(BaseConfig):
     feature_transformer_dim: int = 32
-    decision_step_output_dim: int = 32
+    decision_step_output_dim: int = 16
     num_decision_steps: int = 5
     num_shared_layers: int = 2
     num_decision_dependent_layers: int = 2
