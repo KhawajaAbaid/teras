@@ -2,7 +2,8 @@ from tensorflow import keras
 from typing import List, Tuple, Union
 from teras.utils import get_activation
 from teras.layerflow.layers.common.transformer import (FeedForward as _FeedForwardLF,
-                                                       Transformer as _TransformerLF)
+                                                       Transformer as _TransformerLF,
+                                                       Encoder as _EncoderLF)
 
 
 LIST_OR_TUPLE = Union[List[int], Tuple[int]]
@@ -144,7 +145,7 @@ class Transformer(_TransformerLF):
 
 
 @keras.saving.register_keras_serializable(package="teras.layers.common")
-class Encoder(keras.layers.Layer):
+class Encoder(_EncoderLF):
     """
     Encoder for transformer based architectures.
     It is simply a stack of `num_transformer_layers`
