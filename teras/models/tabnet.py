@@ -493,6 +493,10 @@ class TabNetPretrainer(_TabNetPretrainerLF):
         model: ``TabNet``,
             An instance of `TabNet` class to pretrain.
 
+        input_dim: ``int``,
+            Dimensionality of the input dataset,
+            or the number of features in the input dataset.
+
         features_metadata: ``dict``,
             A nested dictionary of metadata for features where
             categorical sub-dictionary is a mapping of categorical feature names to a tuple of
@@ -530,7 +534,8 @@ class TabNetPretrainer(_TabNetPretrainerLF):
     """
     def __init__(self,
                  model: TabNet,
-                 features_metadata: dict,
+                 input_dim: int = None,
+                 features_metadata: dict = None,
                  missing_feature_probability: float = 0.3,
                  decoder_feature_transformer_dim: int = TabNetConfig.feature_transformer_dim,
                  decoder_decision_step_output_dim: int = TabNetConfig.decision_step_output_dim,
@@ -538,9 +543,9 @@ class TabNetPretrainer(_TabNetPretrainerLF):
                  decoder_num_shared_layers: int = TabNetConfig.num_shared_layers,
                  decoder_num_decision_dependent_layers: int = TabNetConfig.num_decision_dependent_layers,
                  **kwargs):
-        decoder = TabNetDecoder(input_dim=model.input_dim,
+        decoder = TabNetDecoder(data_dim=input_dim,
                                 feature_transformer_dim=decoder_feature_transformer_dim,
-                                decoder_num_shared_layers=decoder_feature_transformer_dim,
+                                decision_step_output_dim=decoder_decision_step_output_dim,
                                 num_decision_steps=decoder_num_decision_steps,
                                 num_shared_layers=decoder_num_shared_layers,
                                 num_decision_dependent_layers=decoder_num_shared_layers)
@@ -550,6 +555,8 @@ class TabNetPretrainer(_TabNetPretrainerLF):
                          missing_feature_probability=missing_feature_probability,
                          **kwargs)
         self.model = model
+        self.input_dim = input_dim
+        self.features_metadata = features_metadata
         self.missing_feature_probability = missing_feature_probability
         self.decoder_feature_transformer_dim = decoder_feature_transformer_dim
         self.decoder_decision_step_output_dim = decoder_decision_step_output_dim
@@ -561,6 +568,7 @@ class TabNetPretrainer(_TabNetPretrainerLF):
         config = {'name': self.name,
                   'trainable': self.trainable,
                   'model': keras.layers.serialize(self.model),
+                  'input_dim': self.input_dim,
                   'features_metadata': self.features_metadata,
                   'missing_feature_probability': self.missing_feature_probability,
                   'decoder_feature_transformer_dim': self.decoder_feature_transformer_dim,
@@ -574,5 +582,4 @@ class TabNetPretrainer(_TabNetPretrainerLF):
     @classmethod
     def from_config(cls, config):
         model = keras.layers.deserialize(config.pop("model"))
-        features_metadata = config.pop("features_metadata")
-        return cls(model, features_metadata, **config)
+        return cls(model=model, **config)
