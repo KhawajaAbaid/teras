@@ -207,10 +207,18 @@ class Encoder(_EncoderLF):
         config = {'name': self.name,
                   'trainable': self.trainable,
                   'num_transformer_layers': self.num_transformer_layers,
-                  'num_attention_heads': self.num_heads,
+                  'num_attention_heads': self.num_attention_heads,
                   'embedding_dim': self.embedding_dim,
                   'attention_dropout': self.attention_dropout,
                   'feedforward_dropout': self.feedforward_dropout,
                   'feedforward_multiplier': self.feedforward_multiplier,
                   'norm_epsilon': self.norm_epsilon}
         return config
+
+    @classmethod
+    def from_config(cls, config):
+        # we need to override the from_config method because the parent
+        # is layerflow version of Encoder which tried to extract
+        # the value against `transformer_layers` key to deserialize
+        # which causes KeyError
+        return cls(**config)
