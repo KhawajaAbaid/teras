@@ -52,3 +52,10 @@ class SAINTProjectionHead(_SAINTProjectionHeadLF):
                   'hidden_activation': self.hidden_activation,
                   'output_dim': self.output_dim}
         return config
+
+    # need to override the from_config since the layerflow version is parent
+    # and it tries to pop out layers to deserialize which in this default
+    # api case don't exist in the configuration and hence causes KeyError
+    @classmethod
+    def from_config(cls, config):
+        return cls(**config)
