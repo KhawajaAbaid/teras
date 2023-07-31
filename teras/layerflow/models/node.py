@@ -1,10 +1,7 @@
 from tensorflow import keras
-from typing import List
 from teras.utils.utils import (serialize_layers_collection,
                                deserialize_layers_collection)
-from teras.layers.node.node_feature_selector import NodeFeatureSelector
-
-LIST_OF_LAYERS = List[keras.layers.Layer]
+from teras.utils.types import LayersList
 
 
 @keras.saving.register_keras_serializable(package="teras.layerflow.models")
@@ -29,7 +26,7 @@ class NODE(keras.Model):
             If None, default number of `ObliviousDecisionTree` layers with default values
             will be used.
             You can import the `ObliviousDecisionTree` layer as follows,
-                >>> from teras.layerflow.layers import ObliviousDecisionTree
+                >>> from teras.layers import ObliviousDecisionTree
 
         feature_selector: ``keras.layers.Layer``:
             An instance of ``NodeFeatureSelector`` layer that selects features based on
@@ -44,16 +41,15 @@ class NODE(keras.Model):
                 >>> from keras.layers import Dropout
 
         head: ``keras.layers.Layer``,
-            An instance of ``Head`` layer to make classification or regression predictions.
-            In case you're using this model as a base model for pretraining, you MUST leave
-            this argument as None.
-            You can import the ``Head`` layer as follows,
-                >>> from teras.layerflow.layers import Head
-            or you can just use your own custom layer.
+            An instance of either ``ClassificationHead`` or ``RegressionHead`` layers,
+            depending on the task at hand.
+            You can import the ``ClassificationHead`` and ``RegressionHead`` layers as follows,
+                >>> from teras.layers import ClassificationHead
+                >>> from teras.layers import RegressionHead
     """
     def __init__(self,
                  input_dim: int,
-                 tree_layers: LIST_OF_LAYERS = None,
+                 tree_layers: LayersList = None,
                  feature_selector: keras.layers.Layer = None,
                  dropout: keras.layers.Layer = None,
                  head: keras.layers.Layer = None,
@@ -81,22 +77,32 @@ class NODE(keras.Model):
                          outputs=outputs,
                          **kwargs)
 
+        self.input_dim = input_dim
         self.tree_layers = tree_layers
         self.head = head
+        self.feature_selector = feature_selector
+        self.dropout = dropout
 
     def get_config(self):
         config = super().get_config()
-        config.update({'tree_layers': serialize_layers_collection(self.tree_layers),
-                       'head': keras.layers.serialize(self.head),
-                       'max_features': self.max_features,
-                       'input_dropout': self.input_dropout
+        config.update({'input_dim': self.input_dim,
+                       'tree_layers': serialize_layers_collection(self.tree_layers),
+                       'feature_selector': self.feature_selector,
+                       'dropout': self.dropout,
+                       'head': keras.layers.serialize(self.head)
                        })
         return config
 
     @classmethod
     def from_config(cls, config):
+        input_dim = config.pop("input_dim")
         tree_layers = deserialize_layers_collection(config.pop("tree_layers"))
+        feature_selector = keras.layers.deserialize(config.pop("feature_selector"))
+        dropout = keras.layers.deserialize(config.pop("dropout"))
         head = keras.layers.deserialize(config.pop("head"))
-        return cls(tree_layers=tree_layers,
+        return cls(input_dim=input_dim,
+                   tree_layers=tree_layers,
+                   feature_selector=feature_selector,
+                   dropout=dropout,
                    head=head,
                    **config)
