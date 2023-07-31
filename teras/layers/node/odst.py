@@ -4,6 +4,7 @@ from warnings import warn
 from teras.utils import sparsemoid
 from teras.activations import sparsemax
 import tensorflow_probability as tfp
+from teras.utils import get_activation
 
 
 @keras.saving.register_keras_serializable(package="teras.layers.node")
@@ -79,8 +80,8 @@ class ObliviousDecisionTree(keras.layers.Layer):
         self.num_trees = num_trees
         self.depth = depth
         self.tree_dim = tree_dim
-        self.choice_function = sparsemax if choice_function is None else choice_function
-        self.bin_function = sparsemoid if bin_function is None else bin_function
+        self.choice_function = sparsemax if choice_function is None else get_activation(choice_function)
+        self.bin_function = sparsemoid if bin_function is None else get_activation(bin_function)
         self.response_initializer = response_initializer
         self.selection_logits_initializer = selection_logits_initializer
         self.threshold_init_beta = threshold_init_beta
