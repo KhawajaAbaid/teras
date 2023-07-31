@@ -139,7 +139,7 @@ class TabNet(keras.Model):
         config = super().get_config()
         config.update({'input_dim': self.input_dim,
                        'features_metadata': self.features_metadata,
-                       'categorical_features_embedding': keras.layers.serialize(self.categorical_features_embedding),
+                       'categorical_feature_embedding': keras.layers.serialize(self.categorical_feature_embedding),
                        'numerical_feature_embedding': keras.layers.serialize(self.numerical_feature_embedding),
                        'encoder': keras.layers.serialize(self.encoder),
                        'head': keras.layers.serialize(self.head),
@@ -151,13 +151,13 @@ class TabNet(keras.Model):
     def from_config(cls, config):
         input_dim = config.pop("input_dim")
         features_metadata = config.pop("features_metadata")
-        categorical_features_embedding = keras.layers.deserialize(config.pop("categorical_features_embedding"))
+        categorical_feature_embedding = keras.layers.deserialize(config.pop("categorical_feature_embedding"))
         numerical_feature_embedding = keras.layers.deserialize(config.pop("numerical_feature_embedding"))
         encoder = keras.layers.deserialize(config.pop("encoder"))
         head = keras.layers.deserialize(config.pop("head"))
         return cls(input_dim=input_dim,
                    features_metadata=features_metadata,
-                   categorical_features_embedding=categorical_features_embedding,
+                   categorical_feature_embedding=categorical_feature_embedding,
                    numerical_feature_embedding=numerical_feature_embedding,
                    encoder=encoder,
                    head=head,
