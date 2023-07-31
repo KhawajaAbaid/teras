@@ -6,6 +6,7 @@ from teras.activations import sparsemax
 import tensorflow_probability as tfp
 
 
+@keras.saving.register_keras_serializable(package="teras.layers.node")
 class ObliviousDecisionTree(keras.layers.Layer):
     """
         Oblivious Decision Tree layer as proposed by Sergei Popov et al.
