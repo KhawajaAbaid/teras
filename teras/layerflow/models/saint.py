@@ -71,21 +71,21 @@ class SAINT(keras.Model):
                              "You can import it as, `from teras.layerflow.layers import SAINTEncoder``")
 
         inputs = keras.layers.Input(shape=(input_dim,))
-        x = inputs
 
-        if categorical_feature_embedding is not None:
-            x = categorical_feature_embedding(inputs)
-
-        if numerical_feature_embedding is not None:
+        if categorical_feature_embedding is None:
+            # then there's only numerical features because we already
+            # have a check above that both categorical and numerical embeddings
+            # cannot be None at the same time
+            feature_embeddings = numerical_feature_embedding(inputs)
+        else:
+            categorical_embeddings = categorical_feature_embedding(inputs)
             numerical_embeddings = numerical_feature_embedding(inputs)
+            feature_embeddings = keras.layers.Concatenate(axis=1)([categorical_embeddings, numerical_embeddings])
 
-            if categorical_feature_embedding is not None:
-                x = K.concatenate([x, numerical_embeddings], axis=1)
-
-        outputs = encoder(x)
+        outputs = encoder(feature_embeddings)
 
         if head is not None:
-            outputs = head(x)
+            outputs = head(outputs)
 
         super().__init__(inputs=inputs,
                          outputs=outputs,
@@ -113,7 +113,7 @@ class SAINT(keras.Model):
         categorical_feature_embedding = keras.layers.deserialize(config.pop("categorical_feature_embedding"))
         numerical_feature_embedding = keras.layers.deserialize(config.pop("numerical_feature_embedding"))
         head = keras.layers.deserialize(config.pop("head"))
-        return cls(input_dim,
+        return cls(input_dim=input_dim,
                    categorical_feature_embedding=categorical_feature_embedding,
                    numerical_feature_embedding=numerical_feature_embedding,
                    encoder=encoder,
