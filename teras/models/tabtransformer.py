@@ -6,7 +6,7 @@ from teras.layers.categorical_feature_embedding import CategoricalFeatureEmbeddi
 from teras.layers.numerical_feature_normalization import NumericalFeatureNormalization
 from teras.layers.tabtransformer.tabtransformer_column_embedding import TabTransformerColumnEmbedding
 from teras.layers.common.head import ClassificationHead, RegressionHead
-from teras.utils.types import UnitsValuesType
+from teras.utils.types import UnitsValuesType, NormalizationType
 
 
 @keras.saving.register_keras_serializable("keras.models")
@@ -82,6 +82,9 @@ class TabTransformer(TabTransformerLF):
             otherwise leave it as True.
             In the case of True, categorical values will be mapped to integer indices
             using keras's ``IntegerLookup`` layer.
+
+        numerical_normalization: ``str`` or ``keras.layes.Layer``, default "layer",
+            Normalization to use for the numerical features.
 """
     def __init__(self,
                  input_dim: int,
@@ -95,7 +98,7 @@ class TabTransformer(TabTransformerLF):
                  norm_epsilon: float = TabTransformerConfig.norm_epsilon,
                  use_column_embedding: bool = TabTransformerConfig.use_column_embedding,
                  encode_categorical_values: bool = TabTransformerConfig.encode_categorical_values,
-                 numerical_normalization: str = TabTransformerConfig.numerical_normalization,
+                 numerical_normalization: NormalizationType = TabTransformerConfig.numerical_normalization,
                  **kwargs
                  ):
 
@@ -115,16 +118,16 @@ class TabTransformer(TabTransformerLF):
         column_embedding = TabTransformerColumnEmbedding(embedding_dim=embedding_dim,
                                                          num_categorical_features=len(features_metadata["categorical"]))
         encoder = Encoder(num_transformer_layers=num_transformer_layers,
-                          num_heads=num_attention_heads,
+                          num_attention_heads=num_attention_heads,
                           embedding_dim=embedding_dim,
                           attention_dropout=attention_dropout,
                           feedforward_dropout=feedforward_dropout,
                           feedforward_multiplier=feedforward_multiplier,
                           norm_epsilon=norm_epsilon)
         numerical_feature_normalization = NumericalFeatureNormalization(features_metadata=features_metadata,
-                                                                        normalization_type=numerical_normalization)
+                                                                        normalization=numerical_normalization)
 
-        super().__init__(features_metadata=features_metadata,
+        super().__init__(input_dim=input_dim,
                          categorical_feature_embedding=categorical_feature_embedding,
                          column_embedding=column_embedding,
                          encoder=encoder,
@@ -145,6 +148,9 @@ class TabTransformer(TabTransformerLF):
         self.numerical_normalization = numerical_normalization
 
     def get_config(self):
+        numerical_normalization_serialized = self.numerical_normalization
+        if not isinstance(numerical_normalization_serialized, str):
+            numerical_normalization_serialized = keras.layers.serialize(numerical_normalization_serialized)
         config = {'name': self.name,
                   'trainable': self.trainable,
                   'input_dim': self.input_dim,
@@ -158,7 +164,7 @@ class TabTransformer(TabTransformerLF):
                   'norm_epsilon': self.norm_epsilon,
                   'use_column_embedding': self.use_column_embedding,
                   'encode_categorical_values': self.encode_categorical_values,
-                  'numerical_normalization': self.numerical_normalization,
+                  'numerical_normalization': numerical_normalization_serialized,
                   }
         return config
 
@@ -173,7 +179,9 @@ class TabTransformer(TabTransformerLF):
         # sublayers as arguments, so, we don't need to deserialize anything.
         input_dim = config.pop("input_dim")
         features_metadata = config.pop("features_metadata")
-        return cls(input_dim, features_metadata, **config)
+        return cls(input_dim=input_dim,
+                   features_metadata=features_metadata,
+                   **config)
 
 
 class TabTransformerClassifier(TabTransformer):
@@ -256,6 +264,9 @@ class TabTransformerClassifier(TabTransformer):
             otherwise leave it as True.
             In the case of True, categorical values will be mapped to integer indices
             using keras's ``IntegerLookup`` layer.
+
+        numerical_normalization: ``str`` or ``keras.layes.Layer``, default "layer",
+            Normalization to use for the numerical features.
     """
     def __init__(self,
                  num_classes: int = 2,
@@ -271,7 +282,7 @@ class TabTransformerClassifier(TabTransformer):
                  norm_epsilon: float = TabTransformerConfig.norm_epsilon,
                  use_column_embedding: bool = TabTransformerConfig.use_column_embedding,
                  encode_categorical_values: bool = TabTransformerConfig.encode_categorical_values,
-                 numerical_normalization: str = TabTransformerConfig.numerical_normalization,
+                 numerical_normalization: NormalizationType = TabTransformerConfig.numerical_normalization,
                  **kwargs
                  ):
         # Since the parent `TabTransformer` class subclasses its LayerFlow version
@@ -314,8 +325,10 @@ class TabTransformerClassifier(TabTransformer):
         Args:
             pretrained_model: ``TabTransformer``,
                 A pretrained base ``TabTransformer`` model instance.
+
             num_classes: ``int``, 2,
                 Number of classes to predict.
+
             head_units_values: ``List[int]`` or ``Tuple[int]``, default (64, 32),
                 For each value in the sequence,
                 a hidden layer of that dimension is added to the ``ClassificationHead``.
@@ -418,6 +431,9 @@ class TabTransformerRegressor(TabTransformer):
             otherwise leave it as True.
             In the case of True, categorical values will be mapped to integer indices
             using keras's ``IntegerLookup`` layer.
+
+        numerical_normalization: ``str`` or ``keras.layes.Layer``, default "layer",
+            Normalization to use for the numerical features.
     """
     def __init__(self,
                  num_outputs: int = 1,
@@ -433,7 +449,7 @@ class TabTransformerRegressor(TabTransformer):
                  norm_epsilon: float = TabTransformerConfig.norm_epsilon,
                  use_column_embedding: bool = TabTransformerConfig.use_column_embedding,
                  encode_categorical_values: bool = TabTransformerConfig.encode_categorical_values,
-                 numerical_normalization: str = TabTransformerConfig.numerical_normalization,
+                 numerical_normalization: NormalizationType = TabTransformerConfig.numerical_normalization,
                  **kwargs
                  ):
         head = RegressionHead(num_outputs=num_outputs,
@@ -471,8 +487,10 @@ class TabTransformerRegressor(TabTransformer):
         Args:
             pretrained_model: ``TabTransformer``,
                 A pretrained base ``TabTransformer`` model instance.
+
             num_outputs: ``int``, 1,
                 Number of regression outputs to predict.
+
             head_units_values: ``List[int]`` or ``Tuple[int]``, default (64, 32),
                 For each value in the sequence,
                 a hidden layer of that dimension is added to the ``RegressionHead``.
