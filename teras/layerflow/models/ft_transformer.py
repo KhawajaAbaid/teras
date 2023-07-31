@@ -94,6 +94,12 @@ class FTTransformer(keras.Model):
         super().__init__(inputs=inputs,
                          outputs=outputs,
                          **kwargs)
+        self.input_dim = input_dim
+        self.categorical_feature_embedding = categorical_feature_embedding
+        self.numerical_feature_embedding = numerical_feature_embedding
+        self.cls_token = cls_token
+        self.encoder = encoder
+        self.head = head
 
     def get_config(self):
         config = super().get_config()
