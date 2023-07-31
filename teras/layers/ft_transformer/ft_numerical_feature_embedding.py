@@ -54,6 +54,7 @@ class FTNumericalFeatureEmbedding(keras.layers.Layer):
         self.embedding_dim = embedding_dim
 
         self._num_numerical_features = len(self.numerical_features_metadata)
+        self._numerical_features_idx = list(self.numerical_features_metadata.values())
         # Need to create as many embedding layers as there are numerical features
         self.embedding_layers = []
         for _ in range(self._num_numerical_features):
@@ -61,31 +62,17 @@ class FTNumericalFeatureEmbedding(keras.layers.Layer):
                 keras.layers.Dense(units=self.embedding_dim)
             )
 
-        self._is_first_batch = True
-        self._is_data_in_dict_format = False
-
     def call(self, inputs):
-        # Find the dataset's format - is it either in dictionary format or array format.
-        # If inputs is an instance of dict, it's in dictionary format
-        # If inputs is an instance of tuple, it's in array format
-        if self._is_first_batch:
-            if isinstance(inputs, dict):
-                self._is_data_in_dict_format = True
-            self._is_first_batch = False
-
         numerical_feature_embeddings = tf.TensorArray(size=self._num_numerical_features,
                                                       dtype=tf.float32)
 
-        for i, (feature_name, feature_idx) in enumerate(self.numerical_features_metadata.items()):
-            if self._is_data_in_dict_format:
-                feature = tf.expand_dims(inputs[feature_name], 1)
-            else:
-                feature = tf.expand_dims(inputs[:, feature_idx], 1)
+        for i, feature_idx in enumerate(self._numerical_features_idx):
+            feature = tf.expand_dims(inputs[:, feature_idx], 1)
             embedding = self.embedding_layers[i]
             feature = embedding(feature)
             numerical_feature_embeddings = numerical_feature_embeddings.write(i, feature)
 
-        numerical_feature_embeddings = tf.squeeze(numerical_feature_embeddings.stack(), axis=2)
+        numerical_feature_embeddings = tf.squeeze(numerical_feature_embeddings.stack())
         numerical_feature_embeddings = tf.transpose(numerical_feature_embeddings, perm=[1, 0, 2])
         numerical_feature_embeddings.set_shape((None, self._num_numerical_features, self.embedding_dim))
         return numerical_feature_embeddings
