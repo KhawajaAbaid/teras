@@ -52,3 +52,9 @@ class NodeFeatureSelector(keras.layers.Layer):
         config = super().get_config()
         config.update({"max_features": self.max_features})
         return config
+
+    @classmethod
+    def from_config(cls, config):
+        data_dim = config.pop("data_dim")
+        return cls(data_dim=data_dim,
+                   **config)
