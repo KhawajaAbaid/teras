@@ -41,7 +41,7 @@ from teras.layerflow.models.node import NODE
 
 
 # RTDLResNet models
-from teras.layerflow.models.rtdl_resnet import RtdlResNet
+from teras.layerflow.models.rtdl_resnet import RTDLResNet
 
 
 # GAIN models

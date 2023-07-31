@@ -4,9 +4,9 @@ from typeguard import check_type
 
 
 @keras.saving.register_keras_serializable(package="teras.layerflow.models")
-class RtdlResNet(keras.Model):
+class RTDLResNet(keras.Model):
     """
-    RtdlResNet model with LayerFlow desing.
+    RTDLResNet model with LayerFlow desing.
     It is based on the ResNet architecture proposed by Yury Gorishniy et al.
     in the paper,
     Revisiting Deep Learning Models for Tabular Data.

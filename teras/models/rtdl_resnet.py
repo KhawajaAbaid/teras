@@ -1,6 +1,6 @@
 from tensorflow import keras
 from teras.layers.rtdl_resnet.rtdl_resnet_block import RTDLResNetBlock
-from teras.layerflow.models.rtdl_resnet import RtdlResNet as _RTDLResNetLF
+from teras.layerflow.models.rtdl_resnet import RTDLResNet as _RTDLResNetLF
 from teras.utils.types import (ActivationType,
                                NormalizationType,
                                UnitsValuesType)
