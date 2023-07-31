@@ -173,8 +173,8 @@ class TabTransformerPretrainer(keras.Model):
             You can get this dictionary from
                 >>> from teras.utils import get_features_metadata_for_embedding
                 >>> metadata_dict = get_features_metadata_for_embedding(dataframe,
-                ..                                                      numerical_features,
-                ..                                                      categorical_features)
+                ..                                                      categorical_features,
+                ..                                                      numerical_features)
 
         replace_rate: ``float``, default 0.3,
             Fraction of total features per sample to replace.
