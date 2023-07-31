@@ -5,9 +5,11 @@ from teras.utils.types import (IntegerSequence,
                                UnitsValuesType)
 from teras.layers.common.head import (ClassificationHead,
                                       RegressionHead)
+from teras.layerflow.models.dnfnet import DNFNet as _DNFNetLF
 
 
-class DNFNet(keras.models.Model):
+@keras.saving.register_keras_serializable(package="teras.models")
+class DNFNet(_DNFNetLF):
     """
     DNFNet model based on the DNFNet architecture,
     proposed by Liran Katzir et al.
@@ -91,17 +93,18 @@ class DNFNet(keras.models.Model):
         self.temperature = temperature
 
     def get_config(self):
-        config = super().get_config()
-        config.update({'input_dim': self.input_dim,
-                       'num_dnnf_layers': self.num_dnnf_layers,
-                       'num_formulas': self.num_formulas,
-                       'num_conjunctions_arr': self.num_conjunctions_arr,
-                       'conjunctions_depth_arr': self.conjunctions_depth_arr,
-                       'keep_feature_prob_arr': self.keep_feature_prob_arr,
-                       'elastic_net_beta': self.elastic_net_beta,
-                       'binary_threshold_eps': self.binary_threshold_eps,
-                       'temperature': self.temperature}
-                      )
+        config = {'name': self.name,
+                  'trainable': self.trainable,
+                  'input_dim': self.input_dim,
+                  'num_dnnf_layers': self.num_dnnf_layers,
+                  'num_formulas': self.num_formulas,
+                  'num_conjunctions_arr': self.num_conjunctions_arr,
+                  'conjunctions_depth_arr': self.conjunctions_depth_arr,
+                  'keep_feature_prob_arr': self.keep_feature_prob_arr,
+                  'elastic_net_beta': self.elastic_net_beta,
+                  'binary_threshold_eps': self.binary_threshold_eps,
+                  'temperature': self.temperature
+                  }
         return config
 
     @classmethod
@@ -111,6 +114,7 @@ class DNFNet(keras.models.Model):
                    **config)
 
 
+@keras.saving.register_keras_serializable(package="teras.models")
 class DNFNetClassifier(DNFNet):
     """
     DNFNetRegressor based on the DNFNet architecture proposed by Liran Katzir et al.
@@ -199,12 +203,13 @@ class DNFNetClassifier(DNFNet):
 
     def get_config(self):
         config = super().get_config()
-        config.update({'num_classes': self.num_outputs,
+        config.update({'num_classes': self.num_classes,
                        'head_units_values': self.head_units_values
                        })
         return config
 
 
+@keras.saving.register_keras_serializable(package="teras.models")
 class DNFNetRegressor(DNFNet):
     """
     DNFNetRegressor based on the DNFNet architecture proposed by Liran Katzir et al.
