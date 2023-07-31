@@ -50,7 +50,9 @@ class NodeFeatureSelector(keras.layers.Layer):
 
     def get_config(self):
         config = super().get_config()
-        config.update({"max_features": self.max_features})
+        config.update({"data_dim": self.data_dim,
+                       "max_features": self.max_features}
+                      )
         return config
 
     @classmethod
