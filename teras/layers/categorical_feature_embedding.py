@@ -1,10 +1,7 @@
 from tensorflow import keras
-from typing import List
 import numpy as np
 import tensorflow as tf
-
-
-LIST_OF_STR = List[str]
+from teras.utils.types import Number
 
 
 @keras.saving.register_keras_serializable(package="teras.layers")
@@ -57,9 +54,6 @@ class CategoricalFeatureEmbedding(keras.layers.Layer):
 
         self.categorical_features_metadata = features_metadata["categorical"]
         self.lookup_tables, self.embedding_layers = self._get_lookup_tables_and_embedding_layers()
-        self.concat = keras.layers.Concatenate(axis=1)
-        self._is_data_in_dict_format = False
-        self._is_first_batch = True
         self._num_categorical_features = len(self.categorical_features_metadata)
 
     def _get_lookup_tables_and_embedding_layers(self):
@@ -71,7 +65,7 @@ class CategoricalFeatureEmbedding(keras.layers.Layer):
             # then encode them first. The `encode` parameter lets user specify if we need to encode
             # the categorical values or not.
             if self.encode:
-                if isinstance(vocabulary[0], (int, np.int32, np.int64, float, np.float32, np.float64)):
+                if isinstance(vocabulary[0], Number):
                     # Lookup Table to map integer values to integer indices
                     lookup = keras.layers.IntegerLookup(vocabulary=vocabulary,
                                                         mask_token=None,
