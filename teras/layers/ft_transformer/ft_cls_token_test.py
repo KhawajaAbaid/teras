@@ -1,5 +1,5 @@
 import tensorflow as tf
-from teras.layers.ft_transfromer.ft_cls_token import FTCLSToken
+from teras.layers.ft_transformer.ft_cls_token import FTCLSToken
 
 
 def test_ft_cls_token_valid_call():
