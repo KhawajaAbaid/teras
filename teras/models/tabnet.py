@@ -118,7 +118,7 @@ class TabNet(_TabNetLF):
                  epsilon: float = TabNetConfig.epsilon,
                  encode_categorical_values: bool = TabNetConfig.encode_categorical_features,
                  **kwargs):
-        categorical_features_embedding = CategoricalFeatureEmbedding(features_metadata=features_metadata,
+        categorical_feature_embedding = CategoricalFeatureEmbedding(features_metadata=features_metadata,
                                                                      embedding_dim=1,
                                                                      encode=encode_categorical_values)
         encoder = TabNetEncoder(data_dim=input_dim,
@@ -134,7 +134,7 @@ class TabNet(_TabNetLF):
                                 epsilon=epsilon)
         super().__init__(input_dim=input_dim,
                          features_metadata=features_metadata,
-                         categorical_features_embedding=categorical_features_embedding,
+                         categorical_feature_embedding=categorical_feature_embedding,
                          numerical_feature_embedding=None,
                          encoder=encoder,
                          **kwargs)
