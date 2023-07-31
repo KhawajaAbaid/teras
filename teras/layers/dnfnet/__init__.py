@@ -15,3 +15,4 @@
 
 from teras.layers.dnfnet.dnfnet_feature_selection import DNFNetFeatureSelection
 from teras.layers.dnfnet.dnfnet_localization import DNFNetLocalization
+from teras.layers.dnfnet.dnnf import DNNF
