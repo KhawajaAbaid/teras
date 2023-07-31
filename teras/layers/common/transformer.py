@@ -1,13 +1,9 @@
 from tensorflow import keras
-from typing import List, Tuple, Union
 from teras.utils import get_activation
 from teras.layerflow.layers.common.transformer import (FeedForward as _FeedForwardLF,
                                                        Transformer as _TransformerLF,
                                                        Encoder as _EncoderLF)
-
-
-LIST_OR_TUPLE = Union[List[int], Tuple[int]]
-LAYER_OR_STR = Union[keras.layers.Layer, str]
+from teras.utils.types import ActivationType
 
 
 @keras.saving.register_keras_serializable(package="teras.layers.common")
@@ -47,7 +43,7 @@ class FeedForward(_FeedForwardLF):
                  embedding_dim: int = 32,
                  multiplier: int = 4,
                  dropout: float = 0.,
-                 activation="geglu",
+                 activation: ActivationType = "geglu",
                  **kwargs):
         hidden_block = keras.models.Sequential(name="feed_forward_hidden_block")
         hidden_block.add(keras.layers.Dense(embedding_dim * multiplier,
@@ -65,12 +61,15 @@ class FeedForward(_FeedForwardLF):
         self.activation = activation
 
     def get_config(self):
+        activation_serialized = self.activation
+        if not isinstance(activation_serialized, str):
+            activation_serialized = keras.layers.serialize(activation_serialized)
         config = {'name': self.name,
                   'trainable': self.trainable,
                   'embedding_dim': self.embedding_dim,
                   'multiplier': self.multiplier,
                   'dropout': self.dropout,
-                  'activation': self.activation}
+                  'activation': activation_serialized}
         return config
 
 
