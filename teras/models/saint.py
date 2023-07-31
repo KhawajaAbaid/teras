@@ -178,6 +178,7 @@ class SAINT(_SAINTLF):
     def get_config(self):
         config = {'name': self.name,
                   'trainable': self.trainable,
+                  'input_dim': self.input_dim,
                   'features_metadata': self.features_metadata,
                   'embedding_dim': self.embedding_dim,
                   'numerical_embedding_hidden_dim': self.numerical_embedding_hidden_dim,
@@ -197,8 +198,10 @@ class SAINT(_SAINTLF):
 
     @classmethod
     def from_config(cls, config):
+        input_dim = config.pop("input_dim")
         features_metadata = config.pop("features_metadata")
-        return cls(features_metadata, **config)
+        return cls(input_dim=input_dim,
+                   features_metadata=features_metadata, **config)
 
 
 @keras.saving.register_keras_serializable("teras.models")
