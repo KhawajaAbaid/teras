@@ -50,7 +50,7 @@ class FTCLSToken(keras.layers.Layer):
         # i.e. the feature dimension, which gives us the final inputs of shape
         # (`batch_size`, `num_features + 1`, `embedding_dim`),
         # mind the plus one to `num_features`!
-        token_broadcasted = tf.broadcast_to(self.token, shape=(tf.shape(inputs)[0], *tf.shape(self.token)))
+        token_broadcasted = tf.broadcast_to(self.token, shape=(tf.shape(inputs)[0], 1, self.embedding_dim))
         return tf.concat([inputs, token_broadcasted], axis=1)
 
     def get_config(self):
