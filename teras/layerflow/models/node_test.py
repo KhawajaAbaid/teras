@@ -28,7 +28,7 @@ class NODETest(tf.test.TestCase):
                      head=self.head)
         save_path = os.path.join(self.get_temp_dir(), "node_classifier_lf.keras")
         model.save(save_path, save_format="keras_v3")
-        reloaded_model = keras.models.load_model(save_path, custom_objects={"NodeFeatureSelector": NodeFeatureSelector})
+        reloaded_model = keras.models.load_model(save_path)
         outputs_original = model(self.inputs)
         outputs_reloaded = reloaded_model(self.inputs)
         self.assertAllClose(outputs_original, outputs_reloaded)
