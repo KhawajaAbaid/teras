@@ -26,7 +26,7 @@ class NODETest(tf.test.TestCase):
                      tree_layers=self.tree_layers,
                      feature_selector=self.feature_selector,
                      head=self.head)
-        save_path = os.path.join(self.get_temp_dir(), "node_classifier_lf.keras")
+        save_path = os.path.join(self.get_temp_dir(), "node_lf.keras")
         model.save(save_path, save_format="keras_v3")
         reloaded_model = keras.models.load_model(save_path)
         outputs_original = model(self.inputs)
