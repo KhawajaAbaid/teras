@@ -174,7 +174,9 @@ class TabNet(_TabNetLF):
     @classmethod
     def from_config(cls, config):
         input_dim = config.pop("input_dim")
+        features_metadata = config.pop("features_metadata")
         return cls(input_dim=input_dim,
+                   features_metadata=features_metadata,
                    **config)
 
 
@@ -283,6 +285,8 @@ class TabNetClassifier(TabNet):
     def __init__(self,
                  num_classes: int = 2,
                  head_units_values: UnitsValuesType = None,
+                 input_dim: int = None,
+                 features_metadata: dict = None,
                  feature_transformer_dim: int = TabNetConfig.feature_transformer_dim,
                  decision_step_output_dim: int = TabNetConfig.decision_step_output_dim,
                  num_decision_steps: int = TabNetConfig.num_decision_steps,
@@ -293,13 +297,14 @@ class TabNetClassifier(TabNet):
                  virtual_batch_size: int = TabNetConfig.virtual_batch_size,
                  residual_normalization_factor: float = TabNetConfig.residual_normalization_factor,
                  epsilon: float = TabNetConfig.epsilon,
-                 categorical_features_vocabulary: dict = TabNetConfig.encode_categorical_features,
                  encode_categorical_values: bool = TabNetConfig.encode_categorical_features,
                  **kwargs):
         head = ClassificationHead(num_classes=num_classes,
                                   units_values=head_units_values,
                                   name="tabnet_classification_head")
-        super().__init__(feature_transformer_dim=feature_transformer_dim,
+        super().__init__(input_dim=input_dim,
+                         features_metadata=features_metadata,
+                         feature_transformer_dim=feature_transformer_dim,
                          decision_step_output_dim=decision_step_output_dim,
                          num_decision_steps=num_decision_steps,
                          num_shared_layers=num_shared_layers,
@@ -309,7 +314,6 @@ class TabNetClassifier(TabNet):
                          virtual_batch_size=virtual_batch_size,
                          residual_normalization_factor=residual_normalization_factor,
                          epsilon=epsilon,
-                         categorical_features_vocabulary=categorical_features_vocabulary,
                          encode_categorical_values=encode_categorical_values,
                          head=head,
                          **kwargs)
