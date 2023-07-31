@@ -550,6 +550,10 @@ class SAINTPretrainer(_SAINTPretrainerLF):
                 ..                                                      categorical_features,
                 ..                                                      numerical_features)
 
+        embedding_dim: ``int``, default 32,
+            Embedding dimensions being used by the base model for embedding
+            numerical and categorical features.
+
         cutmix_probs: ``float``, default 0.1,
             ``CutMix`` probability which is used in generation of mask
             that is used to mix samples together.
@@ -569,6 +573,7 @@ class SAINTPretrainer(_SAINTPretrainerLF):
     def __init__(self,
                  model: SAINT,
                  features_metadata: dict,
+                 embedding_dim: int = 32,
                  cutmix_probs: float = 0.3,
                  mixup_alpha: float = 1.0,
                  temperature: float = 0.7,
@@ -576,12 +581,13 @@ class SAINTPretrainer(_SAINTPretrainerLF):
                  **kwargs):
         mixup = MixUp(alpha=mixup_alpha)
         cutmix = CutMix(probs=cutmix_probs)
+        num_features = len(features_metadata["categorical"]) + len(features_metadata["numerical"])
 
         # For the computation of contrastive loss, we use projection heads.
         # Projection head hidden dimensions as calculated by the
         # official implementation
-        projection_head_hidden_dim = 6 * model.embedding_dim * model.num_features // 5
-        projection_head_output_dim = model.embedding_dim * model.num_features // 2
+        projection_head_hidden_dim = 6 * embedding_dim * num_features // 5
+        projection_head_output_dim = embedding_dim * num_features // 2
 
         projection_head_1 = SAINTProjectionHead(hidden_dim=projection_head_hidden_dim,
                                                 output_dim=projection_head_output_dim,
@@ -604,6 +610,7 @@ class SAINTPretrainer(_SAINTPretrainerLF):
                          **kwargs)
         self.model = model
         self.features_metadata = features_metadata
+        self.embedding_dim = embedding_dim
         self.cutmix_probs = cutmix_probs
         self.mixup_alpha = mixup_alpha
         self.temperature = temperature
@@ -614,6 +621,7 @@ class SAINTPretrainer(_SAINTPretrainerLF):
                   'trainable': self.trainable,
                   'model': keras.layers.serialize(self.model),
                   'features_metadata': self.features_metadata,
+                  'embedding_dim': self.embedding_dim,
                   'cutmix_probs': self.cutmix_probs,
                   'mixup_alpha': self.mixup_alpha,
                   'temperature': self.temperature,
