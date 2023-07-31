@@ -240,8 +240,8 @@ class SAINTClassifier(SAINT):
             You can get this dictionary from
                 >>> from teras.utils import get_features_metadata_for_embedding
                 >>> metadata_dict = get_features_metadata_for_embedding(dataframe,
-                ..                                                      numerical_features,
-                ..                                                      categorical_features)
+                ..                                                      categorical_features,
+                ..                                                      numerical_features)
 
         embedding_dim: ``int``, default 32,
             Embedding dimensions used in embedding numerical and categorical features.
@@ -396,8 +396,8 @@ class SAINTRegressor(SAINT):
             You can get this dictionary from
                 >>> from teras.utils import get_features_metadata_for_embedding
                 >>> metadata_dict = get_features_metadata_for_embedding(dataframe,
-                ..                                                      numerical_features,
-                ..                                                      categorical_features)
+                ..                                                      categorical_features,
+                ..                                                      numerical_features)
 
         embedding_dim: ``int``, default 32,
             Embedding dimensions used in embedding numerical and categorical features.
@@ -547,8 +547,8 @@ class SAINTPretrainer(_SAINTPretrainerLF):
             You can get this dictionary from
                 >>> from teras.utils import get_features_metadata_for_embedding
                 >>> metadata_dict = get_features_metadata_for_embedding(dataframe,
-                ..                                                      numerical_features,
-                ..                                                      categorical_features)
+                ..                                                      categorical_features,
+                ..                                                      numerical_features)
 
         cutmix_probs: ``float``, default 0.1,
             ``CutMix`` probability which is used in generation of mask
