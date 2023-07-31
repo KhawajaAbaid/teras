@@ -209,7 +209,7 @@ class RTDLResNetClassifier(RTDLResNet):
 
 
 @keras.saving.register_keras_serializable(package="teras.models")
-class RTDLResNetRegressor(keras.Model):
+class RTDLResNetRegressor(RTDLResNet):
     """
     The ResNet Regressor model based on the ResNet architecture
     proposed by Yury Gorishniy et al.
