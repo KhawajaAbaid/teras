@@ -312,37 +312,6 @@ class TabTransformerClassifier(TabTransformer):
         self.num_classes = num_classes
         self.head_units_values = head_units_values
 
-    @classmethod
-    def from_pretrained(cls,
-                        pretrained_model: TabTransformer,
-                        num_classes: int = 2,
-                        head_units_values: UnitsValuesType = (64, 32)
-                        ):
-        """
-        Class method to create a TabTransformer Classifier model instance from
-        a pretrained base TabTransformer model instance.
-
-        Args:
-            pretrained_model: ``TabTransformer``,
-                A pretrained base ``TabTransformer`` model instance.
-
-            num_classes: ``int``, 2,
-                Number of classes to predict.
-
-            head_units_values: ``List[int]`` or ``Tuple[int]``, default (64, 32),
-                For each value in the sequence,
-                a hidden layer of that dimension is added to the ``ClassificationHead``.
-
-        Returns:
-            A ``TabTransformerClassifier`` instance based of the pretrained model.
-        """
-        head = ClassificationHead(num_classes=num_classes,
-                                  units_values=head_units_values,
-                                  name="tabtransformer_classifier_head")
-        model = keras.models.Sequential([pretrained_model, head],
-                                        name="tabtransformer_classifier_pretrained")
-        return model
-
     def get_config(self):
         config = super().get_config()
         config.update({'num_classes': self.num_classes,
@@ -473,38 +442,6 @@ class TabTransformerRegressor(TabTransformer):
                          **kwargs)
         self.num_outputs = num_outputs
         self.head_units_values = head_units_values
-
-    @classmethod
-    def from_pretrained(cls,
-                        pretrained_model: TabTransformer,
-                        num_outputs: int = 1,
-                        head_units_values: UnitsValuesType = (64, 32)
-                        ):
-        """
-        Class method to create a TabTransformer Regressor model instance from
-        a pretrained base TabTransformer model instance.
-
-        Args:
-            pretrained_model: ``TabTransformer``,
-                A pretrained base ``TabTransformer`` model instance.
-
-            num_outputs: ``int``, 1,
-                Number of regression outputs to predict.
-
-            head_units_values: ``List[int]`` or ``Tuple[int]``, default (64, 32),
-                For each value in the sequence,
-                a hidden layer of that dimension is added to the ``RegressionHead``.
-
-        Returns:
-            A ``TabTransformerRegressor`` instance based of the pretrained model.
-        """
-        head = RegressionHead(num_outputs=num_outputs,
-                              units_values=head_units_values,
-                              name="tabtransformer_regressor_head")
-
-        model = keras.models.Sequential([pretrained_model, head],
-                                        name="tabtransformer_regressor_pretrained")
-        return model
 
     def get_config(self):
         config = super().get_config()
