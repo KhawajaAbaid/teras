@@ -79,7 +79,7 @@ class TabNetEncoder(keras.layers.Layer):
     def __init__(self,
                  data_dim: int,
                  feature_transformer_dim: int = 32,
-                 decision_step_output_dim: int = 16,
+                 decision_step_output_dim: int = 32,
                  num_decision_steps: int = 5,
                  num_shared_layers: int = 2,
                  num_decision_dependent_layers: int = 2,
@@ -108,7 +108,7 @@ class TabNetEncoder(keras.layers.Layer):
         # the TabNetEncoder layer.
         TabNetFeatureTransformer.reset_shared_layers()
         self.features_transformers_per_step = [TabNetFeatureTransformer(
-            units=self.feature_transformer_dim,
+            units=self.feature_transformer_dim * 2,
             num_shared_layers=self.num_shared_layers,
             num_decision_dependent_layers=self.num_decision_dependent_layers,
             batch_momentum=self.batch_momentum,
@@ -233,4 +233,4 @@ class TabNetEncoder(keras.layers.Layer):
     @classmethod
     def from_config(cls, config):
         data_dim = config.pop("data_dim")
-        return cls(data_dim, **config)
+        return cls(data_dim=data_dim, **config)
