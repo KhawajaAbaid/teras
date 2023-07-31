@@ -47,21 +47,9 @@ class TabNet(keras.Model):
             You can import the ``CategoricalFeatureEmbedding`` layer as follows,
                 >>> from teras.layers import CategoricalFeatureEmbedding
 
-        numerical_feature_embedding: ``keras.layers.Layer``,
-            The ``TabNet`` archietcture does not apply any embedding layer to numerical features
-            by default, for the sake of modularity, ``Teras`` allows you to use any numerical
-            feature embedding layer if you want to.
+            Important Note: The embedding layer must have a dimensionality of ``1`` else it will
+            result in error.
 
-            NOTE: if you do use numerical feature embedding layer, its dimensionality MUST
-            be equal to the dimensionality of the categorical feature embedding.
-
-            Currently, Teras offers two different numerical feature embedding layers that you can
-            import as follows,
-                1. ``SAINTNumericalFeatureEmbedding`` layer proposed by ``SAINT`` architecture,
-                    >>> from teras.layers import SAINTNumericalFeatureEmbedding
-
-                2. ``FTNumericalFeatureEmebdding`` layer proposed by ``FTTransformer`` architecure,
-                    >>> from teras.layers import FTNumericalFeatureEmbedding
 
         encoder: ``keras.layers.Layer``,
             An instance of Encoder layer to encode feature embeddings,
@@ -84,7 +72,6 @@ class TabNet(keras.Model):
                  input_dim: int,
                  features_metadata: dict,
                  categorical_feature_embedding: keras.layers.Layer = None,
-                 numerical_feature_embedding: keras.layers.Layer = None,
                  encoder: keras.layers.Layer = None,
                  head: keras.layers.Layer = None,
                  **kwargs):
@@ -107,20 +94,13 @@ class TabNet(keras.Model):
 
         if categorical_feature_embedding is None:
             # then there's only numerical features
-            if numerical_feature_embedding is None:
-                features_embeddings = NumericalFeaturesExtractor(features_metadata)(inputs)
-            else:
-                features_embeddings = numerical_feature_embedding(inputs)
+            features_embeddings = NumericalFeaturesExtractor(features_metadata)(inputs)
         else:
             # then there are definitely categorical features but might or might not be numerical features
             features_embeddings = categorical_feature_embedding(inputs)
             features_embeddings = keras.layers.Flatten()(features_embeddings)
             if numerical_features_exist:
-                if numerical_feature_embedding is None:
-                    numerical_embeddings = NumericalFeaturesExtractor(features_metadata)(inputs)
-                else:
-                    numerical_embeddings = numerical_feature_embedding(inputs)
-                    numerical_embeddings = keras.layers.Flatten()(numerical_embeddings)
+                numerical_embeddings = NumericalFeaturesExtractor(features_metadata)(inputs)
                 features_embeddings = keras.layers.Concatenate(axis=1)([features_embeddings, numerical_embeddings])
         outputs = encoder(features_embeddings)
         if head is not None:
@@ -131,7 +111,6 @@ class TabNet(keras.Model):
         self.input_dim = input_dim
         self.features_metadata = features_metadata
         self.categorical_feature_embedding = categorical_feature_embedding
-        self.numerical_feature_embedding = numerical_feature_embedding
         self.encoder = encoder
         self.head = head
 
@@ -140,7 +119,6 @@ class TabNet(keras.Model):
         config.update({'input_dim': self.input_dim,
                        'features_metadata': self.features_metadata,
                        'categorical_feature_embedding': keras.layers.serialize(self.categorical_feature_embedding),
-                       'numerical_feature_embedding': keras.layers.serialize(self.numerical_feature_embedding),
                        'encoder': keras.layers.serialize(self.encoder),
                        'head': keras.layers.serialize(self.head),
                        }
@@ -152,13 +130,11 @@ class TabNet(keras.Model):
         input_dim = config.pop("input_dim")
         features_metadata = config.pop("features_metadata")
         categorical_feature_embedding = keras.layers.deserialize(config.pop("categorical_feature_embedding"))
-        numerical_feature_embedding = keras.layers.deserialize(config.pop("numerical_feature_embedding"))
         encoder = keras.layers.deserialize(config.pop("encoder"))
         head = keras.layers.deserialize(config.pop("head"))
         return cls(input_dim=input_dim,
                    features_metadata=features_metadata,
                    categorical_feature_embedding=categorical_feature_embedding,
-                   numerical_feature_embedding=numerical_feature_embedding,
                    encoder=encoder,
                    head=head,
                    **config)
