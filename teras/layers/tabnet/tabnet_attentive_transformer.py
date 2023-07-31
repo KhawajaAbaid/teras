@@ -50,8 +50,6 @@ class TabNetAttentiveTransformer(keras.layers.Layer):
                                                           virtual_batch_size=self.virtual_batch_size)
 
     def call(self, inputs, prior_scales=None):
-        # We need the batch_size and inputs_dimensions to initialize prior scale,
-        # we can get them when attentive transformer first gets called.
         outputs = self.dense(inputs)
         outputs = self.batch_norm(outputs)
         outputs *= prior_scales
@@ -70,4 +68,4 @@ class TabNetAttentiveTransformer(keras.layers.Layer):
     @classmethod
     def from_config(cls, config):
         data_dim = config.pop("data_dim")
-        return cls(data_dim, **config)
+        return cls(data_dim=data_dim, **config)
