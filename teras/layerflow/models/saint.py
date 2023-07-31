@@ -1,6 +1,5 @@
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras import backend as K
 from teras.losses.saint import info_nce_loss, denoising_loss
 
 
@@ -158,13 +157,13 @@ class SAINTPretrainer(keras.Model):
             An instance of ``MixUp`` layer or any custom layer that can work
             in its place.
             You can import the ``MixUp`` layer as follows,
-                >>> from teras.layerflow.layers import MixUp
+                >>> from teras.layers import MixUp
 
         cutmix: ``keras.layers.Layer``,
             An instance of ``CutMix`` layer or any custom layer that can work
             in its place.
             You can import the `CutMix` layer as follows,
-                >>> from teras.layerflow.layers import CutMix
+                >>> from teras.layers import CutMix
 
         projection_head_1: ``keras.layers.Layer``,
             An instance of ``SAINTProjectionHead`` layer that is used to project embeddings
@@ -343,6 +342,7 @@ class SAINTPretrainer(keras.Model):
                       'cutmix': keras.layers.serialize(self.cutmix),
                       'projection_head_1': keras.layers.serialize(self.projection_head_1),
                       'projection_head_2': keras.layers.serialize(self.projection_head_2),
+                      'reconstruction_head': keras.layers.serialize(self.reconstruction_head),
                       'temperature': self.temperature,
                       'lambda_': self.lambda_,
                       }
