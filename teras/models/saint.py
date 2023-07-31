@@ -40,8 +40,8 @@ class SAINT(_SAINTLF):
             You can get this dictionary from
                 >>> from teras.utils import get_features_metadata_for_embedding
                 >>> metadata_dict = get_features_metadata_for_embedding(dataframe,
-                ..                                                      numerical_features,
-                ..                                                      categorical_features)
+                ..                                                      categorical_features,
+                ..                                                      numerical_features)
 
         embedding_dim: ``int``, default 32,
             Embedding dimensions used in embedding numerical and categorical features.
