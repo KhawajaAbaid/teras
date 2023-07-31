@@ -69,11 +69,8 @@ class SAINTNumericalFeatureEmbedding(keras.layers.Layer):
             numerical_feature_embeddings = numerical_feature_embeddings.write(i, feature)
 
         numerical_feature_embeddings = tf.squeeze(numerical_feature_embeddings.stack())
-        if tf.rank(numerical_feature_embeddings) == 3:
-            numerical_feature_embeddings = tf.transpose(numerical_feature_embeddings, perm=[1, 0, 2])
-        else:
-            # else the rank must be 2
-            numerical_feature_embeddings = tf.transpose(numerical_feature_embeddings)
+        numerical_feature_embeddings = tf.transpose(numerical_feature_embeddings, perm=[1, 0, 2])
+        numerical_feature_embeddings.set_shape((None, self._num_numerical_features, self.embedding_dim))
         return numerical_feature_embeddings
 
     def get_config(self):
