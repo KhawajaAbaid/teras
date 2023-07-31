@@ -119,7 +119,6 @@ class TabTransformer(keras.Model):
     def get_config(self):
         config = super().get_config()
         config.update({'input_dim': self.input_dim,
-                       'features_metadata': self.features_metadata,
                        'categorical_feature_embedding': keras.layers.serialize(self.categorical_feature_embedding),
                        'column_embedding': keras.layers.serialize(self.column_embedding),
                        'encoder': keras.layers.serialize(self.encoder),
