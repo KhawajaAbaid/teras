@@ -39,9 +39,10 @@ class SAINTNumericalFeatureEmbedding(keras.layers.Layer):
     def __init__(self,
                  features_metadata: dict,
                  embedding_dim: int = 32,
-                 hidden_dim: int = 16
+                 hidden_dim: int = 16,
+                 **kwargs
                  ):
-        super().__init__()
+        super().__init__(**kwargs)
         self.features_metadata = features_metadata
         self.embedding_dim = embedding_dim
         self.hidden_dim = hidden_dim
