@@ -3,7 +3,7 @@ from teras.layers.saint.saint_transformer import SAINTTransformer
 
 
 def test_saint_transformer_output_shape():
-    saint_transformer = SAINTTransformer(num_features=10,
+    saint_transformer = SAINTTransformer(data_dim=10,
                                          embedding_dim=32)
     inputs = tf.ones((16, 10, 32), dtype=tf.float32)
     outputs = saint_transformer(inputs)

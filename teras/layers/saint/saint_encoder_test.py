@@ -3,7 +3,7 @@ from teras.layers.saint.saint_encoder import SAINTEncoder
 
 
 def test_saint_encoder_output_shape():
-    encoder = SAINTEncoder(num_features=10,
+    encoder = SAINTEncoder(data_dim=10,
                            embedding_dim=32)
     inputs = tf.ones((16, 10, 32), dtype=tf.float32)
     outputs = encoder(inputs)
