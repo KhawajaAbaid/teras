@@ -87,8 +87,8 @@ class NODE(keras.Model):
         config = super().get_config()
         config.update({'input_dim': self.input_dim,
                        'tree_layers': serialize_layers_collection(self.tree_layers),
-                       'feature_selector': self.feature_selector,
-                       'dropout': self.dropout,
+                       'feature_selector': keras.layers.serialize(self.feature_selector),
+                       'dropout': keras.layers.serialize(self.dropout),
                        'head': keras.layers.serialize(self.head)
                        })
         return config
