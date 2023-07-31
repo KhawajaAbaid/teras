@@ -29,6 +29,7 @@ from teras.layers.categorical_feature_embedding import CategoricalFeatureEmbeddi
 
 # NODE layers
 from teras.layers.node.odst import ObliviousDecisionTree
+from teras.layers.node.node_feature_selector import NodeFeatureSelector
 
 
 # TabNet layers
