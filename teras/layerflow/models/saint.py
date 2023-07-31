@@ -95,6 +95,7 @@ class SAINT(keras.Model):
         self.encoder = encoder
         self.categorical_feature_embedding = categorical_feature_embedding
         self.numerical_feature_embedding = numerical_feature_embedding
+        self.head = head
 
     def get_config(self):
         config = super().get_config()
