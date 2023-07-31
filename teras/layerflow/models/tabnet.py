@@ -89,36 +89,45 @@ class TabNet(keras.Model):
                  head: keras.layers.Layer = None,
                  **kwargs):
         numerical_features_exist = len(features_metadata["numerical"]) > 0
+        categorical_features_exist = len(features_metadata["categorical"]) > 0
+
+        if categorical_feature_embedding is None and categorical_features_exist:
+            raise ValueError("`categorical_feature_embedding` cannot be None when categorical features exist "
+                             "in the dataset. Please pass an instance of `CategoricalFeatureEmbedding` which you "
+                             "can import as follows, \n"
+                             "`from teras.layers import CategoricalFeatureEmbedding`")
+
         inputs = keras.layers.Input(shape=(input_dim,))
-        x = inputs
         if encoder is None:
             raise ValueError("`encoder` cannot be None. Please pass an instance of `TabNetEncoder` layer. "
                              "You can import it as, `from teras.layers import TabNetEncoder``")
 
-        categorical_embeddings = None
-        if categorical_feature_embedding is not None:
-            categorical_embeddings = categorical_feature_embedding(inputs)
-            categorical_embeddings = keras.layers.Flatten()(categorical_embeddings)
+        # Important to note that, this is one model where both numerical and categorical feature embeddings
+        # can be None. Because tabnet, by default uses raw numerical features.
 
-        if numerical_feature_embedding is not None:
-            numerical_embeddings = numerical_feature_embedding(inputs)
-            numerical_embeddings = keras.layers.Flatten()(numerical_embeddings)
-            if categorical_embeddings is not None:
-                x = keras.layers.Concatenate(axis=1)([categorical_embeddings, numerical_embeddings])
+        if categorical_feature_embedding is None:
+            # then there's only numerical features
+            if numerical_feature_embedding is None:
+                features_embeddings = NumericalFeaturesExtractor(features_metadata)(inputs)
+            else:
+                features_embeddings = numerical_feature_embedding(inputs)
         else:
+            # then there are definitely categorical features but might or might not be numerical features
+            features_embeddings = categorical_feature_embedding(inputs)
+            features_embeddings = keras.layers.Flatten()(features_embeddings)
             if numerical_features_exist:
-                # If user doesn't want to apply any numerical embedding, but numerical
-                # features do exist, we extract them as is and concatenate them with
-                # categorical feature embeddings which have been flattened -- hence allowing the concatenation
-                numerical_features = NumericalFeaturesExtractor(features_metadata)(inputs)
-                x = keras.layers.Concatenate(axis=1)([categorical_embeddings, numerical_features])
-        outputs = encoder(x)
+                if numerical_feature_embedding is None:
+                    numerical_embeddings = NumericalFeaturesExtractor(features_metadata)(inputs)
+                else:
+                    numerical_embeddings = numerical_feature_embedding(inputs)
+                    numerical_embeddings = keras.layers.Flatten()(numerical_embeddings)
+                features_embeddings = keras.layers.Concatenate(axis=1)([features_embeddings, numerical_embeddings])
+        outputs = encoder(features_embeddings)
         if head is not None:
             outputs = head(outputs)
         super().__init__(inputs=inputs,
                          outputs=outputs,
                          **kwargs)
-
         self.input_dim = input_dim
         self.features_metadata = features_metadata
         self.categorical_feature_embedding = categorical_feature_embedding
