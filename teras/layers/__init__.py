@@ -53,6 +53,7 @@ from teras.layers.dnfnet.dnnf import DNNF
 from teras.layers.saint.saint_numerical_feature_embedding import SAINTNumericalFeatureEmbedding
 from teras.layers.saint.multi_head_inter_sample_attention import MultiHeadInterSampleAttention
 from teras.layers.saint.saint_transformer import SAINTTransformer
+from teras.layers.saint.saint_encoder import SAINTEncoder
 
 
 # RTDL ResNet layers
