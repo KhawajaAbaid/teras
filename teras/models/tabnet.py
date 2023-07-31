@@ -135,7 +135,6 @@ class TabNet(_TabNetLF):
         super().__init__(input_dim=input_dim,
                          features_metadata=features_metadata,
                          categorical_feature_embedding=categorical_feature_embedding,
-                         numerical_feature_embedding=None,
                          encoder=encoder,
                          **kwargs)
         self.input_dim = input_dim
