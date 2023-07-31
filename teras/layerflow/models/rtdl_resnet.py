@@ -1,5 +1,6 @@
 from tensorflow import keras
 from teras.utils.types import LayersCollection
+from typeguard import check_type
 
 
 @keras.saving.register_keras_serializable(package="teras.layerflow.models")
@@ -39,10 +40,13 @@ class RtdlResNet(keras.Model):
                  resnet_blocks: LayersCollection,
                  head: keras.layers.Layer = None,
                  **kwargs):
-        if not isinstance(resnet_blocks, LayersCollection):
-            raise ValueError("`resnet_blocks` can either be a list of `RTDLResNetBlock` layers "
-                             "or a Keras Layer or Model made up of `RTDLResNetBlock` layers. \n"
-                             f"But received type: {type(resnet_blocks)}.")
+        # if not isinstance(resnet_blocks, LayersCollection):
+        try:
+            check_type("resnet_blocks", resnet_blocks, LayersCollection)
+        except TypeError:
+            raise TypeError("`resnet_blocks` can either be a list of `RTDLResNetBlock` layers "
+                            "or a Keras Layer or Model made up of `RTDLResNetBlock` layers. \n"
+                            f"But received type: {type(resnet_blocks)}.")
         if isinstance(resnet_blocks, (list, tuple)):
             resnet_blocks = keras.models.Sequential(resnet_blocks,
                                                     name="resnet_blocks")
