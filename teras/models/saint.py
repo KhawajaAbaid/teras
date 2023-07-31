@@ -600,7 +600,8 @@ class SAINTPretrainer(_SAINTPretrainerLF):
                          cutmix=cutmix,
                          projection_head_1=projection_head_1,
                          projection_head_2=projection_head_2,
-                         reconstruction_head=reconstruction_head)
+                         reconstruction_head=reconstruction_head,
+                         **kwargs)
         self.model = model
         self.features_metadata = features_metadata
         self.cutmix_probs = cutmix_probs
