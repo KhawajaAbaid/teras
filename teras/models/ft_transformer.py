@@ -33,8 +33,8 @@ class FTTransformer(_FTTransformerLF):
             You can get this dictionary from
                 >>> from teras.utils import get_features_metadata_for_embedding
                 >>> metadata_dict = get_features_metadata_for_embedding(dataframe,
-                ..                                                      numerical_features,
-                ..                                                      categorical_features)
+                ..                                                      categorical_features,
+                ..                                                      numerical_features)
 
         embedding_dim: ``int``, default 32,
             Embedding dimensions used in embedding numerical and categorical features.
@@ -104,7 +104,7 @@ class FTTransformer(_FTTransformerLF):
         cls_token = FTCLSToken(embedding_dim,
                                initialization="normal")
         encoder = Encoder(num_transformer_layers=num_transformer_layers,
-                          num_heads=num_attention_heads,
+                          num_attention_heads=num_attention_heads,
                           embedding_dim=embedding_dim,
                           attention_dropout=attention_dropout,
                           feedforward_dropout=feedforward_dropout,
@@ -117,6 +117,7 @@ class FTTransformer(_FTTransformerLF):
                          encoder=encoder,
                          **kwargs
                          )
+        self.input_dim = input_dim
         self.features_metadata = features_metadata
         self.num_transformer_layers = num_transformer_layers
         self.embedding_dim = embedding_dim
@@ -129,6 +130,7 @@ class FTTransformer(_FTTransformerLF):
     def get_config(self):
         config = {'name': self.name,
                   'trainable': self.trainable,
+                  'input_dim': self.input_dim,
                   'features_metadata': self.features_metadata,
                   'embedding_dim': self.embedding_dim,
                   'num_transformer_layers': self.num_transformer_layers,
@@ -141,8 +143,11 @@ class FTTransformer(_FTTransformerLF):
 
     @classmethod
     def from_config(cls, config):
+        input_dim = config.pop("input_dim")
         features_metadata = config.pop("features_metadata")
-        return cls(features_metadata, **config)
+        return cls(input_dim=input_dim,
+                   features_metadata=features_metadata,
+                   **config)
 
 
 @keras.saving.register_keras_serializable("teras.models")
@@ -179,8 +184,8 @@ class FTTransformerClassifier(FTTransformer):
             You can get this dictionary from
                 >>> from teras.utils import get_features_metadata_for_embedding
                 >>> metadata_dict = get_features_metadata_for_embedding(dataframe,
-                ..                                                      numerical_features,
-                ..                                                      categorical_features)
+                ..                                                      categorical_features,
+                ..                                                      numerical_features)
 
         embedding_dim: ``int``, default 32,
             Embedding dimensions used in embedding numerical and categorical features.
@@ -287,8 +292,8 @@ class FTTransformerRegressor(FTTransformer):
             You can get this dictionary from
                 >>> from teras.utils import get_features_metadata_for_embedding
                 >>> metadata_dict = get_features_metadata_for_embedding(dataframe,
-                ..                                                      numerical_features,
-                ..                                                      categorical_features)
+                ..                                                      categorical_features,
+                ..                                                      numerical_features)
 
         embedding_dim: ``int``, default 32,
             Embedding dimensions used in embedding numerical and categorical features.
@@ -357,6 +362,6 @@ class FTTransformerRegressor(FTTransformer):
 
     def get_config(self):
         config = super().get_config()
-        config.update({'num_outputs': self.num_classes,
+        config.update({'num_outputs': self.num_outputs,
                        'head_units_value': self.head_units_value})
         return config
