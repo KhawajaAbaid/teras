@@ -335,3 +335,25 @@ def inject_missing_values(x: pd.DataFrame,
         x_with_missing_data = pd.DataFrame(x_with_missing_data,
                                            columns=x.columns if is_dataframe else None)
     return x_with_missing_data
+
+
+def generate_fake_gemstone_data(num_samples: int = 16):
+    """
+    Generate fake gemstone like data of specified num_samples.
+
+    Args:
+        num_samples:
+            Number of samples to generate
+
+    Returns:
+        A pandas DataFrame of fake gemstone like data.
+    """
+    fake_gem_df = pd.DataFrame({
+        "cut": np.random.randint(low=0, high=3, size=(num_samples,)),
+        "color": np.random.randint(low=0, high=5, size=(num_samples,)),
+        "clarity": np.random.randint(low=0, high=4, size=(num_samples,)),
+        "depth": np.random.randint(low=0, high=100, size=(num_samples,)),
+        "table": np.random.randint(low=0, high=100, size=(num_samples,))
+    })
+    fake_gem_df = fake_gem_df.astype(np.float32)
+    return fake_gem_df
