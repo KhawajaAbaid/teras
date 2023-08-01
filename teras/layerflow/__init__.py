@@ -13,5 +13,5 @@
 # limitations under the License.
 
 
-# from teras.layerflow import layers
-# from teras.layerflow import models
+from teras.layerflow import layers
+from teras.layerflow import models
