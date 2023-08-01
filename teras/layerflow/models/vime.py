@@ -1,8 +1,5 @@
 import tensorflow as tf
 from tensorflow import keras
-from teras.layers import (VimeEncoder,
-                          VimePredictor,
-                          VimeMaskGenerationAndCorruption)
 from teras.losses import VimeSelfSupervisedLoss
 
 
