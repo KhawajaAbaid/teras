@@ -293,7 +293,7 @@ class PCGAIN(_PCGAIN_LF):
         # which acts as a proxy pretrainer and have it instantiate and pretrain them,
         # and then we can access those pretrained Generator and Discriminator models
         # and use them here in our PC-GAIN architecture.
-        pretrainer = GAIN(data_dim=input_dim,
+        pretrainer = GAIN(input_dim=input_dim,
                           generator_units_values=generator_units_values,
                           generator_activation_hidden=generator_activation_hidden,
                           generator_activation_out=generator_activation_out,
