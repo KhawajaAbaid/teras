@@ -3,12 +3,14 @@ from teras.layers.tabnet.tabnet_feature_transformer import TabNetFeatureTransfor
 
 
 def test_tabnet_feature_transformer_valid_call():
+    TabNetFeatureTransformer.reset_shared_layers()
     feature_transformer = TabNetFeatureTransformer(units=32)
     inputs = tf.ones((8, 10))
     outputs = feature_transformer(inputs)
 
 
 def test_tabnet_feature_transformer_output_shape():
+    TabNetFeatureTransformer.reset_shared_layers()
     feature_transformer = TabNetFeatureTransformer(units=32)
     inputs = tf.ones((8, 10))
     outputs = feature_transformer(inputs)
