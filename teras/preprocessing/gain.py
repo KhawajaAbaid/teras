@@ -2,7 +2,7 @@ import tensorflow as tf
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import OrdinalEncoder
-from teras.preprocessing.base.base_data_transformer import _BaseDataTransformer
+from teras.preprocessing.base.base_data_transformer import BaseDataTransformer as _BaseDataTransformer
 from teras.utils.types import FeaturesNamesType
 
 
