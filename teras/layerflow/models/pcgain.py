@@ -115,8 +115,8 @@ class PCGAIN(keras.Model):
         self.num_clusters = num_clusters
         self.clustering_method = clustering_method
 
-        self.generator = None
-        self.discriminator = None
+        self.generator = self.pretrainer.generator
+        self.discriminator = self.pretrainer.discriminator
 
         self.z_sampler = tfp.distributions.Uniform(low=0.,
                                                    high=0.01,
