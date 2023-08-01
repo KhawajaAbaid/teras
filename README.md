@@ -1,6 +1,6 @@
 # Teras — A Unified Deep Learning Library for Tabular Data
 
-![Teras logo banner](./data/imgs/Teras_logo_github_banner.jpg?)
+![Teras logo banner](./data/imgs/Teras_logo_github_banner.jpg)
 
 Teras (short for Tabular Keras) is a unified deep learning library for Tabular Data that aims to be your one stop for everything related to deep learing with tabular data.
 
