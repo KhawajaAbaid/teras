@@ -1,7 +1,12 @@
-RTDL ResNet Layers
-================================
+RTDLResNet Layers
+=================================
 
-.. automodule:: teras.layers.rtdl_resnet
+
+
+RTDLResNetBlock
+----------------------------------------------------
+
+.. automodule:: teras.layers.rtdl_resnet.rtdl_resnet_block
    :members:
    :undoc-members:
    :show-inheritance:

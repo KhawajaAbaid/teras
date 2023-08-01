@@ -1,18 +1,22 @@
 Layers
 ====================
-All the layers offered by Teras.
+
+All the layers offerd by Teras.
+
 
 .. toctree::
    :maxdepth: 2
-   :caption: Activations
+   :caption: Activation
 
-   teras.layers.activations
+   teras.layers.activation
+
 
 .. toctree::
    :maxdepth: 2
    :caption: Common
 
    teras.layers.common
+
 
 .. toctree::
    :maxdepth: 2
@@ -30,16 +34,9 @@ All the layers offered by Teras.
 
 .. toctree::
    :maxdepth: 2
-   :caption: Embedding
+   :caption: CategoricalFeatureEmbedding
 
-   teras.layers.embedding
-
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Encoding
-
-   teras.layers.encoding
+   teras.layers.categorical_feature_embedding
 
 
 .. toctree::
@@ -65,9 +62,16 @@ All the layers offered by Teras.
 
 .. toctree::
    :maxdepth: 2
-   :caption: OENF
+   :caption: NumericalFeatureNormalization
 
-   teras.layers.oenf
+   teras.layers.numerical_feature_normalization
+
+
+.. toctree::
+   :maxdepth: 2
+   :caption: NumericalFeatureExtractor
+
+   teras.layers.numerical_features_extractor
 
 
 .. toctree::
@@ -75,6 +79,13 @@ All the layers offered by Teras.
    :caption: PCGAIN
 
    teras.layers.pcgain
+
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Preprocessing
+
+   teras.layers.preprocessing
 
 
 .. toctree::
@@ -124,4 +135,3 @@ All the layers offered by Teras.
    :caption: VIME
 
    teras.layers.vime
-

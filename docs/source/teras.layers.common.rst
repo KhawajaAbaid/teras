@@ -1,21 +1,45 @@
-Common Layers
+teras.layers.common package
 ===========================
 
-Teras ``common`` module provides common layers used across architectures. Sometimes these layers are subclassed to
-implement the architecture specific variant of these layers, for instance, ``ClassificationHead`` is subclassed to build
-``SAINTClassificationHead``, while other times they are used as is, for instance, the common transformer layers are used
-as is in the ``TabTransformer`` architecture.
+Submodules
+----------
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Head
+teras.layers.common.head module
+-------------------------------
 
-   teras.layers.common.head
+.. automodule:: teras.layers.common.head
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
+teras.layers.common.head\_test module
+-------------------------------------
 
+.. automodule:: teras.layers.common.head_test
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Transformer
+teras.layers.common.transformer module
+--------------------------------------
 
-   teras.layers.common.transformer
+.. automodule:: teras.layers.common.transformer
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+teras.layers.common.transformer\_test module
+--------------------------------------------
+
+.. automodule:: teras.layers.common.transformer_test
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: teras.layers.common
+   :members:
+   :undoc-members:
+   :show-inheritance:

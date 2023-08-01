@@ -1,5 +1,5 @@
 TabTransformer Utils
-=================================
+=======================
 
 .. automodule:: teras.utils.tabtransformer
    :members:

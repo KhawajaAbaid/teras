@@ -1,7 +1,8 @@
-RTDL ResNet Layers
+Gumbel Softmax
 ====================
 
-.. automodule:: teras.layerflow.layers.rtdl_resnet
+
+.. automodule:: teras.layers.activation.gumbel_softmax
    :members:
    :undoc-members:
    :show-inheritance:
