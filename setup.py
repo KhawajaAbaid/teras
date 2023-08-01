@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='teras',
-    version='0.1.1',
+    version='0.2.0',
     description='A Unified Deep Learning Framework for Tabular Data.',
     author='Khawaja Abaid',
     author_email='khawaja.abaid@gmail.com',
