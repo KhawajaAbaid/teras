@@ -3,7 +3,7 @@ import tensorflow as tf
 # tf.config.run_functions_eagerly(True)
 import pandas as pd
 from teras.models.pcgain import PCGAIN
-from teras.preprocessing.pcgain import DataTransformer, DataSampler
+from teras.preprocessing.pcgain import PCGAINDataTransformer, PCGAINDataSampler
 from teras.utils import inject_missing_values
 
 from warnings import filterwarnings
@@ -22,15 +22,15 @@ x = gem_df
 x_with_missing = inject_missing_values(x)
 
 
-data_transformer = DataTransformer(numerical_features=num_cols,
-                                   categorical_features=cat_cols)
+data_transformer = PCGAINDataTransformer(numerical_features=num_cols,
+                                         categorical_features=cat_cols)
 x_transformed = data_transformer.fit_transform(x_with_missing, return_dataframe=True)
 
-data_sampler = DataSampler()
+data_sampler = PCGAINDataSampler()
 dataset = data_sampler.get_dataset(x_transformed)
 pretraining_dataset = data_sampler.get_pretraining_dataset(x_transformed, pretraining_size=0.4)
 
-pcgain_imputer = PCGAIN(data_dim=data_sampler.data_dim)
+pcgain_imputer = PCGAIN(input_dim=data_sampler.data_dim)
 pcgain_imputer.compile()
 # You MUST pretrain first or perish
 pretrainer_fit_kwargs = {"epochs": 2}
