@@ -100,6 +100,9 @@ def get_activation(activation: ActivationType):
                 activation_func = activations.gumbel_softmax
             elif activation == "sparsemax":
                 activation_func = activations.sparsemax
+            elif activation == "sparsemoid":
+                from teras.utils.node import sparsemoid
+                activation_func = sparsemoid
             else:
                 # Otherwise return error
                 raise ValueError(f"{activation} function's name is either incorrect "
