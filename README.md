@@ -34,15 +34,19 @@ from teras.models import TabNetClassifier
 model = TabNetClassifier(num_classes=2, features_metadata=features_metadata)
 ```
 2. **LayerFlow API**: It maximizes flexibility and minimizes interface. Here, the user can pass any sub-layers or models instances as arguments to the given architecture (model/layer). It can be accessed through `teras.layerflow`
+Note that, there're no `<architecture>Classifier` or `<architecture>Regressor` model classes, but just one model class, which accepts a `head` layer that decides the model's final purpose.
 ```
-from teras.layerflow.models import TabNetClassifier
-from teras.layerflow.layers import TabNetEncoder, TabNetClassificationHead
+from teras.layerflow.models import TabNet
+from teras.layers import TabNetEncoder, CategoricalFeatureEmbedding, ClassificationHead
 
-encoder = TabNetEncoder()
-head = TabNetClassificationHead(num_classes=2)
-model = TabNetClassifier(features_metadata=features_metadata,
-                         encoder=encoder,
-                         head=head)
+embedding = CategoricalFeatureEmbedding(features_metadata, embedding_dim=1)     # TabNet requires embedding_dim to be 1
+encoder = TabNetEncoder(input_dim=input_dim)
+head = ClassificationHead(num_classes=2)
+model = TabNet(input_dim=input_dim,
+               features_metadata=features_metadata,
+               categorical_feature_embedding=embedding,
+               encoder=encoder,
+               head=head)
 ```
 You can read more about the difference between the two in the Teras APIs section in the [Getting Started Guide](https://github.com/KhawajaAbaid/teras/blob/main/tutorials/getting_started.ipynb).
 
