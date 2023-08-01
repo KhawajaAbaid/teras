@@ -288,6 +288,9 @@ class CTGANDataTransformer(BaseDataTransformer):
                 weight_concentration_prior=self.weight_concentration_prior)
         self.categorical_values_probs = dict()
         self.one_hot_enc = OneHotEncoder()
+        self.metadata = dict()
+        self.metadata["categorical"] = dict()
+        self.metadata["numerical"] = dict()
 
     def transform_numerical_data(self, x):
         return self.mode_specific_normalizer.fit_transform(x)
