@@ -1,19 +1,16 @@
-from collections import namedtuple
-from copy import deepcopy
 from abc import abstractmethod
 import pandas as pd
-import numpy as np
 
 
 class BaseDataTransformer:
     """
-    Base class for DataTransformer with common
-    methods and attributes.
+    Base class for ``DataTransformer`` classes.
+    It provides the common methods and attributes.
     """
     def __init__(self):
-        self.meta_data = dict()
-        self.meta_data["numerical"] = dict()
-        self.meta_data["categorical"] = dict()
+        self.metadata = dict()
+        self.metadata["numerical"] = dict()
+        self.metadata["categorical"] = dict()
         self.fitted = False
 
     @abstractmethod
@@ -24,26 +21,12 @@ class BaseDataTransformer:
     def transform(self, x, **kwargs):
         pass
 
-    def get_meta_data(self):
+    def get_metadata(self):
         """
         Returns:
-            named tuple of features meta data.
+            named tuple of features metadata.
         """
-        MetaData = namedtuple("MetaData", self.meta_data.keys())
-
-        CategoricalMetaData = namedtuple("CategoricalMetaData",
-                                         self.meta_data["categorical"].keys())
-        categorical_meta_data = CategoricalMetaData(**self.meta_data["categorical"])
-
-        NumericalMetaData = namedtuple("NumericalMetaData",
-                                       self.meta_data["numerical"].keys())
-        numerical_meta_data = NumericalMetaData(**self.meta_data["numerical"])
-
-        meta_data_copy = deepcopy(self.meta_data)
-        meta_data_copy["categorical"] = categorical_meta_data
-        meta_data_copy["numerical"] = numerical_meta_data
-        meta_data_tuple = MetaData(**meta_data_copy)
-        return meta_data_tuple
+        return self.metadata
 
     def fit_transform(self,
                       x: pd.DataFrame,

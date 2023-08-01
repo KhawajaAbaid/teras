@@ -2,38 +2,44 @@ import tensorflow as tf
 
 
 @tf.function
-def mask_generator(p_m, x):
+def vime_mask_generator(x,
+                        p_m: float = 0.3):
     """
     Generates mask vector for self and semi-supervised learning
     Args:
-        p_m: corruption probability
-        x: feature matrix
+        x:
+            Dataset.
+
+        p_m: ``float``, default 0.3,
+            Corruption probability
 
     Returns:
         mask: binary mask matrix
 
     """
     mask = tf.random.stateless_binomial(shape=tf.shape(x),
-                                           seed=(0, 0),
-                                           counts=1,
-                                           probs=p_m,
-                                           output_dtype=tf.float32)
+                                        seed=(0, 0),
+                                        counts=1,
+                                        probs=p_m,
+                                        output_dtype=tf.float32)
     return mask
 
+
 @tf.function
-def pretext_generator(m, x):
+def vime_pretext_generator(x, mask):
     """
     Generates corrupted samples for self and semi-supervised learning
 
     Args:
-        m: mask matrix
-        x: feature matrix
-        batch_size: When X is passed from within the keras model during training, its batch dimension is none, to handle
-        that particular case, pass batch_size explicity
+        x:
+            Dataset.
+
+        mask:
+            Mask matrix
 
     Returns:
-        m_new: final mask matrix after corruption
-        x_tilde: corrupted feature matrix
+        mask_corrupted: Final mask matrix after corruption
+        x_tilde: Corrupted feature matrix
     """
     x = tf.cast(x, dtype=tf.float32)
     num_samples = tf.shape(x)[0]
@@ -46,7 +52,7 @@ def pretext_generator(m, x):
     x_bar = tf.transpose(x_bar.stack())
 
     # Corrupt Samples
-    x_tilde = x * (1 - m) + x_bar * m
+    x_tilde = x * (1 - mask) + x_bar * mask
 
     m_new = (x != x_tilde)
     m_new = tf.cast(m_new, dtype="float32")
@@ -54,9 +60,9 @@ def pretext_generator(m, x):
 
 
 def preprocess_input_vime_semi(x_labeled,
-                         y_labeled,
-                         x_unlabeled,
-                         batch_size=None):
+                               y_labeled,
+                               x_unlabeled,
+                               batch_size=None):
     """
     VIME's semi supervised training requires a labeled and an unlabeled training set.
     It also allows user to specify the unlabeled/labeled split.
@@ -125,9 +131,9 @@ def preprocess_input_vime_self(x_unlabeled,
     """
 
     if m_labeled is None and x_tilde is None:
-        m_unlabeled = mask_generator(p_m,
-                                     x_unlabeled)
-        m_labeled, x_tilde = pretext_generator(m_unlabeled, x_unlabeled)
+        m_unlabeled = vime_mask_generator(p_m,
+                                          x_unlabeled)
+        m_labeled, x_tilde = vime_pretext_generator(m_unlabeled, x_unlabeled)
 
     dataset = tf.data.Dataset.from_tensor_slices((x_tilde,
                                                   {"mask_estimator": m_labeled, "feature_estimator": x_unlabeled}))

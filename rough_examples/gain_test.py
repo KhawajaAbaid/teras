@@ -1,8 +1,8 @@
 import tensorflow as tf
-tf.config.run_functions_eagerly(True)
+# tf.config.run_functions_eagerly(True)
 import pandas as pd
 from teras.models.gain import GAIN
-from teras.preprocessing.gain import DataTransformer, DataSampler
+from teras.preprocessing.gain import GAINDataTransformer, GAINDataSampler
 from teras.utils import inject_missing_values
 
 
@@ -19,14 +19,14 @@ x = gem_df
 x_with_missing = inject_missing_values(x)
 
 
-data_transformer = DataTransformer(numerical_features=num_cols,
-                                   categorical_features=cat_cols)
+data_transformer = GAINDataTransformer(numerical_features=num_cols,
+                                       categorical_features=cat_cols)
 x_transformed = data_transformer.fit_transform(x_with_missing, return_dataframe=True)
 
-data_sampler = DataSampler()
+data_sampler = GAINDataSampler()
 dataset = data_sampler.get_dataset(x_transformed)
 
-gain_imputer = GAIN(data_dim=data_sampler.data_dim)
+gain_imputer = GAIN(input_dim=data_sampler.data_dim)
 gain_imputer.compile()
 history = gain_imputer.fit(dataset, epochs=2)
 

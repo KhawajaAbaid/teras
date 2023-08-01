@@ -4,9 +4,8 @@ from sklearn.mixture import BayesianGaussianMixture
 from teras.utils import tf_random_choice
 import numpy as np
 import pandas as pd
-from collections import namedtuple
-from copy import deepcopy
 from teras.preprocessing.base import BaseDataTransformer
+from teras.utils.types import FeaturesNamesType
 
 
 class ModeSpecificNormalization:
@@ -19,30 +18,39 @@ class ModeSpecificNormalization:
         https://arxiv.org/abs/1907.00503
 
     Args:
-        numerical_features:
+        numerical_features: ``List[str]``
             List of numerical features names.
             In the case of ndarray, pass a list of numerical column indices.
-        max_clusters: Maximum clusters
-        std_multiplier:
+
+        max_clusters: ``int``, default 10,
+            Maximum clusters
+
+        std_multiplier: ``int``, default 4,
             Multiplies the standard deviation in the normalization.
             Defaults to 4 as proposed in the paper.
-        weight_threshold:
+
+        weight_threshold: ``int``, default 0.005,
             Taken from the official implementation.
             The minimum value a component weight can take to be considered a valid component.
             `weights_` under this value will be ignored.
-            Defaults to 0.005.
-        covariance_type: parameter for the GaussianMixtureModel class of sklearn
-        weight_concentration_prior_type: parameter for the GaussianMixtureModel class of sklearn
-        weight_concentration_prior: parameter for the GaussianMixtureModel class of sklearn
+
+        covariance_type: ``str``,
+            Parameter for the ``GaussianMixtureModel`` class of sklearn
+
+        weight_concentration_prior_type: ``str``, default "dirichlet_process",
+            Parameter for the ``GaussianMixtureModel`` class of sklearn
+
+        weight_concentration_prior: ``float``, default 0.01,
+            Parameter for the GaussianMixtureModel class of sklearn
     """
     def __init__(self,
-                 numerical_features=None,
-                 max_clusters=10,
-                 std_multiplier=4,
-                 weight_threshold=0.,
-                 covariance_type="full",
-                 weight_concentration_prior_type="dirichlet_process",
-                 weight_concentration_prior=0.001):
+                 numerical_features: FeaturesNamesType = None,
+                 max_clusters: int = 10,
+                 std_multiplier: int = 4,
+                 weight_threshold: float = 0.,
+                 covariance_type: str = "full",
+                 weight_concentration_prior_type: str = "dirichlet_process",
+                 weight_concentration_prior: float = 0.001):
         self.numerical_features = numerical_features
         self.max_clusters = max_clusters
         self.std_multiplier = std_multiplier
@@ -61,7 +69,7 @@ class ModeSpecificNormalization:
         # 2. `Number of valid clusters` will be used in the transform method when one-hotting
         # 3. `means` and `standard deviations` will be used in transform
         #       step to normalize the value c(i,j) to create a(i,j) where a stands for alpha.
-        self.meta_data = {}
+        self.metadata = {}
 
         self.bay_guass_mix = BayesianGaussianMixture(n_components=self.max_clusters,
                                                      covariance_type=self.covariance_type,
@@ -87,7 +95,7 @@ class ModeSpecificNormalization:
                 raise ValueError(f"`x` must be either a pandas DataFrame or numpy ndarray. "
                                  f"{type(x)} was given.")
 
-            self.meta_data[feature_name] = {}
+            self.metadata[feature_name] = {}
             self.bay_guass_mix.fit(feature)
             # The authors use a weight threshold to filter out components in their implementation.
             # For consistency's sake, we're going to use this idea but with slight modification.
@@ -115,8 +123,8 @@ class ModeSpecificNormalization:
             # To create one-hot component, we'll store the selected clusters indices
             # and the number of valid clusters
             num_valid_clusters = sum(valid_clusters_indicator)
-            self.meta_data[feature_name]['selected_clusters_indices'] = selected_clusters_indices
-            self.meta_data[feature_name]['num_valid_clusters'] = num_valid_clusters
+            self.metadata[feature_name]['selected_clusters_indices'] = selected_clusters_indices
+            self.metadata[feature_name]['num_valid_clusters'] = num_valid_clusters
 
             relative_indices_all.append(relative_index)
             # The 1 is for the alpha feature, since each numerical feature
@@ -129,13 +137,13 @@ class ModeSpecificNormalization:
             # To normalize, we need the means and standard deviations
             # Means
             clusters_means = self.bay_guass_mix.means_.squeeze()[valid_clusters_indicator]
-            self.meta_data[feature_name]['clusters_means'] = clusters_means
+            self.metadata[feature_name]['clusters_means'] = clusters_means
             # Standard Deviations
             clusters_stds = np.sqrt(self.bay_guass_mix.covariances_).squeeze()[valid_clusters_indicator]
-            self.meta_data[feature_name]['clusters_stds'] = clusters_stds
+            self.metadata[feature_name]['clusters_stds'] = clusters_stds
 
-        self.meta_data["relative_indices_all"] = np.array(relative_indices_all)
-        self.meta_data["num_valid_clusters_all"] = num_valid_clusters_all
+        self.metadata["relative_indices_all"] = np.array(relative_indices_all)
+        self.metadata["num_valid_clusters_all"] = num_valid_clusters_all
         self.fitted = True
 
     def transform(self, x):
@@ -148,16 +156,16 @@ class ModeSpecificNormalization:
         # Contain the normalized numerical features
         x_cont_normalized = []
         for feature_name in self.numerical_features:
-            selected_clusters_indices = self.meta_data[feature_name]['selected_clusters_indices']
-            num_valid_clusters = self.meta_data[feature_name]['num_valid_clusters']
+            selected_clusters_indices = self.metadata[feature_name]['selected_clusters_indices']
+            num_valid_clusters = self.metadata[feature_name]['num_valid_clusters']
             # One hot components for all values in the feature
             # we borrow the beta notation from the paper
             # for clarity and understanding's sake.
             betas = np.eye(num_valid_clusters)[selected_clusters_indices]
 
             # Normalizing
-            means = self.meta_data[feature_name]['clusters_means']
-            stds = self.meta_data[feature_name]['clusters_stds']
+            means = self.metadata[feature_name]['clusters_means']
+            stds = self.metadata[feature_name]['clusters_stds']
             if isinstance(x, pd.DataFrame):
                 feature = x[feature_name].values
             elif isinstance(x, np.ndarray):
@@ -210,7 +218,7 @@ class ModeSpecificNormalization:
         return x
 
 
-class DataTransformer(BaseDataTransformer):
+class CTGANDataTransformer(BaseDataTransformer):
     """
     Data Transformation class based on the data transformation
     in the official CTGAN paper and implementation.
@@ -220,34 +228,41 @@ class DataTransformer(BaseDataTransformer):
         https://github.com/sdv-dev/CTGAN/
 
     Args:
-        numerical_features: List of numerical features names
-        categorical_features: List of categorical features names
-        max_clusters: Maximum Number of clusters to use in ModeSpecificNormalization
-            Defaults to 10
-        std_multiplier:
+        categorical_features: ``List[str]``,
+            List of categorical features names in the dataset.
+
+        numerical_features: ``List[str]``,
+            List of numerical features names in the dataset.
+
+        max_clusters: ``int``, default 10,
+            Maximum Number of clusters to use in ``ModeSpecificNormalization``
+
+        std_multiplier: ``int``, default 4,
             Multiplies the standard deviation in the normalization.
-            Defaults to 4 as proposed in the paper.
-        weight_threshold:
-            Taken from the official implementation.
+
+        weight_threshold: ``float``, default 0.005,
             The minimum value a component weight can take to be considered a valid component.
             `weights_` under this value will be ignored.
-            Defaults to 0.005
-        covariance_type: parameter for the GaussianMixtureModel class of sklearn
-            Defaults to 'full'
-        weight_concentration_prior_type: parameter for the GaussianMixtureModel class of sklearn
-            Defaults to 'dirichlet_process'
-        weight_concentration_prior: parameter for the GaussianMixtureModel class of sklearn.
-            Defaults to 0.001
+            (Taken from the official implementation.)
+
+        covariance_type: ``str``, default "full",
+            Parameter for the ``GaussianMixtureModel`` class of sklearn.
+
+        weight_concentration_prior_type: ``str``, default "dirichlet_process",
+            Parameter for the ``GaussianMixtureModel`` class of sklearn
+
+        weight_concentration_prior: ``float``, default 0.001,
+            Parameter for the ``GaussianMixtureModel`` class of sklearn.
     """
     def __init__(self,
-                 numerical_features=None,
-                 categorical_features=None,
-                 max_clusters=10,
-                 std_multiplier=4,
-                 weight_threshold=0.005,
-                 covariance_type="full",
-                 weight_concentration_prior_type="dirichlet_process",
-                 weight_concentration_prior=0.001
+                 numerical_features: FeaturesNamesType = None,
+                 categorical_features: FeaturesNamesType = None,
+                 max_clusters: int = 10,
+                 std_multiplier: int = 4,
+                 weight_threshold: float = 0.005,
+                 covariance_type: str = "full",
+                 weight_concentration_prior_type: str = "dirichlet_process",
+                 weight_concentration_prior: float = 0.001
                  ):
         self.numerical_features = numerical_features if numerical_features else []
         self.categorical_features = categorical_features if categorical_features else []
@@ -271,9 +286,11 @@ class DataTransformer(BaseDataTransformer):
                 covariance_type=self.covariance_type,
                 weight_concentration_prior_type=self.weight_concentration_prior_type,
                 weight_concentration_prior=self.weight_concentration_prior)
-        self.meta_data = dict()
         self.categorical_values_probs = dict()
         self.one_hot_enc = OneHotEncoder()
+        self.metadata = dict()
+        self.metadata["categorical"] = dict()
+        self.metadata["numerical"] = dict()
 
     def transform_numerical_data(self, x):
         return self.mode_specific_normalizer.fit_transform(x)
@@ -287,7 +304,7 @@ class DataTransformer(BaseDataTransformer):
         #   city_relative_index: gender_relative_index + num_categories_in_gender => 0 + 2 = 2
         #   economic_class_relative_index: city_relative_index + num_categories_in_city => 2 + 4 = 6
 
-        categorical_meta_data = dict()
+        categorical_metadata = dict()
         # NOTE: The purpose of using these lists is that, this way we'll later be able to access
         # metadata for multiple features at once using their indices rather than names
         # which would've been required in case of a dict and would have been less efficient
@@ -316,13 +333,13 @@ class DataTransformer(BaseDataTransformer):
             categories, categories_probs = list(categories_probs_dict.keys()), probs
             categories_probs_all.append(categories_probs)
             categories_all.append(categories)
-        categorical_meta_data["total_num_categories"] = sum(num_categories_all)
-        categorical_meta_data["num_categories_all"] = num_categories_all
-        categorical_meta_data["relative_indices_all"] = np.array(relative_indices_all)
-        categorical_meta_data["categories_probs_all"] = categories_probs_all
-        categorical_meta_data["categories_all"] = categories_all
+        categorical_metadata["total_num_categories"] = sum(num_categories_all)
+        categorical_metadata["num_categories_all"] = num_categories_all
+        categorical_metadata["relative_indices_all"] = np.array(relative_indices_all)
+        categorical_metadata["categories_probs_all"] = categories_probs_all
+        categorical_metadata["categories_all"] = categories_all
 
-        self.meta_data["categorical"] = categorical_meta_data
+        self.metadata["categorical"] = categorical_metadata
 
         self.one_hot_enc.fit(x)
         return self.one_hot_enc.transform(x)
@@ -336,13 +353,13 @@ class DataTransformer(BaseDataTransformer):
         x_numerical, x_categorical = None, None
         if self.num_numerical_features > 0:
             x_numerical = self.transform_numerical_data(x[self.numerical_features])
-            self.meta_data["numerical"] = self.mode_specific_normalizer.meta_data
-            total_transformed_features += (self.meta_data["numerical"]["relative_indices_all"][-1] +
-                                           self.meta_data["numerical"]["num_valid_clusters_all"][-1])
+            self.metadata["numerical"] = self.mode_specific_normalizer.metadata
+            total_transformed_features += (self.metadata["numerical"]["relative_indices_all"][-1] +
+                                           self.metadata["numerical"]["num_valid_clusters_all"][-1])
         if self.num_categorical_features > 0:
             x_categorical = self.transform_categorical_data(x[self.categorical_features])
-            total_transformed_features += (self.meta_data["categorical"]["relative_indices_all"][-1] +
-                                           self.meta_data["categorical"]["num_categories_all"][-1] + 1)
+            total_transformed_features += (self.metadata["categorical"]["relative_indices_all"][-1] +
+                                           self.metadata["categorical"]["num_categories_all"][-1] + 1)
 
         # since we concatenate the categorical features AFTER the numerical alphas and betas
         # so we'll create an overall relative indices array where we offset the relative indices
@@ -350,37 +367,16 @@ class DataTransformer(BaseDataTransformer):
         relative_indices_all = []
         offset = 0
         if x_numerical is not None:
-            cont_relative_indices = self.meta_data["numerical"]["relative_indices_all"]
+            cont_relative_indices = self.metadata["numerical"]["relative_indices_all"]
             relative_indices_all.extend(cont_relative_indices)
-            offset = cont_relative_indices[-1] + self.meta_data["numerical"]["num_valid_clusters_all"][-1]
+            offset = cont_relative_indices[-1] + self.metadata["numerical"]["num_valid_clusters_all"][-1]
         if x_categorical is not None:
             # +1 since the categorical relative indices start at 0
-            relative_indices_all.extend(self.meta_data["categorical"]["relative_indices_all"] + 1 + offset)
-        self.meta_data["relative_indices_all"] = relative_indices_all
-        self.meta_data["total_transformed_features"] = total_transformed_features
+            relative_indices_all.extend(self.metadata["categorical"]["relative_indices_all"] + 1 + offset)
+        self.metadata["relative_indices_all"] = relative_indices_all
+        self.metadata["total_transformed_features"] = total_transformed_features
         x_transformed = np.concatenate([x_numerical, x_categorical.toarray()], axis=1)
         return x_transformed
-
-    def get_meta_data(self):
-        """
-        Returns:
-            named tuple of features meta data.
-        """
-        MetaData = namedtuple("MetaData", self.meta_data.keys())
-
-        CategoricalMetaData = namedtuple("CategoricalMetaData",
-                                         self.meta_data["categorical"].keys())
-        categorical_meta_data = CategoricalMetaData(**self.meta_data["categorical"])
-
-        NumericalMetaData = namedtuple("NumericalMetaData",
-                                       self.meta_data["numerical"].keys())
-        numerical_meta_data = NumericalMetaData(**self.meta_data["numerical"])
-
-        meta_data_copy = deepcopy(self.meta_data)
-        meta_data_copy["categorical"] = categorical_meta_data
-        meta_data_copy["numerical"] = numerical_meta_data
-        meta_data_tuple = MetaData(**meta_data_copy)
-        return meta_data_tuple
 
     def reverse_transform(self, x_generated):
         """
@@ -394,9 +390,9 @@ class DataTransformer(BaseDataTransformer):
         """
         all_features = self.numerical_features + self.categorical_features
         if self.num_numerical_features > 0:
-            num_valid_clusters_all = self.meta_data["numerical"]["num_valid_clusters_all"]
+            num_valid_clusters_all = self.metadata["numerical"]["num_valid_clusters_all"]
         if self.num_categorical_features > 0:
-            num_categories_all = self.meta_data["categorical"]["num_categories_all"]
+            num_categories_all = self.metadata["categorical"]["num_categories_all"]
         data = {}
         cat_index = 0       # categorical index
         cont_index = 0      # numerical index
@@ -408,7 +404,7 @@ class DataTransformer(BaseDataTransformer):
                 # Recall that betas represent the one hot encoded form of the cluster number
                 cluster_indices = np.argmax(betas, axis=1)
                 # List of cluster means for a feature. contains one value per cluster
-                means = self.meta_data["numerical"][feature_name]["clusters_means"]
+                means = self.metadata["numerical"][feature_name]["clusters_means"]
 
                 # Since each individual element within the cluster is associated with
                 # one of the cluster's mean. We use the `cluster_indices` to get
@@ -416,7 +412,7 @@ class DataTransformer(BaseDataTransformer):
                 # element in the feature
                 means = means[cluster_indices]
                 # Do the same for stds
-                stds = self.meta_data["numerical"][feature_name]["clusters_stds"]
+                stds = self.metadata["numerical"][feature_name]["clusters_stds"]
                 stds = stds[cluster_indices]
                 feature = alphas * (self.std_multiplier * stds) + means
                 data[feature_name] = feature
@@ -433,9 +429,9 @@ class DataTransformer(BaseDataTransformer):
         return pd.DataFrame(data)
 
 
-class DataSampler:
+class CTGANDataSampler:
     """
-    Data Sampler class based on the data sampler class
+    CTGANDataSampler class based on the data sampler class
     in the official CTGAN implementation.
 
     Reference(s):
@@ -443,34 +439,41 @@ class DataSampler:
         https://github.com/sdv-dev/CTGAN/
 
     Args:
-        batch_size: `int`, default 512, Batch size to use for the dataset.
-        categorical_features: List of categorical features names
-        numerical_features: List of numerical features names
-        meta_data: Namedtuple of features meta data computed during data transformation.
-            You can access it from the `.get_meta_data()` of DataTransformer instance.
+        batch_size: ``int``, default 512,
+            Batch size to use for the dataset.
+
+        categorical_features: ``List[str]``,
+            List of categorical features names
+
+        numerical_features: ```List[str]``,
+            List of numerical features names
+
+        metadata: ``dict``,
+            A dictionary of metadata computed during data transformation.
+            You can access it from the ``.get_metadata()`` of ``CTGANDataTransformer`` instance.
     """
     def __init__(self,
                  batch_size=512,
                  categorical_features=None,
                  numerical_features=None,
-                 meta_data=None):
+                 metadata=None):
         if categorical_features is None:
             raise ValueError("`categorical_features` must not be None. "
                              "CTGAN requires dataset to have atleast one categorical feature, "
                              "if your dataset doesn't contain any categorical features, "
                              "then you should use some other generative model. ")
 
-        if meta_data is None:
-            raise ValueError("`meta_data` must not be None. "
+        if metadata is None:
+            raise ValueError("`metadata` must not be None. "
                              "DataSampler requires meta data computed in the transformation step "
                              "to sample data. "
-                             "Use DataTransformer's `get_meta_data` method to "
+                             "Use DataTransformer's `get_metadata` method to "
                              "access meta data and pass it as argument to DataSampler.")
 
         self.batch_size = batch_size
         self.categorical_features = categorical_features
         self.numerical_features = numerical_features
-        self.meta_data = meta_data
+        self.metadata = metadata
 
         self.num_samples = None
         self.data_dim = None
@@ -489,7 +492,7 @@ class DataSampler:
         Returns:
             Returns a tensorflow dataset that utilizes the sample_data method
             to create batches of data. This way user can just pass the dataset object to the fit
-            method of the model and each batch generated will satisfies all out requirements of sampling
+            method of the model and each batch generated will satisfy all out requirements of sampling
         """
         self.num_samples, self.data_dim = x_transformed.shape
         # adapting the approach from the official implementation
@@ -499,7 +502,7 @@ class DataSampler:
                                                           for values in feat.values()]
                                                          for feat in row_idx_raw])
 
-        total_num_categories = self.meta_data.categorical.total_num_categories
+        total_num_categories = self.metadata["categorical"]["total_num_categories"]
 
         dataset = tf.data.Dataset.from_generator(
             self.generator,
@@ -512,21 +515,21 @@ class DataSampler:
                               tf.TensorSpec(shape=(self.batch_size, len(self.categorical_features)),
                                             dtype=tf.float32, name="mask")),
             args=[x_transformed]
-            )
+        )
         return dataset
 
     def sample_cond_vectors_for_training(self,
-                                        random_features_idx=None,
-                                        random_values_idx=None):
+                                         random_features_idx=None,
+                                         random_values_idx=None):
         # 1. Create Nd zero-filled mask vectors mi = [mi(k)] where k=1...|Di| and for i = 1,...,Nd,
         # so the ith mask vector corresponds to the ith column,
         # and each component is associated to the category of that column.
         masks = tf.zeros([self.batch_size, len(self.categorical_features)])
-        cond_vectors = tf.zeros([self.batch_size, self.meta_data.categorical.total_num_categories])
+        cond_vectors = tf.zeros([self.batch_size, self.metadata["categorical"]["total_num_categories"]])
         # 2. Randomly select a discrete column Di out of all the Nd discrete columns, with equal probability.
         # >>> We select them in generator method
 
-        random_features_relative_indices = tf.gather(self.meta_data.categorical.relative_indices_all,
+        random_features_relative_indices = tf.gather(self.metadata["categorical"]["relative_indices_all"],
                                                      indices=random_features_idx)
 
         # 3. Construct a PMF across the range of values of the column selected in 2, Di* , such that the
@@ -560,8 +563,8 @@ class DataSampler:
         we sample indices purely randomly instead of based on the calculated
         probability as proposed in the paper.
         """
-        num_categories_all = self.meta_data.categorical.num_categories_all
-        cond_vectors = tf.zeros((batch_size, self.meta_data.categorical.total_num_categories))
+        num_categories_all = self.metadata["categorical"]["num_categories_all"]
+        cond_vectors = tf.zeros((batch_size, self.metadata["categorical"]["total_num_categories"]))
         random_features_idx = tf.random.uniform(shape=(batch_size,),
                                                 minval=0, maxval=len(self.categorical_features),
                                                 dtype=tf.int32)
@@ -577,7 +580,7 @@ class DataSampler:
         # Offset this index by relative index of the feature that it belongs to.
         # because the final cond vector is the concatenation of all features and
         # is just one vector that has the length equal to total_num_categories
-        random_features_relative_indices = tf.gather(self.meta_data.categorical.relative_indices_all,
+        random_features_relative_indices = tf.gather(self.metadata["categorical"]["relative_indices_all"],
                                                      indices=random_features_idx)
         random_values_idx_offsetted =  random_values_idx + tf.cast(random_features_relative_indices, dtype=tf.int32)
         # random_values_idx_offsetted = tf.cast(random_values_idx_offsetted, dtype=tf.int32)
@@ -604,8 +607,9 @@ class DataSampler:
                                                     dtype=tf.int32)
             # NOTE: We've precomputed the probabilities in the DataTransformer class for each feature already
             # to speed things up.
-            random_features_categories_probs = tf.gather(tf.ragged.constant(self.meta_data.categorical.categories_probs_all),
-                                                         indices=random_features_idx)
+            random_features_categories_probs = tf.gather(
+                tf.ragged.constant(self.metadata["categorical"]["categories_probs_all"]),
+                indices=random_features_idx)
             random_values_idx = [tf_random_choice(np.arange(len(feature_probs)),
                                                   n_samples=1,
                                                   p=feature_probs)
@@ -634,7 +638,7 @@ class DataSampler:
             # vector `z` to create generator input and then will be concatenated
             # with the generated samples to serve as input for discriminator
             cond_vectors, mask = self.sample_cond_vectors_for_training(random_features_idx=random_features_idx,
-                                                                      random_values_idx=random_values_idx)
+                                                                       random_values_idx=random_values_idx)
             # `cond_vectors_real` will be concatenated with the real_samples
             # and passed to the discriminator
             cond_vectors_real = tf.gather(cond_vectors, indices=shuffled_idx)

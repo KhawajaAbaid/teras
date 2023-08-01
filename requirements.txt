@@ -1,5 +1,4 @@
 tensorflow
-tensorflow-addons
 tensorflow-probability
 numpy
 pandas

@@ -6,7 +6,7 @@ def generator_loss(generated_samples,
                    y_generated,
                    cond_vectors=None,
                    mask=None,
-                   meta_data=None):
+                   metadata=None):
     """
     Loss for the Generator model in the CTGAN architecture.
 
@@ -23,7 +23,7 @@ def generator_loss(generated_samples,
         cond_vectors: Conditional vectors that are used for and with
             generated samples
         mask: Mask created during the conditional vectors generation step
-        meta_data: Namedtuple meta deta of features.
+        metadata: Namedtuple meta deta of features.
             That meta data contains miscellaneous information about features,
             which is calculated during data transformation step.
 
@@ -33,9 +33,9 @@ def generator_loss(generated_samples,
     loss = []
     cross_entropy_loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True,
                                                                     reduction=keras.losses.Reduction.NONE)
-    numerical_features_relative_indices = meta_data.numerical.relative_indices_all
-    features_relative_indices_all = meta_data.relative_indices_all
-    num_categories_all = meta_data.categorical.num_categories_all
+    numerical_features_relative_indices = metadata["numerical"]["relative_indices_all"]
+    features_relative_indices_all = metadata["relative_indices_all"]
+    num_categories_all = metadata["categorical"]["num_categories_all"]
     # the first k features in the data are numerical which we'll ignore as we're only
     # concerned with the categorical features here
     offset = len(numerical_features_relative_indices)

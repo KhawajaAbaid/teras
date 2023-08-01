@@ -4,11 +4,13 @@ from tensorflow.keras import layers, models
 from typing import List, Union, Tuple
 import pandas as pd
 import numpy as np
-
+from warnings import warn
+from teras.utils.types import ActivationType
+from teras import activations
 
 LayerType = Union[str, layers.Layer]
-FEATURE_NAMES_TYPE = Union[List[str], Tuple[str]]
 LAYERS_COLLECTION = Union[List[layers.Layer], layers.Layer, models.Model]
+LAYERS_CONFIGS_COLLECTION = Union[List[dict], dict]
 
 
 def tf_random_choice(inputs,
@@ -69,30 +71,48 @@ def get_normalization_layer(normalization: LayerType) -> layers.Layer:
     return normalization_layer
 
 
-
-def get_activation(activation: LayerType,
-                   units=None):
+def get_activation(activation: ActivationType):
     """
     Retrieves and returns a keras activation function if not already.
 
     Args:
-        activation: default None.
+        activation:
             If type of activation is a keras function, it is returned as is.
             If it is of type, str, that is, it is a name,
-            then relevant activation function is returned
+            then relevant activation function is returned, if it is offered
+            by either ``Teras`` or ``Keras``, otherwise an error is raised.
 
     Returns:
         Keras Activation function
     """
     if isinstance(activation, str):
         activation = activation.lower()
+        # First check if Keras offers that function
         try:
             activation_func = keras.activations.get(activation)
         except ValueError:
-            raise ValueError(f"{activation} function's name is either wrong or this activation is not supported by Keras."
-                             f"Please contact Teras team, and we'll make sure to add this to Teras.")
-    else:
+            # Then check if Teras offers it
+            if activation == "glu":
+                activation_func = activations.glu
+            elif activation == "geglu":
+                activation_func = activations.geglu
+            elif activation == "gumblesoftmax":
+                activation_func = activations.gumbel_softmax
+            elif activation == "sparsemax":
+                activation_func = activations.sparsemax
+            elif activation == "sparsemoid":
+                from teras.utils.node import sparsemoid
+                activation_func = sparsemoid
+            else:
+                # Otherwise return error
+                raise ValueError(f"{activation} function's name is either incorrect "
+                                 f"or this activation is not offered by either Keras and Teras. ")
+    elif callable(activation):
         activation_func = activation
+
+    else:
+        TypeError("Unsupported type for `activation` argument. "
+                  f"Expected type(s): [`str`, `callable`]. Received: {type(activation)}")
     return activation_func
 
 
@@ -127,8 +147,6 @@ def get_categorical_features_cardinalities(dataframe,
     for feature in categorical_features:
         cardinalities.append(dataframe[feature].nunique())
     return cardinalities
-
-
 
 
 def get_features_metadata_for_embedding(dataframe: pd.DataFrame,
@@ -185,7 +203,6 @@ def dataframe_to_tf_dataset(
         target: Union[str, list] = None,
         shuffle: bool = True,
         batch_size: int = 1024,
-        as_dict: bool = False,
 ):
     """
     Builds a tf.data.Dataset from a given pandas dataframe
@@ -199,17 +216,6 @@ def dataframe_to_tf_dataset(
             Whether to shuffle the dataset
         batch_size: `int`, default 1024,
             Batch size
-        as_dict: `bool`, default False,
-            Whether to make a tensorflow dataset in a dictionary format
-            where each record is a mapping of features names against their values.
-
-            SOME GUIDELINES on when to create dataset in dictionary format and when not:
-            1. If your dataset is composed of heterogeneous data formats, i.e. it contains
-                features where some features contain integers/floats AND others contain strings,
-                and you don't want to manually encode the string values into integers/floats,
-                then your dataset must be in dictionary format, which you can get by setting
-                the `as_dict` parameter to `True`.
-
 
     Returns:
          A tf.data.Dataset dataset
@@ -217,29 +223,16 @@ def dataframe_to_tf_dataset(
     df = dataframe.copy()
     if target is not None:
         if isinstance(target, (list, tuple, set)):
-            if as_dict:
-                labels = dict()
-                for feat in target:
-                    labels[feat] = df.pop(feat).values
-            else:
-                labels = []
-                for feat in target:
-                    labels.append(df.pop(feat).values)
-                labels = tf.transpose(tf.constant(labels))
+            labels = []
+            for feat in target:
+                labels.append(df.pop(feat).values)
+            labels = tf.transpose(tf.constant(labels))
         else:
             labels = df.pop(target)
-            if not as_dict:
-                labels = labels.values
-        if as_dict:
-            dataset = tf.data.Dataset.from_tensor_slices((dict(df), labels))
-        else:
-            df = df.values
-            dataset = tf.data.Dataset.from_tensor_slices((df, labels))
+            labels = labels.values
+        dataset = tf.data.Dataset.from_tensor_slices((df.values, labels))
     else:
-        if as_dict:
-            dataset = tf.data.Dataset.from_tensor_slices(dict(df))
-        else:
-            dataset = tf.data.Dataset.from_tensor_slices(df.values)
+        dataset = tf.data.Dataset.from_tensor_slices(df.values)
     if shuffle:
         dataset = dataset.shuffle(buffer_size=len(dataframe))
     dataset = dataset.batch(batch_size)
@@ -258,19 +251,14 @@ def convert_dict_to_array_tensor(dict_tensor):
         Array format data.
     """
     if not isinstance(dict_tensor, dict):
-        print("Given tensor is not in dictionary format. Hence no processing will be applied. \n"
-              f"Expected type: {dict}, Received type: {type(dict_tensor)}")
+        warn("Given tensor is not in dictionary format. Hence no processing will be applied. \n"
+             f"Expected type: {dict}, Received type: {type(dict_tensor)}")
         return
 
     feature_names = dict_tensor.keys()
-    array_tensor = tf.TensorArray(size=len(feature_names),
-                                  dtype=tf.float32)
-    for idx, feature_name in enumerate(feature_names):
-        feature = tf.expand_dims(tf.cast(dict_tensor[feature_name], dtype=tf.float32), 1)
-        array_tensor = array_tensor.write(idx, feature)
-
-    array_tensor = tf.transpose(tf.squeeze(array_tensor.stack()))
-    array_tensor.set_shape((None, len(feature_names)))
+    array_tensor = [tf.expand_dims(dict_tensor[feature_name], axis=1)
+                    for feature_name in feature_names]
+    array_tensor = tf.concat(array_tensor, axis=1)
     return array_tensor
 
 
@@ -286,10 +274,29 @@ def serialize_layers_collection(layers_collection: LAYERS_COLLECTION):
         layers_collection_serialized = [keras.layers.serialize(layer)
                                         for layer in layers_collection]
     else:
-        # We assume it's either of type Layer or Model
+        # We assume it's either of type Layer or Model, or None
         layers_collection_serialized = keras.layers.serialize(layers_collection)
 
     return layers_collection_serialized
+
+
+def deserialize_layers_collection(layers_configs_collection: LAYERS_CONFIGS_COLLECTION):
+    """
+    De-serializes a collection of keras layers/models configs.
+
+    Returns:
+        If layers_configs_collection is a list of layers config dictionaries, it returns a
+        list of de-serialized layers otherwise if it's a config dictionary, it returns the
+         de-serialized layer or model.
+    """
+    if isinstance(layers_configs_collection, list):
+        layers_collection_deserialized = [keras.layers.deserialize(layer)
+                                          for layer in layers_configs_collection]
+    else:
+        # We assume it's either a dict or None
+        layers_collection_deserialized = keras.layers.deserialize(layers_configs_collection)
+
+    return layers_collection_deserialized
 
 
 def inject_missing_values(x: pd.DataFrame,
@@ -328,3 +335,25 @@ def inject_missing_values(x: pd.DataFrame,
         x_with_missing_data = pd.DataFrame(x_with_missing_data,
                                            columns=x.columns if is_dataframe else None)
     return x_with_missing_data
+
+
+def generate_fake_gemstone_data(num_samples: int = 16):
+    """
+    Generate fake gemstone like data of specified num_samples.
+
+    Args:
+        num_samples:
+            Number of samples to generate
+
+    Returns:
+        A pandas DataFrame of fake gemstone like data.
+    """
+    fake_gem_df = pd.DataFrame({
+        "cut": np.random.randint(low=0, high=3, size=(num_samples,)),
+        "color": np.random.randint(low=0, high=5, size=(num_samples,)),
+        "clarity": np.random.randint(low=0, high=4, size=(num_samples,)),
+        "depth": np.random.randint(low=0, high=100, size=(num_samples,)),
+        "table": np.random.randint(low=0, high=100, size=(num_samples,))
+    })
+    fake_gem_df = fake_gem_df.astype(np.float32)
+    return fake_gem_df

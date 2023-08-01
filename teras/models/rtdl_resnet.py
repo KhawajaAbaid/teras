@@ -1,14 +1,14 @@
 from tensorflow import keras
-from typing import Union
-from teras.layers import (RTDLResNetBlock,
-                          RTDLResNetClassificationHead,
-                          RTDLResNetRegressionHead)
+from teras.layers.rtdl_resnet.rtdl_resnet_block import RTDLResNetBlock
+from teras.layerflow.models.rtdl_resnet import RTDLResNet as _RTDLResNetLF
+from teras.utils.types import (ActivationType,
+                               NormalizationType,
+                               UnitsValuesType)
+from teras.layers.common.head import ClassificationHead, RegressionHead
 
 
-LayerType = Union[str, keras.layers.Layer]
-
-
-class RTDLResNet(keras.Model):
+@keras.saving.register_keras_serializable(package="teras.models")
+class RTDLResNet(_RTDLResNetLF):
     """
     The ResNet model based on the architecture proposed by Yury Gorishniy et al.
     in the paper Revisiting Deep Learning Models for Tabular Data.
@@ -17,82 +17,110 @@ class RTDLResNet(keras.Model):
         https://arxiv.org/abs/2106.11959
 
     Args:
-        num_blocks: `int`, default 4,
+        input_dim: ``int``,
+            The dimensionality of the input dataset,
+            or the number of features in the input dataset.
+
+        num_blocks: ``int``, default 4,
             Number of ResNet blocks to use.
-        block_units: `int`, default 64,
+
+        block_hidden_dim: ``int``, default 64,
             Dimensionality of the hidden layer in the ResNet block.
-        block_dropout_hidden: `float`, default 0.,
-            Dropout rate to use for the dropout layer that is applied
-            after the hidden dense layer.
-        block_dropout_out: `float`, default 0.,
-            Dropout rate to use for the dropout layer that is applied
-            after the output dense layer.
-        block_activation_hidden: default "relu",
-            Activation function to use in the hidden layer.
-        block_activation_out: default "relu",
-            Activation function to use in the output layer.
-        normalization: default "BatchNormalization",
-            Normalization layer to normalize the inputs to the RestNet block.
-        use_skip_connection: `bool`, default True,
-            Whether to use the skip connection in the ResNet block.
+
+        block_dropout_hidden: ``float``, default 0.,
+            Dropout rate to use for the ``Dropout`` layer that is applied
+            after the hidden dense layer in the ``RTDLResNetBlock`` layer.
+
+        block_dropout_out: ``float``, default 0.,
+            Dropout rate to use for the ``Dropout`` layer that is applied
+            after the output dense layer in the ``RTDLResNetBlock`` layer.
+
+        block_activation_hidden: ``callable`` or ``str`` or ``keras.layers.Layer``, default "relu",
+            Activation function to use in the hidden layer in the ``RTDLResNetBlock`` layer.
+
+        block_activation_out: ``callable`` or ``str`` or ``keras.layers.Layer``, default "relu",
+            Activation function to use in the output layer in the ``RTDLResNetBlock`` layer.
+
+        block_normalization: ``str`` or ``keras.layers.Layer``, default "batch",
+            Normalization layer to normalize the inputs to the ``RTDLResNetBlock`` layer.
+
+        use_skip_connection: ``bool``, default True,
+            Whether to use the skip connection in the ``RTDLResNetBlock`` layer.
     """
     def __init__(self,
+                 input_dim: int,
                  num_blocks: int = 4,
-                 units: int = 64,
-                 dropout_hidden: float = 0.,
-                 dropout_out: float = 0.,
-                 activation_hidden: LayerType = "relu",
-                 activation_out: LayerType = "relu",
-                 normalization: LayerType = "BatchNormalization",
+                 block_hidden_dim: int = 64,
+                 block_dropout_hidden: float = 0.,
+                 block_dropout_out: float = 0.,
+                 block_activation_hidden: ActivationType = "relu",
+                 block_activation_out: ActivationType = "relu",
+                 block_normalization: NormalizationType = "BatchNormalization",
                  use_skip_connection: bool = True,
                  **kwargs):
-        super().__init__(**kwargs)
-        self.num_blocks = num_blocks
-        self.units = units
-        self.dropout_hidden = dropout_hidden
-        self.dropout_out = dropout_out
-        self.activation_hidden = activation_hidden
-        self.activation_out = activation_out
-        self.normalization = normalization
-        self.use_skip_connection = use_skip_connection
-
-        self.resnet_blocks = keras.models.Sequential(
+        resnet_blocks = keras.models.Sequential(
             [
                 RTDLResNetBlock(
-                    units=self.units,
-                    dropout_hidden=self.dropout_hidden,
-                    dropout_out=self.dropout_out,
-                    activation_hidden=self.activation_hidden,
-                    activation_out=self.activation_out,
-                    normalization=self.normalization,
-                    use_skip_connection=self.use_skip_connection
-
+                    units=block_hidden_dim,
+                    dropout_hidden=block_dropout_hidden,
+                    dropout_out=block_dropout_out,
+                    activation_hidden=block_activation_hidden,
+                    activation_out=block_activation_out,
+                    normalization=block_normalization,
+                    use_skip_connection=use_skip_connection
                 )
-                for _ in range(self.num_blocks)
-            ], name="resnet_blocks"
+                for _ in range(num_blocks)
+            ],
+            name="resnet_blocks"
         )
-
-    def call(self, inputs):
-        outputs = self.resnet_blocks(inputs)
-        if self.head is not None:
-            outputs = self.head(outputs)
-        return outputs
+        super().__init__(input_dim=input_dim,
+                         resnet_blocks=resnet_blocks,
+                         **kwargs)
+        self.input_dim = input_dim
+        self.num_blocks = num_blocks
+        self.block_hidden_dim = block_hidden_dim
+        self.block_dropout_hidden = block_dropout_hidden
+        self.block_dropout_out = block_dropout_out
+        self.block_activation_hidden = block_activation_hidden
+        self.block_activation_out = block_activation_out
+        self.block_normalization = block_normalization
+        self.use_skip_connection = use_skip_connection
 
     def get_config(self):
-        config = super().get_config()
-        new_config = {'num_blocks': self.num_blocks,
-                      'units': self.units,
-                      'dropout_hidden': self.dropout_hidden,
-                      'dropout_out': self.dropout_out,
-                      'activation_hidden': self.activation_hidden,
-                      'activation_out': self.activation_out,
-                      'normalization': self.normalization,
-                      'use_skip_connection': self.use_skip_connection,
-                      }
-        config.update(new_config)
+        activation_hidden_serialized = self.block_activation_hidden
+        if not isinstance(self.block_activation_hidden, str):
+            activation_hidden_serialized = keras.layers.serialize(self.block_activation_hidden)
+
+        activation_out_serialized = self.block_activation_out
+        if not isinstance(self.block_activation_out, str):
+            activation_out_serialized = keras.layers.serialize(self.block_activation_out)
+
+        normalization_serialized = self.block_normalization
+        if not isinstance(self.block_normalization, str):
+            normalization_serialized = keras.layers.serialize(self.block_normalization)
+
+        config = {'name': self.name,
+                  'trainable': self.trainable,
+                  'input_dim': self.input_dim,
+                  'num_blocks': self.num_blocks,
+                  'block_hidden_dim': self.block_hidden_dim,
+                  'block_dropout_hidden': self.block_dropout_hidden,
+                  'block_dropout_out': self.block_dropout_out,
+                  'block_activation_hidden': activation_hidden_serialized,
+                  'block_activation_out': activation_out_serialized,
+                  'block_normalization': normalization_serialized,
+                  'use_skip_connection': self.use_skip_connection,
+                  }
         return config
 
+    @classmethod
+    def from_config(cls, config):
+        input_dim = config.pop("input_dim")
+        return cls(input_dim=input_dim,
+                   **config)
 
+
+@keras.saving.register_keras_serializable(package="teras.models")
 class RTDLResNetClassifier(RTDLResNet):
     """
     The ResNet Classifier model based on the ResNet architecture
@@ -103,72 +131,85 @@ class RTDLResNetClassifier(RTDLResNet):
         https://arxiv.org/abs/2106.11959
 
     Args:
-        num_classes: `int`, default 2,
+        num_classes: ``int``, default 2,
             Number of classes to predict
-        activation_out:
-            Activation function to use in the output layer.
-            By default, "sigmoid" is used for binary while "softmax" is used for
-            multiclass classification.
-        num_blocks: `int`, default 4,
+
+        head_units_values: ``List[int]`` or ``Tuple[int]``, default [64, 32],
+            Hidden units to use in the Classification head.
+            For each value in the list/tuple,
+            a hidden layer of that dimensionality is added to the head.
+
+        input_dim: ``int``,
+            The dimensionality of the input dataset,
+            or the number of features in the input dataset.
+
+        num_blocks: ``int``, default 4,
             Number of ResNet blocks to use.
-        units: `int`, default 64,
+
+        block_hidden_dim: ``int``, default 64,
             Dimensionality of the hidden layer in the ResNet block.
-        dropout_hidden: `float`, default 0.,
-            Dropout rate to use for the dropout layer that is applied
-            after the hidden dense layer of each ResNet block.
-        dropout_out: `float`, default 0.,
-            Dropout rate to use for the dropout layer that is applied
-            after the output dense layer of each ResNet block.
-        activation_hidden: default "relu",
-            Activation function to use in the hidden layer of each ResNet block.
-        activation_out_block: default "relu",
-            Activation function to use in the output layer of each ResNet block.
-        normalization: default "BatchNormalization",
-            Normalization layer to normalize the inputs to the RestNet block.
-        use_skip_connection: `bool`, default True,
-            Whether to use the skip connection in each ResNet block.
+
+        block_dropout_hidden: ``float``, default 0.,
+            Dropout rate to use for the ``Dropout`` layer that is applied
+            after the hidden dense layer in the ``RTDLResNetBlock`` layer.
+
+        block_dropout_out: ``float``, default 0.,
+            Dropout rate to use for the ``Dropout`` layer that is applied
+            after the output dense layer in the ``RTDLResNetBlock`` layer.
+
+        block_activation_hidden: ``callable`` or ``str`` or ``keras.layers.Layer``, default "relu",
+            Activation function to use in the hidden layer in the ``RTDLResNetBlock`` layer.
+
+        block_activation_out: ``callable`` or ``str`` or ``keras.layers.Layer``, default "relu",
+            Activation function to use in the output layer in the ``RTDLResNetBlock`` layer.
+
+        block_normalization: ``str`` or ``keras.layers.Layer``, default "batch",
+            Normalization layer to normalize the inputs to the ``RTDLResNetBlock`` layer.
+
+        use_skip_connection: ``bool``, default True,
+            Whether to use the skip connection in the ``RTDLResNetBlock`` layer.
     """
     def __init__(self,
                  num_classes: int = 2,
-                 activation_out=None,
+                 head_units_values: UnitsValuesType = None,
+                 input_dim: int = None,
                  num_blocks: int = 4,
-                 units: int = 64,
-                 dropout_hidden: float = 0.,
-                 dropout_out: float = 0.,
-                 activation_hidden: LayerType = "relu",
-                 activation_out_block: LayerType = "relu",
-                 normalization: LayerType = "BatchNormalization",
+                 block_hidden_dim: int = 64,
+                 block_dropout_hidden: float = 0.,
+                 block_dropout_out: float = 0.,
+                 block_activation_hidden: ActivationType = "relu",
+                 block_activation_out: ActivationType = "relu",
+                 block_normalization: NormalizationType = "batch",
                  use_skip_connection: bool = True,
                  **kwargs):
-        super().__init__(num_blocks=num_blocks,
-                         units=units,
-                         dropout_hidden=dropout_hidden,
-                         dropout_out=dropout_out,
-                         activation_hidden=activation_hidden,
-                         activation_out=activation_out_block,
-                         normalization=normalization,
+        head = ClassificationHead(num_classes=num_classes,
+                                  units_values=head_units_values,
+                                  name="rtdl_resnet_classification_head")
+        super().__init__(input_dim=input_dim,
+                         num_blocks=num_blocks,
+                         block_hidden_dim=block_hidden_dim,
+                         block_dropout_hidden=block_dropout_hidden,
+                         block_dropout_out=block_dropout_out,
+                         block_activation_hidden=block_activation_hidden,
+                         block_activation_out=block_activation_out,
+                         block_normalization=block_normalization,
                          use_skip_connection=use_skip_connection,
+                         head=head,
                          **kwargs)
-
-        self.num_classes = 1 if num_classes <= 2 else num_classes
-        self.activation_out = activation_out
-        if self.activation_out is None:
-            self.activation_out = "sigmoid" if self.num_classes == 1 else "softmax"
-
-        self.head = RTDLResNetClassificationHead(num_classes=self.num_classes,
-                                                 activation_out=self.activation_out,
-                                                 name="rtdl_resnet_classification_head")
+        self.num_classes = num_classes
+        self.head_units_values = head_units_values
 
     def get_config(self):
         config = super().get_config()
-        new_config = {'num_classes': self.num_classes,
-                      'activation_out': self.activation_out
-                      }
-        config.update(new_config)
+        config.update({'num_classes': self.num_classes,
+                       'head_units_values': self.head_units_values
+                       }
+                      )
         return config
 
 
-class RTDLResNetRegressor(keras.Model):
+@keras.saving.register_keras_serializable(package="teras.models")
+class RTDLResNetRegressor(RTDLResNet):
     """
     The ResNet Regressor model based on the ResNet architecture
     proposed by Yury Gorishniy et al.
@@ -178,54 +219,79 @@ class RTDLResNetRegressor(keras.Model):
         https://arxiv.org/abs/2106.11959
 
     Args:
-        num_outputs: `int`, default 1,
+        num_outputs: ``int``, default 1,
             Number of regression outputs
-        num_blocks: `int`, default 4,
+
+        head_units_values: ``List[int]`` or ``Tuple[int]``, default None,
+            Hidden units to use in the Classification head.
+            For each value in the list/tuple,
+            a hidden layer of that dimensionality is added to the head.
+            By default, no hidden layer is used.
+
+        input_dim: ``int``,
+            The dimensionality of the input dataset,
+            or the number of features in the input dataset.
+
+        num_blocks: ``int``, default 4,
             Number of ResNet blocks to use.
-        units: `int`, default 64,
+
+        block_hidden_dim: ``int``, default 64,
             Dimensionality of the hidden layer in the ResNet block.
-        dropout_hidden: `float`, default 0.,
-            Dropout rate to use for the dropout layer that is applied
-            after the hidden dense layer of each ResNet block.
-        dropout_out: `float`, default 0.,
-            Dropout rate to use for the dropout layer that is applied
-            after the output dense layer of each ResNet block.
-        activation_hidden: default "relu",
-            Activation function to use in the hidden layer of each ResNet block.
-        activation_out_block: default "relu",
-            Activation function to use in the output layer of each ResNet block.
-        normalization: default "BatchNormalization",
-            Normalization layer to normalize the inputs to the RestNet block.
-        use_skip_connection: `bool`, default True,
-            Whether to use the skip connection in each ResNet block.
+
+        block_dropout_hidden: ``float``, default 0.,
+            Dropout rate to use for the ``Dropout`` layer that is applied
+            after the hidden dense layer in the ``RTDLResNetBlock`` layer.
+
+        block_dropout_out: ``float``, default 0.,
+            Dropout rate to use for the ``Dropout`` layer that is applied
+            after the output dense layer in the ``RTDLResNetBlock`` layer.
+
+        block_activation_hidden: ``callable`` or ``str`` or ``keras.layers.Layer``, default "relu",
+            Activation function to use in the hidden layer in the ``RTDLResNetBlock`` layer.
+
+        block_activation_out: ``callable`` or ``str`` or ``keras.layers.Layer``, default "relu",
+            Activation function to use in the output layer in the ``RTDLResNetBlock`` layer.
+
+        block_normalization: ``str`` or ``keras.layers.Layer``, default "batch",
+            Normalization layer to normalize the inputs to the ``RTDLResNetBlock`` layer.
+
+        use_skip_connection: ``bool``, default True,
+            Whether to use the skip connection in the ``RTDLResNetBlock`` layer.
     """
     def __init__(self,
                  num_outputs: int = 1,
+                 head_units_values: UnitsValuesType = None,
+                 input_dim: int = None,
                  num_blocks: int = 4,
-                 units: int = 64,
-                 dropout_hidden: float = 0.,
-                 dropout_out: float = 0.,
-                 activation_hidden: LayerType = "relu",
-                 activation_out_block: LayerType = "relu",
-                 normalization: LayerType = "BatchNormalization",
+                 block_hidden_dim: int = 64,
+                 block_dropout_hidden: float = 0.,
+                 block_dropout_out: float = 0.,
+                 block_activation_hidden: ActivationType = "relu",
+                 block_activation_out: ActivationType = "relu",
+                 block_normalization: NormalizationType = "batch",
                  use_skip_connection: bool = True,
                  **kwargs):
-        super().__init__(num_blocks=num_blocks,
-                         units=units,
-                         dropout_hidden=dropout_hidden,
-                         dropout_out=dropout_out,
-                         activation_hidden=activation_hidden,
-                         activation_out=activation_out_block,
-                         normalization=normalization,
+        head = RegressionHead(num_outputs=num_outputs,
+                              units_values=head_units_values,
+                              name="rtdl_resnet_regression_head")
+        super().__init__(input_dim=input_dim,
+                         num_blocks=num_blocks,
+                         block_hidden_dim=block_hidden_dim,
+                         block_dropout_hidden=block_dropout_hidden,
+                         block_dropout_out=block_dropout_out,
+                         block_activation_hidden=block_activation_hidden,
+                         block_activation_out=block_activation_out,
+                         block_normalization=block_normalization,
                          use_skip_connection=use_skip_connection,
+                         head=head,
                          **kwargs)
         self.num_outputs = num_outputs
-        self.head = RTDLResNetRegressionHead(num_outputs=self.num,
-                                             normalization=self.normalization_head)
+        self.head_units_values = head_units_values
 
     def get_config(self):
         config = super().get_config()
-        new_config = {'num_outputs': self.num_outputs,
-                      }
-        config.update(new_config)
+        config.update({'num_outputs': self.num_outputs,
+                       'head_units_values': self.head_units_values,
+                       }
+                      )
         return config

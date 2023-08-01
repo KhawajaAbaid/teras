@@ -1,10 +1,38 @@
 import tensorflow as tf
 import numpy as np
 import pandas as pd
-from teras.preprocessing.gain import DataSampler as GainDataSampler, DataTransformer
+from teras.preprocessing.gain import (GAINDataTransformer as _GAINDataTransformer,
+                                      GAINDataSampler as _GAINDataSampler)
+from teras.utils.types import FeaturesNamesType
 
 
-class DataSampler(GainDataSampler):
+class PCGAINDataTransformer(_GAINDataTransformer):
+    """
+    PCGAINDataTransformer class that performs the required transformations
+    on the raw dataset required by the PCGAIN architecture.
+
+    It is simply a wrapper around the GAINDataTransformer class, as everything
+    is exactly the same.
+
+    Args:
+        categorical_features: ``List[str]``,
+            List of categorical features names in the dataset.
+            Categorical features are encoded by ordinal encoder method.
+            And then MinMax normalization is applied.
+
+        numerical_features: ``List[str]``,
+            List of numerical features names in the dataset.
+            Numerical features are encoded using MinMax normalization.
+    """
+    def __init__(self,
+                 categorical_features: FeaturesNamesType = None,
+                 numerical_features: FeaturesNamesType = None
+                 ):
+        super().__init__(categorical_features=categorical_features,
+                         numerical_features=numerical_features)
+
+
+class PCGAINDataSampler(_GAINDataSampler):
     """
     DataSampler class for PC-GAIN.
     It extends GAIN's DataSampler class because PC-GAIN
@@ -18,11 +46,14 @@ class DataSampler(GainDataSampler):
         https://arxiv.org/abs/2011.07770
 
     Args:
-        batch_size: Batch size to use for dataset.
-            Defaults to 512.
-        shuffle: Whether to shuffle the dataset.
-            Defaults to True.
-        random_seed: Random seed to make shuffling
+        batch_size: ``int``, default 512,
+            Batch size to use for dataset.
+
+        shuffle: ``bool``, default True,
+            Whether to shuffle the dataset.
+
+        random_seed: ``int``, default None,
+            Random seed to make shuffling
             and any other random operations consistent.
     """
     def __init__(self,
@@ -32,26 +63,28 @@ class DataSampler(GainDataSampler):
         super().__init__(batch_size=batch_size,
                          shuffle=shuffle,
                          random_seed=random_seed)
-        self.batch_size = batch_size
-        self.shuffle = shuffle
-        self.random_seed = random_seed
 
     def get_pretraining_dataset(self,
                                 x_transformed,
-                                pretraining_size=0.2,
-                                batch_size=None):
+                                pretraining_size: float = 0.2,
+                                batch_size: int = None):
         """
         Args:
-            x_transformed: Transformed dataset.
-            pretraining_size: Fraction of dataset that will be used for pretraining.
+            x_transformed:
+                Transformed dataset.
+
+            pretraining_size: ``float``, default 0.2,
+                Fraction of dataset that will be used for pretraining.
                 As a general rule of thumb (based on official implementation),
-                    - for datasets with `num_samples >= 20000`, use `pretraining_size=0.2`
-                    - for datasets with `num_samples < 20000`, use `pretraining_size = 0.4`
+                    - for datasets with ``num_samples >= 20000``, use ``pretraining_size=0.2``
+                    - for datasets with ``num_samples < 20000``, use ``pretraining_size = 0.4``
                 Please note that, this is NOT a hard and fast rule. You can specify
                 whatever fraction size you deem reasonable for your use case.
-            batch_size: In case you want to use a different batch size for your
-                pretraining than for actual training. If None, the batch_size
-                specified while DataSample instantiation will be used.
+
+            batch_size: ``int``,
+                In case you want to use a different batch size for your
+                pretraining than for actual training. If None, the ``batch_size``
+                specified while instantiating ``PCGAINDataSampler`` will be used.
         """
         if batch_size is None:
             batch_size = self.batch_size

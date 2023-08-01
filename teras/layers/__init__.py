@@ -10,109 +10,95 @@
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
-# limitations under the License.5
+# limitations under the License.
 
 
-# Activation layers
-from .activations import (GLU,
-                          GEGLU,
-                          GumbelSoftmax)
-
-
-# Embedding layers
-from .embedding import CategoricalFeatureEmbedding
-
-
-# NODE layers
-from .node import (ObliviousDecisionTree,
-                   ClassificationHead as NODEClassificationHead,
-                   RegressionHead as NODERegressionHead)
-
-
-# TabNet layers
-from .tabnet import (AttentiveTransformer as TabNetAttentiveTransformer,
-                     FeatureTransformerBlock as TabNetFeatureTransformerBlock,
-                     FeatureTransformer as TabNetFeatureTransformer,
-                     Encoder as TabNetEncoder,
-                     Decoder as TabNetDecoder,
-                     ClassificationHead as TabNetClassificationHead,
-                     RegressionHead as TabNetRegressionHead)
-
-
-# TabTransformer layers
-from .tabtransformer import (ColumnEmbedding as TabTColumnEmbedding,
-                             ClassificationHead as TabTClassificationHead,
-                             RegressionHead as TabTRegressionHead)
-
-
-# DNFNet layers
-from .dnfnet import (DNNF,
-                     FeatureSelection as DNFNetFeatureSelection,
-                     Localization as DNFNetLocalization,
-                     ClassificationHead as DNFNetClassificationHead,
-                     RegressionHead as DNFNetRegressionHead)
-
-
-# SAINT layers
-from .saint import (NumericalFeatureEmbedding as SAINTNumericalFeatureEmbedding,
-                    MultiHeadInterSampleAttention as SAINTMultiHeadInterSampleAttention,
-                    Encoder as SAINTEncoder,
-                    ClassificationHead as SAINTClassificationHead,
-                    RegressionHead as SAINTRegressionHead)
-
-
-# RTDL ResNet layers
-from teras.layers.rtdl_resnet import (ResNetBlock as RTDLResNetBlock,
-                                      ClassificationHead as RTDLResNetClassificationHead,
-                                      RegressionHead as RTDLResNetRegressionHead)
-
-
-# RTDL FTTransformer layers
-from teras.layers.ft_transformer import (NumericalFeatureEmbedding as FTNumericalFeatureEmbedding,
-                                         CLSToken as FTCLSToken,
-                                         ClassificationHead as FTClassificationHead,
-                                         RegressionHead as FTRegressionHead)
-
-
-# VIME layers
-from .vime import (MaskEstimator as VimeMaskEstimator,
-                   FeatureEstimator as VimeFeatureEstimator,
-                   Encoder as VimeEncoder,
-                   MaskGenerationAndCorruption as VimeMaskGenerationAndCorruption,
-                   Predictor as VimePredictor)
-
-
-# On Embeddings for Numerical Features (paper) layers
-from .oenf import (PeriodicEmbedding)
-
-
-# CTGAN layers
-from .ctgan import (GeneratorBlock as CTGANGeneratorBlock,
-                    DiscriminatorBlock as CTGANDiscriminatorBlock)
-
-
-# Regularization layers
-from teras.layers.regularization import (MixUp,
-                                         CutMix)
-
-# Encoding layers
-from teras.layers.encoding import LabelEncoding
-
-
-# Common Transformer layers
+# Common layers
+# -> Common Head layers
+from teras.layers.common.head import (ClassificationHead,
+                                      RegressionHead)
+# -> Common Transformer layers
 from teras.layers.common.transformer import (FeedForward,
                                              Transformer,
                                              Encoder)
 
+
+# Embedding layers
+from teras.layers.categorical_feature_embedding import CategoricalFeatureEmbedding
+
+
+# NODE layers
+from teras.layers.node.odst import ObliviousDecisionTree
+from teras.layers.node.node_feature_selector import NodeFeatureSelector
+
+
+# TabNet layers
+from teras.layers.tabnet.tabnet_attentive_transformer import TabNetAttentiveTransformer
+from teras.layers.tabnet.tabnet_feature_transformer_block import TabNetFeatureTransformerBlock
+from teras.layers.tabnet.tabnet_feature_transformer import TabNetFeatureTransformer
+from teras.layers.tabnet.tabnet_encoder import TabNetEncoder
+from teras.layers.tabnet.tabnet_decoder import TabNetDecoder
+
+
+# TabTransformer layers
+from teras.layers.tabtransformer.tabtransformer_column_embedding import TabTransformerColumnEmbedding
+
+
+# DNFNet layers
+from teras.layers.dnfnet.dnfnet_feature_selection import DNFNetFeatureSelection
+from teras.layers.dnfnet.dnfnet_localization import DNFNetLocalization
+from teras.layers.dnfnet.dnnf import DNNF
+
+
+# SAINT layers
+from teras.layers.saint.saint_numerical_feature_embedding import SAINTNumericalFeatureEmbedding
+from teras.layers.saint.multi_head_inter_sample_attention import MultiHeadInterSampleAttention
+from teras.layers.saint.saint_transformer import SAINTTransformer
+from teras.layers.saint.saint_encoder import SAINTEncoder
+from teras.layers.saint.saint_projection_head import SAINTProjectionHead
+from teras.layers.saint.saint_reconstruction_head import (SAINTReconstructionHeadBlock,
+                                                          SAINTReconstructionHead)
+
+
+# RTDL ResNet layers
+from teras.layers.rtdl_resnet.rtdl_resnet_block import RTDLResNetBlock
+
+
+# RTDL FTTransformer layers
+from teras.layers.ft_transformer.ft_numerical_feature_embedding import FTNumericalFeatureEmbedding
+from teras.layers.ft_transformer.ft_cls_token import FTCLSToken
+
+
+# VIME layers
+from teras.layers.vime.vime_mask_estimator import VimeMaskEstimator
+from teras.layers.vime.vime_feature_estimator import VimeFeatureEstimator
+from teras.layers.vime.vime_encoder import VimeEncoder
+from teras.layers.vime.vime_predictor import VimePredictor
+from teras.layers.vime.vime_mask_generation_and_corruption import VimeMaskGenerationAndCorruption
+
+
+# On Embeddings for Numerical Features (paper) layers
+from teras.layers.preprocessing.periodic_embedding import (PeriodicEmbedding)
+
+
+# Regularization layers
+from teras.layers.regularization.mixup import MixUp
+from teras.layers.regularization.cutmix import CutMix
+
+
+# Encoding layers
+from teras.layers.preprocessing.label_encoding import LabelEncoding
+
+
 # GAIN layers
-from teras.layers.gain import (GeneratorBlock as GAINGeneratorBlock,
-                               DiscriminatorBlock as GAINDiscriminatorBlock)
+from teras.layers.gain.gain_generator_block import GAINGeneratorBlock
+from teras.layers.gain.gain_discriminator_block import GAINDiscriminatorBlock
 
-
-# PCGAIN layers
-from teras.layers.pcgain import (GeneratorBlock as PCGAINGeneratorBlock,
-                                 DiscriminatorBlock as PCGAINDiscriminatorBlock)
 
 # CTGAN layers
-from teras.layers.ctgan import (GeneratorBlock as CTGANGeneratorBlock,
-                                DiscriminatorBlock as CTGANDiscriminatorBlock)
+from teras.layers.ctgan.ctgan_generator_block import CTGANGeneratorBlock
+from teras.layers.ctgan.ctgan_discriminator_block import CTGANDiscriminatorBlock
+
+
+# Normalization layers
+from teras.layers.numerical_feature_normalization import NumericalFeatureNormalization

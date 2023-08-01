@@ -13,82 +13,17 @@
 # limitations under the License.
 
 
-# Atomic layers not specific to a model architecture
-from teras.layers.regularization import (MixUp,
-                                         CutMix)
-from teras.layers.embedding import (CategoricalFeatureEmbedding)
-
-# --> Common transformer layers
+# Common layers
+# -> Common Transformer layers
 from teras.layerflow.layers.common.transformer import (FeedForward,
                                                        Transformer,
                                                        Encoder)
 
 
-
-# TabTransformer layers
-from teras.layerflow.layers.tabtransformer import (RegressionHead as TabTRegressionHead,
-                                                   ClassificationHead as TabTClassificationHead)
-from teras.layers.tabtransformer import (ColumnEmbedding as TabTColumnEmbedding)
-
-
-# TabNet layers
-from teras.layerflow.layers.tabnet import (FeatureTransformer as TabNetFeatureTransformer,
-                                           Encoder as TabNetEncoder,
-                                           Decoder as TabNetDecoder,
-                                           ClassificationHead as TabNetClassificationHead,
-                                           RegressionHead as TabNetRegressionHead)
-from teras.layers.tabnet import (FeatureTransformerBlock as TabNetFeatureTransformerBlock,
-                                 AttentiveTransformer as TabNetAttentiveTransformer)
-
-
-# SAINT layeres
-from teras.layerflow.layers.saint import (SAINTTransformer,
-                                          Encoder as SAINTEncoder,
-                                          ReconstructionHead as SAINTReconstructionHead,
-                                          ClassificationHead as SAINTClassificationHead,
-                                          RegressionHead as SAINTRegressionHead)
-from teras.layers.saint import (NumericalFeatureEmbedding as SAINTNumericalFeatureEmbedding,
-                                MultiHeadInterSampleAttention,
-                                ReconstructionBlock as SAINTReconstructionBlock)
-
-
-# FT-Transformer layers
-from teras.layerflow.layers.ft_transformer import (NumericalFeatureEmbedding as FTNumericalFeatureEmbedding,
-                                                   CLSToken as FTCLSToken,
-                                                   ClassificationHead as FTClassificationHead,
-                                                   RegressionHead as FTRegressionHead)
-
-
-# DNFNet layers
-from teras.layers.dnfnet import (FeatureSelection as DNFNetFeatureSelection,
-                                 Localization as DNFNetLocalization)
-from teras.layerflow.layers.dnfnet import (DNNF,
-                                           ClassificationHead as DNFNetClassificationHead,
-                                           RegressionHead as DNFNetRegressionHead)
-
-# NODE layers
-from teras.layers.node import (ObliviousDecisionTree)
-from teras.layerflow.layers.node import (ClassificationHead as NODEClassificationHead,
-                                         RegressionHead as NODERegressionHead)
-
-
-# RTDLResNet layers
-from teras.layerflow.layers.rtdl_resnet import (ClassificationHead as RTDLResNetClassificationHead,
-                                                RegressionHead as RTDLResNetRegressionHead)
-from teras.layers.rtdl_resnet import ResNetBlock as RTDLResNetBlock
-
-
-# GAIN layers
-from teras.layers.gain import (GeneratorBlock as GAINGeneratorBlock,
-                               DiscriminatorBlock as GAINDiscriminatorBlock)
-
-
-# PCGAIN layers
-# PCGAIN uses same blocks as GAIN
-from teras.layers.gain import (GeneratorBlock as PCGAINGeneratorBlock,
-                               DiscriminatorBlock as PCGAINGeneratorBlock)
-
-
-# CTGAN layers
-from teras.layers.ctgan import (GeneratorBlock as CTGANGeneratorBlock,
-                                DiscriminatorBlock as CTGANDiscriminatorBlock)
+# SAINT layers
+from teras.layerflow.layers.saint.saint_transformer import SAINTTransformer
+from teras.layerflow.layers.saint.saint_encoder import SAINTEncoder
+from teras.layerflow.layers.saint.saint_reconstruction_head import (SAINTReconstructionHeadBlock,
+                                                                    SAINTReconstructionHead
+                                                                    )
+from teras.layerflow.layers.saint.saint_projection_head import SAINTProjectionHead

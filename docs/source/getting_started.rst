@@ -83,24 +83,9 @@ sub-layers, models are not offered at the top level of the given architecture by
 so if you need to tweak those parameters missing from the main model, you can use ``LayerFlow API`` and
 create an instance of that layer/model with desired parameters and pass it to the model.
 
-Now, some of you mega smart minded ones, might be thinking, what if there was a way to pass instances of certain layers
-but also just specify some parameter value for other layers and leave it to Teras to instantiate those layers, well I'm
-just like you fr and you can do just that with the ``LayerFlow API``.
-Even though, the parameters specific to layers aren't included in the documentation of the ``LayerFlow`` version of
-those layers/models, but you can specify any parameter that
-is offered by the ``Parametric API`` in the ``LayerFlow API`` version of the model.
 
-For instance, say we just want to pass an instance of our custom ``CategoricalEmbedding`` layer but instead of specify
-an instance of the ``Encoder`` layer, we just want to modify the dropout rate for the ``FeedForward`` layer within it.
-Well since we know that the ``TabTransformerClassifier``'s Parametric version exposes a ``feed_forward_dropout``
-parameter, we can pass that keyword argument in the LayerFlow version of the ``TabTransformerClassifier``.
-
-Here's how you'd do it in the code::
-
-   from teras.layerflow.models import TabTransformerClassifier
-   custom_categorical_embedding = CustomCategoricalFeatureEmbedding()
-   model = TabTransformerClassifier(categorical_feature_emebdding=custom_categorical_embedding,
-                                feed_forward_dropout=0.5)
+(Developer Note: Apologies for not giving you a detailed intro with examples as I'm super busy with other stuff,
+but I'll update it as soon as I can.)
 
 Wrapping it up!
 -------------------

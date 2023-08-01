@@ -13,6 +13,27 @@
 # limitations under the License.
 
 
-from .oenf import PiecewiseLinearEncoding
+from teras.preprocessing.oenf import PiecewiseLinearEncoding
 
-from .ctgan import ModeSpecificNormalization
+# CTGAN preprocessing classes
+from teras.preprocessing.ctgan import ModeSpecificNormalization
+from teras.preprocessing.ctgan import (CTGANDataTransformer,
+                                       CTGANDataSampler)
+
+# TVAE preprocessing classes
+from teras.preprocessing.tvae import (TVAEDataTransformer,
+                                      TVAEDataSampler)
+
+
+# GAIN preprocessing classes
+from teras.preprocessing.gain import (GAINDataTransformer,
+                                      GAINDataSampler)
+
+
+# PCGAIN preprocessing classes
+from teras.preprocessing.pcgain import (PCGAINDataTransformer,
+                                        PCGAINDataSampler)
+
+# Vime preprocessing classes
+from teras.preprocessing.vime import (VimeDataTransformer,
+                                      VimeDataSampler)

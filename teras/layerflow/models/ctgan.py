@@ -1,179 +1,11 @@
+import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras import layers, models
-from teras.models.ctgan import (Generator as _BaseGenerator,
-                                Discriminator as _BaseDiscriminator,
-                                CTGAN as _BaseCTGAN)
-from typing import List, Union, Tuple
-
-LIST_OR_TUPLE = Union[List[int], Tuple[int]]
-HIDDEN_BLOCK_TYPE = Union[keras.layers.Layer, keras.models.Model]
+from teras.losses.ctgan import generator_loss, discriminator_loss
+from tqdm import tqdm
 
 
-class Generator(_BaseGenerator):
-    """
-    Generator for CTGAN architecture with LayerFlow design.
-    CTGAN architecture is proposed by
-    Lei Xu et al. in the paper,
-    "Modeling Tabular data using Conditional GAN".
-
-    Reference(s):
-        https://arxiv.org/abs/1907.00503
-
-    Args:
-        hidden_block: `layers.Layer`, `List[layers.Layer]` or `models.Model`,
-            An instance of `CTGANGeneratorBlock` layer, list of layers or Keras model
-            that can work as the hidden block for the Classifier model.
-            If None, a hidden block made up of `CTGANGeneratorBlock` layers with default
-            dimensionality.
-            You can import the `CTGANGeneratorBlock` as follows,
-                >>> from teras.layerflow.layers import CTGANGeneratorBlock
-        output_layer: `layers.Layer`.
-            An instance of keras Dense layer or any custom layer that can serve as the output
-            layer in the CTGAN Generator model.
-            The output layer must be of `data_dim` dimensionality.
-            By default, a simple `Dense` layer of `data_dim` dimensionality
-            with no activation is used as the output layer.
-        data_dim: `int`, required when `output_layer` is None.
-            The dimensionality of the dataset.
-            It will also be the dimensionality of the output produced
-            by the generator.
-            Note the dimensionality must be equal to the dimensionality of dataset
-            that is passed to the fit method and not necessarily the dimensionality
-            of the raw input dataset as sometimes data transformation alters the
-            dimensionality of the dataset.
-        meta_data: `dict`,
-            A dictionary of features metadata.
-            The Generator in CTGAN architecture,
-            applies different activation functions to the output of Generator,
-            depending on the type of features.
-            And to determine the feature types and for other computation during
-            activation step, the `meta data` computed during the data transformation step,
-            is required.
-            It can be accessed through the `.get_meta_data()` method of the DataTransformer
-            instance which was used to transform the raw input data.
-    """
-    def __init__(self,
-                 hidden_block: HIDDEN_BLOCK_TYPE = None,
-                 output_layer: keras.layers.Layer = None,
-                 data_dim: int = None,
-                 meta_data: dict = None,
-                 **kwargs):
-        if output_layer is None and data_dim is None:
-            raise ValueError("`output_layer` and `data_dim` both cannot be None at the same time as the value of "
-                             "`data_dim` is required to construct a default output layer as the Generator's output "
-                             "must of `data_dim` dimensionality. \n"
-                             "You must either pass value for `output_layer` or `data_dim`.")
-        if output_layer is not None:
-            # Assign a random value to data_dim.
-            # data_dim is only used in output_layer construction
-            # which in this case will be overridden later
-            data_dim = 16
-        super().__init__(data_dim=data_dim,
-                         meta_data=meta_data,
-                         **kwargs)
-
-        if hidden_block is not None:
-            if not isinstance(hidden_block, (layers.Layer, models.Model)):
-                raise TypeError("`hidden_block` can either be a Keras layer or a Keras model "
-                                f"but received type: {type(hidden_block)} which is not supported.")
-            self.hidden_block = hidden_block
-
-        if self.output_layer is not None:
-            self.output_layer = output_layer
-
-    def get_config(self):
-        config = super().get_config()
-        new_config = {'hidden_block': keras.layers.serialize(self.hidden_block),
-                      'output_layer': keras.layers.serialize(self.output_layer)
-                      }
-        config.update(new_config)
-        return config
-
-
-class Discriminator(_BaseDiscriminator):
-    """
-    Discriminator for CTGAN architecture with LayerFlow design.
-    CTGAN architecture is proposed by
-    Lei Xu et al. in the paper,
-    "Modeling Tabular data using Conditional GAN".
-
-    Reference(s):
-        https://arxiv.org/abs/1907.00503
-            If `None`, a hidden block is constructed with `CTGANDiscriminatorBlock`
-            (`from teras.layers.ctgan import DiscriminatorBlock`)
-            with default dimensionality.
-    Args:
-        hidden_block: `layers.Layer`, `List[layers.Layer]` or `models.Model`,
-            An instance of `CTGANDiscriminatorBlock` layer, list of layers or Keras model
-            that can work as the hidden block for the Classifier model.
-            If None, a hidden block made up of `CTGANDiscriminatorBlock` layers with default
-            dimensionality will be used.
-            You can import the `CTGANDiscriminatorBlock` as follows,
-                >>> from teras.layerflow.layers import CTGANDiscriminatorBlock
-        output_layer: `layers.Layer`,
-            An instance of keras Dense layer or any custom layer that can serve as the output
-            layer in the CTGAN Discriminator model.
-        packing_degree: `int`, default 8, Packing degree - taken from the PacGAN paper.
-            The number of samples concatenated or "packed" together.
-            It must be a factor of the batch_size.
-            Packing degree is borrowed from the PacGAN [Diederik P. Kingma et al.] architecture,
-            which proposes passing `m` samples at once to discriminator instead of `1` to be
-            jointly classified as real or fake by the discriminator in order to tackle the
-            issue of mode collapse inherent in the GAN based architectures.
-            The number of samples passed jointly `m`, is termed as the `packing degree`.
-        gradient_penalty_lambda: default 10, Controls the strength of gradient penalty.
-                lambda value is directly proportional to the strength of gradient penalty.
-                Gradient penalty penalizes the discriminator for large weights in an attempt
-                to combat Discriminator becoming too confident and overfitting.
-
-    Example:
-        ```python
-        # Instantiate Generator
-        generator = Generator(data_dim=data_dim,
-                              meta_data=meta_data)
-
-        # Instantiate Discriminator
-        discriminator = Discriminator()
-
-        # Sample noise to generate samples from
-        z = tf.random.normal([512, 18])
-
-        # Generate samples
-        generated_samples = generator(z)
-
-        # Predict using discriminator
-        y_pred = discriminator(generated_samples)
-        ```
-    """
-    def __init__(self,
-                 hidden_block: HIDDEN_BLOCK_TYPE = None,
-                 output_layer: keras.layers.Layer = None,
-                 packing_degree: int = 8,
-                 gradient_penalty_lambda=10,
-                 **kwargs):
-        super().__init__(packing_degree=packing_degree,
-                         gradient_penalty_lambda=gradient_penalty_lambda,
-                         **kwargs)
-
-        if hidden_block is not None:
-            if not isinstance(hidden_block, (layers.Layer, models.Model)):
-                raise TypeError("`hidden_block` can either be a Keras layer or a Keras model "
-                                f"but received type: {type(hidden_block)} which is not supported.")
-            self.hidden_block = hidden_block
-
-        if self.output_layer is not None:
-            self.output_layer = output_layer
-
-    def get_config(self):
-        config = super().get_config()
-        new_config = {'hidden_block': keras.layers.serialize(self.hidden_block),
-                      'output_layer': keras.layers.serialize(self.output_layer)
-                      }
-        config.update(new_config)
-        return config
-
-
-class CTGAN(_BaseCTGAN):
+@keras.saving.register_keras_serializable(package="keras.layerflow.models")
+class CTGAN(keras.Model):
     """
     CTGAN model with LayerFlow design.
     CTGAN is a state-of-the-art tabular data generation architecture
@@ -184,87 +16,193 @@ class CTGAN(_BaseCTGAN):
         https://arxiv.org/abs/1907.00503
 
     Args:
-        generator: `keras.Model`,
-            An instance of `CTGANGenerator` or any other keras model that can work in
+        generator: ``keras.Model``,
+            An instance of ``CTGANGenerator`` or any other keras model that can work in
             its place.
-            You can import the `CTGANGenerator` as follows,
-                >>> from teras.layerflow.models import CTGANGenerator
-        discriminator: `keras.Model`,
-            An instance of `CTGANDiscriminator` or any other keras model that can work in
+            You can import the ``CTGANGenerator`` as follows,
+                >>> from teras.models import CTGANGenerator
+
+        discriminator: ``keras.Model``,
+            An instance of ``CTGANDiscriminator`` or any other keras model that can work in
             its place.
-            You can import the `CTGANDiscriminator` as follows,
-                >>> from teras.layerflow.models import CTGANDiscriminator
-        num_discriminator_steps: `int`, default 1,
-            Number of discriminator training steps per CTGAN training step.
-        latent_dim: `int`, default 128,
-            Dimensionality of noise or `z` that serves as input to Generator
+            You can import the ``CTGANDiscriminator`` as follows,
+                >>> from teras.models import CTGANDiscriminator
+
+        num_discriminator_steps: ``int``, default 1,
+            Number of discriminator training steps per ``CTGAN`` training step.
+
+        latent_dim: ``int``, default 128,
+            Dimensionality of noise or ``z`` that serves as input to ``CTGANGenerator``
             to generate samples.
-        data_dim: `int`, required only when `generator` is None,
-            The dimensionality of the input dataset.
-            Note the dimensionality must be equal to the dimensionality of dataset
-            that is passed to the fit method and not necessarily the dimensionality
-            of the raw input dataset as sometimes data transformation alters the
-            dimensionality of the dataset.
-        meta_data: `dict`, required only when `generator` is None,
-            A dictionary of metadata about the features that is computed during the transformation phase.
-            Simply pass the result of `.get_meta_data()` method of the DataTransformer instance
-            which was used to transform the raw input data.
-            The Generator in CTGAN architecture applies different activation functions
-            to the output of Generator, depending on the type of features.
-            And to determine the feature types and for other computation during
-            activation step, the `meta data` computed during the data transformation step,
-            is required.
-            It is also required during the computation of generator loss.
-            Hence, it cannot be None.
-            It can be accessed through the `.get_meta_data()` method of the DataTransformer
-            instance which was used to transform the raw input data.
     """
     def __init__(self,
-                 generator: keras.Model = None,
-                 discriminator: keras.Model = None,
+                 generator: keras.Model,
+                 discriminator: keras.Model,
                  num_discriminator_steps: int = 1,
                  latent_dim: int = 128,
-                 data_dim: int = None,
-                 meta_data: dict = None,
                  **kwargs):
-        if generator is None:
-            if data_dim is None:
-                raise ValueError(f"`data_dim` is required when `generator` argument is None, "
-                                 f"to instantiate a default Generator instance. \n"
-                                 "You can either specify a `generator` instance or pass the value for `data_dim`, "
-                                 "which can be accessed through `.data_dim` "
-                                 "attribute of DataSampler instance if you don't know the data dimensions.")
-            if meta_data is None:
-                raise ValueError("`meta_data` is required when `generator` argument i None, to instantiate a default "
-                                 "Generator instance. "
-                                 "You can either speicfy a `generator` instance or pass the meta data dictionary which "
-                                 "can be accessed through `.get_meta_data()` method of DataTransformer instance.")
+        super().__init__(**kwargs)
+        self.generator = generator
+        self.discriminator = discriminator
+        self.num_discriminator_steps = num_discriminator_steps
+        self.latent_dim = latent_dim
 
-        if generator is not None:
-            # plug random values
-            # now we could also just access .data_dim and .meta_data attributes of the generator instance
-            # that is passed as argument BUT that requires us to assume that only CTGANGenerator instances
-            # are passed and in case user does create his/her own complete custom generator model, there's
-            # no guarantee that that model will have these attributes.
-            data_dim = 16
-            meta_data = {'Wizard': 1337}
+        # Loss trackers
+        self.generator_loss_tracker = keras.metrics.Mean(name="generator_loss")
+        self.discriminator_loss_tracker = keras.metrics.Mean(name="discriminator_loss")
 
-        super().__init__(data_dim=data_dim,
-                         meta_data=meta_data,
-                         num_discriminator_steps=num_discriminator_steps,
-                         latent_dim=latent_dim,
-                         **kwargs)
+    def compile(self,
+                generator_optimizer=keras.optimizers.Adam(learning_rate=1e-3,
+                                                          beta_1=0.5, beta_2=0.9),
+                discriminator_optimizer=keras.optimizers.Adam(learning_rate=1e-3,
+                                                              beta_1=0.5, beta_2=0.9),
+                generator_loss=generator_loss,
+                discriminator_loss=discriminator_loss,
+                **kwargs
+                ):
+        super().compile(**kwargs)
+        self.generator_optimizer = generator_optimizer
+        self.discriminator_optimizer = discriminator_optimizer
+        self.generator_loss = generator_loss
+        self.discriminator_loss = discriminator_loss
 
-        if generator is not None:
-            self.generator = generator
+    def call(self, inputs):
+        generated_samples = self.generator(inputs)
+        return generated_samples
 
-        if discriminator is not None:
-            self.discriminator = discriminator
+    def train_step(self, data):
+        # real_samples, shuffled_idx, random_features_indices, random_values_indices = data
+        real_samples, cond_vectors_real, cond_vectors, mask = data
+        self.batch_size = tf.shape(real_samples)[0]
+
+        for _ in range(self.num_discriminator_steps):
+            z = tf.random.normal(shape=[self.batch_size, self.latent_dim])
+            # cond_vector, mask = self.data_sampler.sample_cond_vector_for_training(self.batch_size,
+            #                                                                       random_features_indices=random_features_indices,
+            #                                                                       random_values_indices=random_values_indices)
+            input_gen = tf.concat([z, cond_vectors], axis=1)
+            generated_samples = self.generator(input_gen, training=False)
+            # cond_vector_2 = tf.gather(cond_vector, indices=tf.cast(shuffled_idx, tf.int32))
+            generated_samples = tf.concat([generated_samples, cond_vectors], axis=1)
+            real_samples = tf.concat([real_samples, cond_vectors_real], axis=1)
+
+            with tf.GradientTape(persistent=True) as tape:
+                y_generated = self.discriminator(generated_samples)
+                y_real = self.discriminator(real_samples)
+                grad_pen = self.discriminator.gradient_penalty(real_samples, generated_samples)
+                loss_disc = self.discriminator_loss(y_real, y_generated)
+            gradients_pen = tape.gradient(grad_pen, self.discriminator.trainable_weights)
+            gradients_loss = tape.gradient(loss_disc, self.discriminator.trainable_weights)
+            self.discriminator_optimizer.apply_gradients(zip(gradients_pen, self.discriminator.trainable_weights))
+            self.discriminator_optimizer.apply_gradients(zip(gradients_loss, self.discriminator.trainable_weights))
+
+        z = tf.random.normal(shape=[self.batch_size, self.latent_dim])
+        # cond_vector, mask = self.data_sampler.sample_cond_vector_for_training(self.batch_size,
+        #                                                                       random_features_indices=random_features_indices,
+        #                                                                       random_values_indices=random_values_indices)
+        # Practically speaking, we don't really need the partial function,
+        # but it makes things look more neat
+        # generator_partial_loss_fn = partial(generator_loss, mask=mask, metadata=self.metadata)
+        input_gen = tf.concat([z, cond_vectors], axis=1)
+        with tf.GradientTape() as tape:
+            tape.watch(cond_vectors)
+            tape.watch(mask)
+            # generated_samples, y_generated = self(input_gen, cond_vector=cond_vector)
+            generated_samples = self(input_gen)
+            generated_samples = tf.concat([generated_samples, cond_vectors], axis=1)
+            y_generated = self.discriminator(generated_samples, training=False)
+            loss_gen = self.generator_loss(generated_samples, y_generated,
+                                           cond_vectors=cond_vectors, mask=mask,
+                                           metadata=self.metadata)
+            # dummy_targets = tf.zeros(shape=(self.batch_size,))
+            # loss_gen_dummy = self.generator.compiled_loss(dummy_targets, loss_gen)
+        gradients = tape.gradient(loss_gen, self.generator.trainable_weights)
+        self.generator_optimizer.apply_gradients(zip(gradients, self.generator.trainable_weights))
+
+        self.generator_loss_tracker.update_state(loss_gen)
+        self.discriminator_loss_tracker.update_state(loss_disc)
+
+        results = {m.name: m.result() for m in self.metrics}
+        generator_results = {'generator_' + m.name: m.result() for m in self.generator.metrics}
+        results.update(generator_results)
+        discriminator_results = {'discriminator_' + m.name: m.result() for m in self.discriminator.metrics}
+        results.update(discriminator_results)
+        return results
+
+    def generate(self,
+                 num_samples: int,
+                 data_sampler,
+                 data_transformer=None,
+                 reverse_transform: bool = False,
+                 batch_size: int = None):
+        """
+        Generates new samples using the trained generator.
+
+        Args:
+            num_samples: ``int``,
+                Number of new samples to generate
+
+            data_sampler:
+                Instance of the ``CTGANDataSampler`` class used in preparing
+                the tensorflow dataset for training.
+
+            data_transformer:
+                Instance of ``CTGANDataTransformer`` class that was used to preprocess the raw data.
+                This is required only if the ``reverse_transform`` is set to True.
+
+            reverse_transform: ``bool``, default False,
+                Whether to reverse transform the generated data to the original data format.
+                If False, the raw generated data will be returned, which you can then manually
+                transform into original data format by utilizing ``CTGANDataTransformer`` instance's
+                ``reverse_transform`` method.
+
+            batch_size: ``int``, default None.
+                If a value is passed, samples will be generated in batches
+                where ``batch_size`` determines the size of each batch.
+                If ``None``, all ``num_samples`` will be generated at once.
+                Note that, if the number of samples to generate aren't huge
+                or you know your hardware can handle to generate all samples at once,
+                you can leave the value to None, otherwise it is recommended to specify
+                a value for batch size.
+        """
+        if batch_size is None:
+            batch_size = num_samples
+        num_steps = num_samples // batch_size
+        num_steps += 1 if num_samples % batch_size != 0 else 0
+        generated_samples = []
+        for _ in tqdm(range(num_steps), desc="Generating Data"):
+            z = tf.random.normal(shape=[batch_size, self.latent_dim])
+            cond_vector = data_sampler.sample_cond_vectors_for_generation(batch_size)
+            input_gen = tf.concat([z, cond_vector], axis=1)
+            generated_samples.append(self.generator(input_gen, training=False))
+        generated_samples = tf.concat(generated_samples, axis=0)
+        generated_samples = generated_samples[:num_samples]
+
+        if reverse_transform:
+            if data_transformer is None:
+                raise ValueError("""To reverse transform the raw generated data, ``data_transformer`` must not be None.
+                         Please pass the instance of ``CTGANDataTransformer`` class that was used to transform the
+                         input data. Or alternatively, you can set ``reverse_transform`` to False, and later
+                         manually reverse transform the generated raw data to original format by utilizing the 
+                         ``CTGANDataTransformer`` instance's ``reverse_transform`` method.""")
+            generated_samples = data_transformer.reverse_transform(x_generated=generated_samples)
+
+        return generated_samples
 
     def get_config(self):
         config = super().get_config()
-        new_config = {'generator': keras.layers.serialize(self.generator),
-                      'discriminator': keras.layers.serialize(self.discriminator)
-                      }
-        config.update(new_config)
+        config.update({'generator': keras.layers.serialize(self.generator),
+                       'discriminator': keras.layers.serialize(self.generator),
+                       'num_discriminator_steps': self.num_discriminator_steps,
+                       'latent_dim': self.latent_dim,
+                       }
+                      )
         return config
+
+    @classmethod
+    def from_config(cls, config):
+        generator = keras.layers.deserialize(config.pop("generator"))
+        discriminator = keras.layers.deserialize(config.pop("discriminator"))
+        return cls(generator=generator,
+                   discriminator=discriminator,
+                   **config)
