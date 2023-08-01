@@ -1,5 +1,6 @@
 from tensorflow import keras
 from teras.layers.gain import GAINGeneratorBlock, GAINDiscriminatorBlock
+from teras.layerflow.models.gain import GAIN as _GAIN_LF
 from teras.utils.types import UnitsValuesType, ActivationType
 
 
@@ -239,7 +240,7 @@ class GAINDiscriminator(keras.Model):
 
 
 @keras.saving.register_keras_serializable(package="teras.models")
-class GAIN(keras.Model):
+class GAIN(_GAIN_LF):
     """
     GAIN is a missing data imputation model based on GANs.
     This is an implementation of the GAIN architecture
