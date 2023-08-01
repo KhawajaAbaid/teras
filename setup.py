@@ -9,7 +9,6 @@ setup(
     packages=find_packages(),
     install_requires=[
         'tensorflow',
-        'tensorflow-addons',
         'tensorflow-probability',
         'pandas',
         'scikit-learn',
