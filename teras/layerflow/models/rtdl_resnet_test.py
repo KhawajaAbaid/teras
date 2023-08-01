@@ -1,6 +1,6 @@
 import tensorflow as tf
 from tensorflow import keras
-from teras.layerflow.models.rtdl_resnet import RtdlResNet
+from teras.layerflow.models.rtdl_resnet import RTDLResNet
 from teras.layers import RTDLResNetBlock
 import os
 
@@ -13,13 +13,13 @@ class NODETest(tf.test.TestCase):
         self.head = keras.layers.Dense(1)
 
     def test_valid_call(self):
-        model = RtdlResNet(input_dim=self.input_dim,
+        model = RTDLResNet(input_dim=self.input_dim,
                            resnet_blocks=self.resnet_blocks,
                            head=self.head)
         model(self.inputs)
 
     def test_save_and_load(self):
-        model = RtdlResNet(input_dim=self.input_dim,
+        model = RTDLResNet(input_dim=self.input_dim,
                            resnet_blocks=self.resnet_blocks,
                            head=self.head)
         save_path = os.path.join(self.get_temp_dir(), "rtdl_resnet_lf.keras")
