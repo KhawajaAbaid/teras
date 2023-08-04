@@ -65,7 +65,7 @@ Teras offers following main modules:
 
 ## Motivation
 The main purposes of Teras are to:
-1. Provide a uniform interface for all the different proposed architectures.
+1. Provide a uniform interface for all the different proposed architectures to abstract away the complexities to make them accessible to everyone!
 2. Further bridge the gap between research and application.
 3. Be a one-stop for everything concerning deep learning for tabular data.
 4. Accelerate research in tabular domain of deep learning by making it easier for researchers to access, use and experiment with exisiting architectures — saving them lots of valuable time.
