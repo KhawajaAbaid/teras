@@ -27,30 +27,26 @@ class TabTransformer(keras.Model):
         categorical_feature_embedding: ``layers.Layer``,
             An instance of ``CategoricalFeatureEmbedding`` layer to embedd categorical features
             or any layer that can work in its place for that purpose.
-            If None, a ``CategoricalFeatureEmbedding`` layer with default values will be used.
             You can import the ``CategoricalFeatureEmbedding`` layer as follows,
-                >>> from teras.layerflow.layers import CategoricalFeatureEmbedding
+                >>> from teras.layers import CategoricalFeatureEmbedding
 
         column_embedding: ``layers.Layer``,
             An instance of ``TabTColumnEmbedding`` layer to apply over categorical embeddings,
             or any layer that can work in its place for that purpose.
-            If None, a ``TabTColumnEmbedding`` layer with default values will be used.
             You can import the ``TabTColumnEmbedding`` layer as follows,
                 >>> from teras.layers import TabTransformerColumnEmbedding
 
         encoder: ``layers.Layer``,
             An instance of ``Encoder`` layer to encode feature embeddings,
             or any layer that can work in its place for that purpose.
-            If None, an ``Encoder`` layer with default values will be used.
             You can import the ``Encoder`` layer as follows,
                 >>> from teras.layerflow.layers import Encoder
 
         numerical_feature_normalization: ``layers.Layer``,
             An instance of ``NumericalFeatureNormalization`` layer to normalize numerical features,
             or any layer that can work in its place for that purpose.
-            If None, an ``NumericalFeatureNormalization`` layer with default values will be used.
             You can import the ``NumericalFeatureNormalization`` layer as follows,
-                >>> from teras.layerflow.layers import NumericalFeatureNormalization
+                >>> from teras.layers import NumericalFeatureNormalization
 
         head: ``keras.layers.Layer``,
             An instance of either ``ClassificationHead`` or ``RegressionHead`` layers,
