@@ -2,6 +2,12 @@
 
 ![Teras logo banner](./data/imgs/Teras_logo_github_banner.jpg)
 
+### STATUS UPDATE as of September 06, 2023:
+For the past month, I've been super busy with irl things but now I'm slowly shifting my full focus on the Teras v0.3.0 update, which will be kind of a pleasant surprise :D.
+Expect it by the end of this month. 
+
+---
+
 Teras (short for Tabular Keras) is a unified deep learning library for Tabular Data that aims to be your one stop for everything related to deep learing with tabular data.
 
 It provides state of the art layers, models and arhitectures for all purposes, be it classification, regression or even data generation and imputation using state of the art deep learning architectures. 
