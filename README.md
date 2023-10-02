@@ -2,9 +2,10 @@
 
 ![Teras logo banner](./data/imgs/Teras_logo_github_banner.jpg)
 
-### STATUS UPDATE as of September 06, 2023:
-For the past month, I've been super busy with irl things but now I'm slowly shifting my full focus on the Teras v0.3.0 update, which will be kind of a pleasant surprise :D.
-Expect it by the end of this month. 
+## STATUS UPDATE as of October 02, 2023:
+Hello everyone, I'm super sorry for another delay. I was working towards the Teras v0.3.0 for the end of last month but then I got selected for Fulbright scholarship for my masters in Machine Learning, and now I've been trying to clear out the documentation and tests for admissions. I wont be able to work on this project this month at all, sorry again. I love this project and I'll make it the best version of it. I understand there's so many things to improve and fix. Rest assured that next month I'll be going super saiyan mode to pump out incredible updates because i have so many plans for it that I'm sure you'll love. 
+
+See y'all in November! :) 
 
 ---
 
