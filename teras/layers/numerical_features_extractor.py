@@ -1,5 +1,5 @@
-import tensorflow as tf
-from tensorflow import keras
+import keras
+from keras import ops
 
 
 @keras.saving.register_keras_serializable(package="teras.layers")
@@ -42,7 +42,7 @@ class NumericalFeaturesExtractor(keras.layers.Layer):
         self._numerical_features_idx = list(self.features_metadata["numerical"].values())
 
     def call(self, inputs):
-        numerical_features = tf.gather(inputs,
-                                       indices=self._numerical_features_idx,
-                                       axis=1)
+        numerical_features = ops.take(inputs,
+                                      indices=self._numerical_features_idx,
+                                      axis=1)
         return numerical_features
