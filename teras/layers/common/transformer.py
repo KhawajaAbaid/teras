@@ -1,4 +1,4 @@
-from tensorflow import keras
+import keras
 from teras.utils import get_activation
 from teras.layerflow.layers.common.transformer import (FeedForward as _FeedForwardLF,
                                                        Transformer as _TransformerLF,
