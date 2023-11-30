@@ -1,4 +1,4 @@
-import tensorflow as tf
+from keras import ops
 from teras.layers.numerical_feature_normalization import NumericalFeatureNormalization
 from teras.utils import get_features_metadata_for_embedding
 import pandas as pd
@@ -29,10 +29,10 @@ def test_numerical_feature_normalization_output_shape(setup_data):
     normalization = NumericalFeatureNormalization(features_metadata=metadata,
                                                   normalization="batch")
     outputs = normalization(inputs)
-    assert len(tf.shape(outputs)) == 2
-    assert tf.shape(outputs)[0] == 8
+    assert len(ops.shape(outputs)) == 2
+    assert keras.ops.shape(outputs)[0] == 8
     # NumericalFeatureNormalization layer returns normalized numerical features only
-    assert tf.shape(outputs)[1] == 2
+    assert keras.ops.shape(outputs)[1] == 2
 
 
 def test_numerical_feature_normalization_raises_error_when_numerical_features_dont_exist():
