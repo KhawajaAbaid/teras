@@ -1,5 +1,5 @@
-import tensorflow as tf
-from tensorflow import keras
+import keras
+from keras import ops
 from teras.layers.tabnet.tabnet_feature_transformer import TabNetFeatureTransformer
 from teras.layers.tabnet.tabnet_attentive_transformer import TabNetAttentiveTransformer
 
@@ -131,9 +131,9 @@ class TabNetEncoder(keras.layers.Layer):
         self.relu = keras.layers.ReLU()
 
     def call(self, inputs, mask=None):
-        batch_size = tf.shape(inputs)[0]
+        batch_size = ops.shape(inputs)[0]
         # Initializes decision-step dependent variables
-        outputs_aggregated = tf.zeros(shape=(batch_size, self.decision_step_output_dim))
+        outputs_aggregated = ops.zeros(shape=(batch_size, self.decision_step_output_dim))
         # we only pass mask alongside inputs when we're pretaining
         # As the paper says in the Self-Supervised section, we  initialize
         # mask_values (P) to be 1-S during pretraining.
@@ -141,13 +141,13 @@ class TabNetEncoder(keras.layers.Layer):
         if mask is not None:
             mask_values = mask
         else:
-            mask_values = tf.zeros(shape=tf.shape(inputs))
+            mask_values = ops.zeros(shape=ops.shape(inputs))
         # Aggregated mask values are used for explaining feature importance
         # Here we'll refer to them as feature_importances_per_sample since
         # that's a more descriptive name
         # For more details, read the `Interpretability` section on page 5
         # of the paper "TabNet: Attentive Interpretable Tabular Learning"
-        feature_importances_per_sample = tf.zeros(shape=tf.shape(inputs))
+        feature_importances_per_sample = ops.zeros(shape=ops.shape(inputs))
         total_entropy = 0.
 
         # Prior scales `P` indicate how much a particular feature has been used previously
@@ -158,7 +158,7 @@ class TabNetEncoder(keras.layers.Layer):
         # flexibility is provided to use a feature at multiple decision steps.
         # P[0] is initialized as all ones, `1`B×D, without any prior
         # on the masked features.
-        prior_scales = tf.ones(tf.shape(inputs))
+        prior_scales = ops.ones(ops.shape(inputs))
 
         normalized_inputs = self.inputs_norm(inputs)
         masked_features = normalized_inputs
@@ -174,14 +174,14 @@ class TabNetEncoder(keras.layers.Layer):
                 outputs_aggregated += decision_step_outputs
                 # Aggregated masks are used for visualization of the
                 # feature importance attributes.
-                scale_agg = tf.reduce_sum(decision_step_outputs,
+                scale_agg = ops.reduce_sum(decision_step_outputs,
                                           axis=1,
                                           keepdims=True)
 
                 # To prevent division by zero, we introduce this conditional
                 # and only divide by (num_decision_steps - 1) if num_decision_steps > 1
                 if self.num_decision_steps > 1:
-                    scale_agg = scale_agg / tf.cast(self.num_decision_steps - 1, tf.float32)
+                    scale_agg = scale_agg / ops.cast(self.num_decision_steps - 1, dtype="float32")
 
                 feature_importances_per_sample += (mask_values * scale_agg)
                 self.feature_importances_per_sample.append(feature_importances_per_sample)
@@ -198,13 +198,13 @@ class TabNetEncoder(keras.layers.Layer):
                 prior_scales *= (self.relaxation_factor - mask_values)
 
                 # Entropy is used to penalize the amount of sparsity in feature selection
-                total_entropy += tf.reduce_mean(
-                    tf.reduce_sum(-mask_values * tf.math.log(mask_values + self.epsilon), axis=1)
+                total_entropy += ops.mean(
+                    ops.sum(-mask_values * ops.log(mask_values + self.epsilon), axis=1)
                 ) / (self.num_decision_steps - 1)
                 entropy_loss = total_entropy
 
                 # Feature Selection
-                masked_features = tf.multiply(mask_values, normalized_inputs)
+                masked_features = ops.multiply(mask_values, normalized_inputs)
             else:
                 entropy_loss = 0.
 

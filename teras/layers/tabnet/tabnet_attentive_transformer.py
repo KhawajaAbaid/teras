@@ -1,4 +1,4 @@
-from tensorflow import keras
+import keras
 from teras.activations import sparsemax
 
 

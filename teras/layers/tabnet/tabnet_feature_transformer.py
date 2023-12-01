@@ -1,4 +1,4 @@
-from tensorflow import keras
+import keras
 from teras.layers.tabnet.tabnet_feature_transformer_block import TabNetFeatureTransformerBlock
 
 
