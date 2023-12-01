@@ -1,4 +1,4 @@
-import tensorflow as tf
+from keras import ops
 from teras.layers.preprocessing.periodic_embedding import PeriodicEmbedding
 from teras.utils import get_features_metadata_for_embedding
 import pandas as pd
@@ -29,10 +29,10 @@ def test_periodic_embedding_output_shape(setup_data):
     periodic_embedding = PeriodicEmbedding(features_metadata=metadata,
                                            embedding_dim=16)
     outputs = periodic_embedding(inputs)
-    assert len(tf.shape(outputs)) == 3
-    assert tf.shape(outputs)[0] == 8
-    assert tf.shape(outputs)[1] == 2    # PeriodicEmbedding halves the features
-    assert tf.shape(outputs)[2] == 16
+    assert len(ops.shape(outputs)) == 3
+    assert ops.shape(outputs)[0] == 8
+    assert ops.shape(outputs)[1] == 2    # PeriodicEmbedding halves the features
+    assert ops.shape(outputs)[2] == 16
 
 
 def test_periodic_embedding_raises_error_when_numerical_features_dont_exist():
