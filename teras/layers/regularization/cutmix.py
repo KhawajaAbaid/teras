@@ -1,5 +1,6 @@
-import tensorflow as tf
-from tensorflow import keras
+import keras
+from keras import ops
+from keras import random
 import tensorflow_probability as tfp
 
 
@@ -29,11 +30,11 @@ class CutMix(keras.layers.Layer):
 
     def call(self, inputs):
         # Generate mask for CutMix mixing
-        mask_cutmix = self.mask_generator.sample(sample_shape=tf.shape(inputs))
+        mask_cutmix = self.mask_generator.sample(sample_shape=ops.shape(inputs))
 
         # For each data sample select a partner to mix it with at random.
         # To efficiently achieve this, we can just shuffle the data
-        random_partners = tf.random.shuffle(inputs)
+        random_partners = random.shuffle(inputs, axis=0)
 
         # Apply cutmix formula
         inputs_cutmixed = (inputs * mask_cutmix) + (random_partners * (1 - mask_cutmix))
