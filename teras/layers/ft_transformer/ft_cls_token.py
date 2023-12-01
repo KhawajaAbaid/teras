@@ -1,5 +1,5 @@
-import tensorflow as tf
-from tensorflow import keras
+import keras
+from keras import ops
 
 
 @keras.saving.register_keras_serializable(package="teras.layers.ft_transformer")
@@ -50,8 +50,8 @@ class FTCLSToken(keras.layers.Layer):
         # i.e. the feature dimension, which gives us the final inputs of shape
         # (`batch_size`, `num_features + 1`, `embedding_dim`),
         # mind the plus one to `num_features`!
-        token_broadcasted = tf.broadcast_to(self.token, shape=(tf.shape(inputs)[0], 1, self.embedding_dim))
-        return tf.concat([inputs, token_broadcasted], axis=1)
+        token_broadcasted = ops.broadcast_to(self.token, shape=(ops.shape(inputs)[0], 1, self.embedding_dim))
+        return ops.concatenate([inputs, token_broadcasted], axis=1)
 
     def get_config(self):
         config = super().get_config()
