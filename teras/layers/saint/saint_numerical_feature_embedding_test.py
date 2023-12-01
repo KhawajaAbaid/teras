@@ -1,4 +1,4 @@
-import tensorflow as tf
+from keras import ops
 from teras.layers.saint.saint_numerical_feature_embedding import SAINTNumericalFeatureEmbedding
 from teras.utils import get_features_metadata_for_embedding
 import pandas as pd
@@ -18,7 +18,7 @@ def test_saint_numerical_feature_embedding_output_shape():
     numerical_embedding = SAINTNumericalFeatureEmbedding(features_metadata=features_metadata,
                                                          embedding_dim=32)
     outputs = numerical_embedding(data.values)
-    assert len(tf.shape(outputs)) == 3
-    assert tf.shape(outputs)[0] == 10    # number of items in each column
-    assert tf.shape(outputs)[1] == 2
-    assert tf.shape(outputs)[2] == 32
+    assert len(ops.shape(outputs)) == 3
+    assert ops.shape(outputs)[0] == 10    # number of items in each column
+    assert ops.shape(outputs)[1] == 2
+    assert ops.shape(outputs)[2] == 32

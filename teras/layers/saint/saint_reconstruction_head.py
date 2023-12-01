@@ -1,4 +1,4 @@
-from tensorflow import keras
+import keras
 from teras.layerflow.layers.saint.saint_reconstruction_head import (SAINTReconstructionHeadBlock as _SAINTReconstructionHeadBlockLF,
                                                                     SAINTReconstructionHead as _SAINTReconstructionHeadLF)
 

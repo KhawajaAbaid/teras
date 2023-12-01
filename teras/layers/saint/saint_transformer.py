@@ -1,4 +1,4 @@
-from tensorflow import keras
+import keras
 from teras.layerflow.layers.saint.saint_transformer import SAINTTransformer as _SAINTTransformerLF
 from teras.layers.saint.multi_head_inter_sample_attention import MultiHeadInterSampleAttention
 from teras.layers.common.transformer import Transformer, FeedForward

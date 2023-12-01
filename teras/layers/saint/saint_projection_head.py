@@ -1,4 +1,4 @@
-from tensorflow import keras
+import keras
 from teras.layerflow.layers.saint.saint_projection_head import SAINTProjectionHead as _SAINTProjectionHeadLF
 
 
