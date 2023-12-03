@@ -7,6 +7,8 @@ import numpy as np
 from warnings import warn
 from teras.utils.types import ActivationType
 from teras import activations
+import os
+from pathlib import Path
 
 LayerType = Union[str, layers.Layer]
 LAYERS_COLLECTION = Union[List[layers.Layer], layers.Layer, models.Model]
@@ -357,3 +359,14 @@ def generate_fake_gemstone_data(num_samples: int = 16):
     })
     fake_gem_df = fake_gem_df.astype(np.float32)
     return fake_gem_df
+
+
+def get_tmp_dir():
+    """
+    Makes a temporary '.tmp' folder in the parent teras directory
+    and returns its path.
+    Used mainly in unit testing model saving and loading.
+    """
+    tmp_dir = Path.cwd().parent / ".tmp"
+    os.makedirs(tmp_dir, exist_ok=True)
+    return tmp_dir
