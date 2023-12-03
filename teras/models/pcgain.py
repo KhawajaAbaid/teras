@@ -1,4 +1,4 @@
-from tensorflow import keras
+import keras
 from teras.models.gain import (GAINGenerator as _GAINGenerator,
                                GAINDiscriminator as _GAINDiscriminator,
                                GAIN)
