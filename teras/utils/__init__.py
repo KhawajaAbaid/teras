@@ -25,7 +25,8 @@ from teras.utils.utils import (tf_random_choice,
                                serialize_layers_collection,
                                deserialize_layers_collection,
                                inject_missing_values,
-                               generate_fake_gemstone_data)
+                               generate_fake_gemstone_data,
+                               get_tmp_dir)
 
 
 # NODE utility function(s)
