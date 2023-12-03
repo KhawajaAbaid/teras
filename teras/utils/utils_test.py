@@ -1,6 +1,9 @@
+import os.path
+
 from teras.utils.utils import dataframe_to_tf_dataset
 import pandas as pd
 import numpy as np
+from teras.utils.utils import get_tmp_dir
 
 
 def test_dataframe_to_tf_dataset_without_label():
@@ -20,3 +23,7 @@ def test_dataframe_to_tf_dataset_with_multiple_labels():
                             "area": np.ones(10) * 2,
                             "perimeter": np.ones(10) * 3})
     ds = dataframe_to_tf_dataset(df, target=["area", "perimeter"])
+
+
+def test_get_tmp_dir():
+    assert os.path.exists(get_tmp_dir()) == True
