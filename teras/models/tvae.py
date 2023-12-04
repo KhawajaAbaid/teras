@@ -1,5 +1,5 @@
-import tensorflow as tf
-from tensorflow import keras
+import keras
+from keras import ops
 from teras.layerflow.models.tvae import TVAE as _TVAE_LF
 from teras.utils.types import UnitsValuesType
 
@@ -51,7 +51,7 @@ class TVAEEncoder(keras.Model):
         h = self.compression_block(inputs)
         mean = self.dense_mean(h)
         log_var = self.dense_log_var(h)
-        std = tf.exp(0.5 * log_var)
+        std = ops.exp(0.5 * log_var)
         return mean, std, log_var
 
     def get_config(self):
@@ -111,9 +111,7 @@ class TVAEDecoder(keras.Model):
         self.decompression_block.add(keras.layers.Dense(units=self.data_dim,
                                                         name="projection_to_data_dim"))
 
-        self.sigmas = tf.Variable(initial_value=keras.initializers.ones()(shape=(self.data_dim,)) * 0.1,
-                                  trainable=True,
-                                  name="sigmas")
+        self.sigmas = ops.ones(shape=(self.data_dim,)) * 0.1
 
     def call(self, inputs):
         x_generated = self.decompression_block(inputs)
