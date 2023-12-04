@@ -1,4 +1,4 @@
-from tensorflow import keras
+import keras
 from teras.layers.categorical_feature_embedding import CategoricalFeatureEmbedding
 from teras.layers.saint.saint_numerical_feature_embedding import SAINTNumericalFeatureEmbedding
 from teras.layers.saint.saint_encoder import SAINTEncoder
