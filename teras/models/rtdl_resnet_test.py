@@ -33,7 +33,7 @@ def test_rtdl_resnet_regressor_valid_call():
     model(inputs)
 
 
-def test_rtdl_resnet_save_and_load():
+def test_rtdl_resnet_regressor_save_and_load():
     inputs = ops.ones((8, 5))
     model = RTDLResNetRegressor(num_outputs=2,
                                 input_dim=5)
