@@ -1,4 +1,4 @@
-from tensorflow import keras
+import keras
 from teras.layers.tabnet.tabnet_encoder import TabNetEncoder
 from teras.layers.tabnet.tabnet_decoder import TabNetDecoder
 from teras.layers.categorical_feature_embedding import CategoricalFeatureEmbedding
