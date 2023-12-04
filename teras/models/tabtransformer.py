@@ -1,4 +1,4 @@
-from tensorflow import keras
+import keras
 from teras.config.tabtransformer import TabTransformerConfig
 from teras.layerflow.models.tabtransformer import TabTransformer as TabTransformerLF
 from teras.layers.common.transformer import Encoder
