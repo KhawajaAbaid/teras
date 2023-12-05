@@ -1,10 +1,14 @@
-import tensorflow as tf
-from tensorflow import keras
+import keras
+from keras import ops
+from keras import random
 from teras.layers.ctgan.ctgan_generator_block import CTGANGeneratorBlock
 from teras.layers.ctgan.ctgan_discriminator_block import CTGANDiscriminatorBlock
 from teras.layerflow.models.ctgan import CTGAN as _CTGAN_LF
 from teras.layers.activation import GumbelSoftmax
 from teras.utils.types import UnitsValuesType
+import os
+
+_KERAS_BACKEND = os.getenv("KERAS_BACKEND")
 
 
 @keras.saving.register_keras_serializable(package="teras.models")
@@ -124,8 +128,8 @@ class CTGANGenerator(keras.Model):
             if i < len(numerical_features_relative_indices):
                 # each numerical features has been transformed into num_valid_clusters + 1 features
                 # where the first feature is alpha while the following features are beta components
-                alphas = tf.nn.tanh(interim_outputs[:, index])
-                alphas = tf.expand_dims(alphas, 1)
+                alphas = ops.tanh(interim_outputs[:, index])
+                alphas = ops.expand_dims(alphas, 1)
                 outputs.append(alphas)
                 betas = self.gumbel_softmax(interim_outputs[:, index + 1: index + 1 + num_valid_clusters_all[cont_i]])
                 outputs.append(betas)
@@ -137,7 +141,7 @@ class CTGANGenerator(keras.Model):
                 ds = self.gumbel_softmax(interim_outputs[:, index: index + num_categories_all[cat_i]])
                 outputs.append(ds)
                 cat_i += 1
-        outputs = tf.concat(outputs, axis=1)
+        outputs = ops.concatenate(outputs, axis=1)
         return outputs
 
     def call(self, inputs):
@@ -239,7 +243,6 @@ class CTGANDiscriminator(keras.Model):
 
         self.output_layer = keras.layers.Dense(1, name="discriminator_output_layer")
 
-    @tf.function
     def gradient_penalty(self,
                          real_samples,
                          generated_samples):
@@ -257,27 +260,50 @@ class CTGANDiscriminator(keras.Model):
         Returns:
             Gradient penalty computed for given values.
         """
-        batch_size = tf.shape(real_samples)[0]
-        dim = tf.shape(real_samples)[1]
+        batch_size = ops.shape(real_samples)[0]
+        dim = ops.shape(real_samples)[1]
 
-        alpha = tf.random.uniform(shape=(batch_size // self.packing_degree, 1, 1))
-        alpha = tf.reshape(tf.tile(alpha, [1, self.packing_degree, dim]),
+        alpha = random.uniform(shape=(batch_size // self.packing_degree, 1, 1))
+        alpha = ops.reshape(ops.tile(alpha, [1, self.packing_degree, dim]),
                            (-1, dim))
         interpolated_samples = (alpha * real_samples) + ((1 - alpha) * generated_samples)
-        with tf.GradientTape() as tape:
-            tape.watch(interpolated_samples)
+
+        # TODO: Put checks like
+        #       if os.environ("Keras_Backend") == "tf" then import tensorflow and use tf.gradient computation
+        #       else if jax, import jax and use its grad
+        #       else if pytorch import that and use its gradient computation using backward or something.
+
+        if _KERAS_BACKEND == "tensorflow":
+            import tensorflow as tf
+            with tf.GradientTape() as tape:
+                tape.watch(interpolated_samples)
+                y_interpolated = self(interpolated_samples)
+            gradients = tape.gradient(y_interpolated, interpolated_samples)
+
+        elif _KERAS_BACKEND == "jax":
+            import jax
+            self_grad = jax.grad(self.call)
+            gradients = self_grad(interpolated_samples)
+
+        elif _KERAS_BACKEND == "torch":
+            interpolated_samples.requires_grad = True
             y_interpolated = self(interpolated_samples)
-        gradients = tape.gradient(y_interpolated, interpolated_samples)
-        gradients = tf.reshape(gradients, shape=(-1, self.packing_degree * dim))
+            y_interpolated.backward()
+            gradients = interpolated_samples.grad
+            
+        else:
+            raise Exception("Backend not supported.")
+
+        gradients = ops.reshape(gradients, shape=(-1, self.packing_degree * dim))
 
         # Calculating gradient penalty
-        gradients_norm = tf.norm(gradients)
-        gradient_penalty = tf.reduce_mean(tf.square(gradients_norm - 1.0)) * self.gradient_penalty_lambda
+        gradients_norm = ops.norm(gradients)
+        gradient_penalty = ops.mean(ops.square(gradients_norm - 1.0)) * self.gradient_penalty_lambda
         return gradient_penalty
 
     def call(self, inputs):
-        inputs_dim = tf.shape(inputs)[1]
-        inputs = tf.reshape(inputs, shape=(-1, self.packing_degree * inputs_dim))
+        inputs_dim = ops.shape(inputs)[1]
+        inputs = ops.reshape(inputs, shape=(-1, self.packing_degree * inputs_dim))
         outputs = self.hidden_block(inputs)
         outputs = self.output_layer(outputs)
         return outputs
