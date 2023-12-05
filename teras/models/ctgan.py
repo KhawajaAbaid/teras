@@ -268,11 +268,6 @@ class CTGANDiscriminator(keras.Model):
                            (-1, dim))
         interpolated_samples = (alpha * real_samples) + ((1 - alpha) * generated_samples)
 
-        # TODO: Put checks like
-        #       if os.environ("Keras_Backend") == "tf" then import tensorflow and use tf.gradient computation
-        #       else if jax, import jax and use its grad
-        #       else if pytorch import that and use its gradient computation using backward or something.
-
         if _KERAS_BACKEND == "tensorflow":
             import tensorflow as tf
             with tf.GradientTape() as tape:
