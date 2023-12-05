@@ -1,4 +1,4 @@
-from tensorflow import keras
+import keras
 from teras.layers.dnfnet.dnnf import DNNF
 from teras.utils.types import (IntegerSequence,
                                FloatSequence,
