@@ -1,4 +1,4 @@
-from tensorflow import keras
+import keras
 from teras.layers.ft_transformer.ft_numerical_feature_embedding import FTNumericalFeatureEmbedding
 from teras.layers.ft_transformer.ft_cls_token import FTCLSToken
 from teras.layers.categorical_feature_embedding import CategoricalFeatureEmbedding
