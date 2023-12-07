@@ -101,7 +101,7 @@ class GAINDataTransformer(_BaseDataTransformer):
         # dataset, even to the categorical features we converted using ordinal encoder
         x = x.values
         x = (x - self.min_vals) / self.max_vals
-        x = x.astype(np.float)
+        x = x.astype(np.float32)
 
         # if return_dataframe:
         x = pd.DataFrame(x, columns=self.ordered_features_names_all)
