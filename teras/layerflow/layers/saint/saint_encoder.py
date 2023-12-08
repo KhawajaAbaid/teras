@@ -1,4 +1,4 @@
-from tensorflow import keras
+import keras
 from teras.utils import (serialize_layers_collection,
                          deserialize_layers_collection)
 from typing import List, Union
