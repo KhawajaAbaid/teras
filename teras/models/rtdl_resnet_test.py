@@ -18,7 +18,7 @@ def test_rtdl_resnet_classifier_save_and_load():
     model = RTDLResNetClassifier(num_classes=2,
                                  input_dim=5)
     save_path = os.path.join(get_tmp_dir(), "rtdl_resnet_classifier.keras")
-    model.save(save_path, save_format="keras_v3")
+    model.save(save_path)
     reloaded_model = keras.models.load_model(save_path)
     outputs_original = model(inputs)
     outputs_reloaded = reloaded_model(inputs)
@@ -38,7 +38,7 @@ def test_rtdl_resnet_regressor_save_and_load():
     model = RTDLResNetRegressor(num_outputs=2,
                                 input_dim=5)
     save_path = os.path.join(get_tmp_dir(), "rtdl_resnet_regressor.keras")
-    model.save(save_path, save_format="keras_v3")
+    model.save(save_path)
     reloaded_model = keras.models.load_model(save_path)
     outputs_original = model(inputs)
     outputs_reloaded = reloaded_model(inputs)
