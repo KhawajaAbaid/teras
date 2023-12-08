@@ -1,6 +1,5 @@
-from tensorflow import keras
-import tensorflow as tf
-from tensorflow.keras import layers, models
+import keras
+from keras import ops, layers, models, random
 from typing import List, Union, Tuple
 import pandas as pd
 import numpy as np
@@ -15,10 +14,11 @@ LAYERS_COLLECTION = Union[List[layers.Layer], layers.Layer, models.Model]
 LAYERS_CONFIGS_COLLECTION = Union[List[dict], dict]
 
 
-def tf_random_choice(inputs,
+def random_choice(inputs,
                      n_samples: int,
                      p: List[float] = None):
-    """Tensorflow equivalent of np.random.choice
+    """
+    Teras's backend agnostic equivalent of np.random.choice
 
     Args:
         inputs: Tensor to sample from
@@ -30,14 +30,14 @@ def tf_random_choice(inputs,
     """
     probs = p
     if probs is None:
-        probs = tf.random.uniform([n_samples])
+        probs = random.uniform([n_samples])
     # Normalize probabilities so they all sum to one
-    probs /= tf.reduce_sum(probs)
-    probs = tf.expand_dims(probs, 0)
-    # Convert them to log probabilities because that's what the tf.random.categorical function expects
-    probs = tf.math.log(probs)
-    indices = tf.random.categorical(probs, n_samples, dtype=tf.int32)
-    return tf.gather(inputs, indices)
+    probs /= ops.sum(probs)
+    probs = ops.expand_dims(probs, 0)
+    # Convert them to log probabilities because that's what the random.categorical function expects
+    probs = ops.log(probs)
+    indices = random.categorical(probs, n_samples, dtype="int32")
+    return ops.take(inputs, indices)
 
 
 def get_normalization_layer(normalization: LayerType) -> layers.Layer:
@@ -200,48 +200,6 @@ def get_features_metadata_for_embedding(dataframe: pd.DataFrame,
     return features_meta_data
 
 
-def dataframe_to_tf_dataset(
-        dataframe: pd.DataFrame,
-        target: Union[str, list] = None,
-        shuffle: bool = True,
-        batch_size: int = 1024,
-):
-    """
-    Builds a tf.data.Dataset from a given pandas dataframe
-
-    Args:
-        dataframe: `pd.DataFrame`,
-            A pandas dataframe
-        target: `str` or `list`,
-            Name of the target column or list of names of the target columns.
-        shuffle: `bool`, default True
-            Whether to shuffle the dataset
-        batch_size: `int`, default 1024,
-            Batch size
-
-    Returns:
-         A tf.data.Dataset dataset
-    """
-    df = dataframe.copy()
-    if target is not None:
-        if isinstance(target, (list, tuple, set)):
-            labels = []
-            for feat in target:
-                labels.append(df.pop(feat).values)
-            labels = tf.transpose(tf.constant(labels))
-        else:
-            labels = df.pop(target)
-            labels = labels.values
-        dataset = tf.data.Dataset.from_tensor_slices((df.values, labels))
-    else:
-        dataset = tf.data.Dataset.from_tensor_slices(df.values)
-    if shuffle:
-        dataset = dataset.shuffle(buffer_size=len(dataframe))
-    dataset = dataset.batch(batch_size)
-    dataset = dataset.prefetch(batch_size)
-    return dataset
-
-
 def convert_dict_to_array_tensor(dict_tensor):
     """
     Converts a batch of data taken from tensorflow dictionary format dataset
@@ -258,9 +216,9 @@ def convert_dict_to_array_tensor(dict_tensor):
         return
 
     feature_names = dict_tensor.keys()
-    array_tensor = [tf.expand_dims(dict_tensor[feature_name], axis=1)
+    array_tensor = [ops.expand_dims(dict_tensor[feature_name], axis=1)
                     for feature_name in feature_names]
-    array_tensor = tf.concat(array_tensor, axis=1)
+    array_tensor = ops.concatenate(array_tensor, axis=1)
     return array_tensor
 
 
