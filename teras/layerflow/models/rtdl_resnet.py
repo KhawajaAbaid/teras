@@ -1,6 +1,5 @@
-from tensorflow import keras
+import keras
 from teras.utils.types import LayersCollection
-from typeguard import check_type
 
 
 @keras.saving.register_keras_serializable(package="teras.layerflow.models")
@@ -42,7 +41,7 @@ class RTDLResNet(keras.Model):
                  **kwargs):
         # if not isinstance(resnet_blocks, LayersCollection):
         try:
-            check_type("resnet_blocks", resnet_blocks, LayersCollection)
+            isinstance(resnet_blocks, LayersCollection)
         except TypeError:
             raise TypeError("`resnet_blocks` can either be a list of `RTDLResNetBlock` layers "
                             "or a Keras Layer or Model made up of `RTDLResNetBlock` layers. \n"
