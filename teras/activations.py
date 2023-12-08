@@ -1,35 +1,35 @@
-import tensorflow as tf
-from tensorflow import keras
+import keras
+from keras import ops, random
 
 
 # ================================= GLU =======================================
 @keras.saving.register_keras_serializable(package="teras.activations")
-def glu(logits: tf.Tensor) -> tf.Tensor:
+def glu(logits: keras.KerasTensor) -> keras.KerasTensor:
     """
     Generalized linear unit nonlinear activation.
 
     logits: ``Tensor``,
         Input tensor of logits.
     """
-    x, gates = tf.split(logits,
-                        num_or_size_splits=2,
-                        axis=-1)
-    return x * tf.nn.sigmoid(gates)
+    x, gates = ops.split(logits,
+                         indices_or_sections=2,
+                         axis=-1)
+    return x * ops.sigmoid(gates)
 
 
 # ================================= GEGLU =======================================
 @keras.saving.register_keras_serializable(package="teras.activations")
-def geglu(logits: tf.Tensor) -> tf.Tensor:
+def geglu(logits: keras.KerasTensor) -> keras.KerasTensor:
     """
     GeGLU is an activation function which is a variant of GLU
 
     logits: ``Tensor``,
         Input tensor of logits.
     """
-    x, gates = tf.split(logits,
-                        num_or_size_splits=2,
-                        axis=-1)
-    return x * tf.nn.gelu(gates)
+    x, gates = ops.split(logits,
+                         indices_or_sections=2,
+                         axis=-1)
+    return x * ops.gelu(gates)
 
 
 # ================================= SPARSEMAX =======================================
@@ -37,7 +37,7 @@ def geglu(logits: tf.Tensor) -> tf.Tensor:
 # And reason we copied it here because TensorFlow Addons has ended development.
 # RIP o7
 @keras.saving.register_keras_serializable(package="teras.activations")
-def sparsemax(logits: tf, axis: int = -1) -> tf.Tensor:
+def sparsemax(logits: keras.KerasTensor, axis: int = -1) -> keras.KerasTensor:
     """
     Sparsemax activation function.
 
@@ -46,7 +46,7 @@ def sparsemax(logits: tf, axis: int = -1) -> tf.Tensor:
 
     Usage:
 
-    >>> x = tf.constant([[-1.0, 0.0, 1.0], [-5.0, 1.0, 2.0]])
+    >>> x = keras.ops.array([[-1.0, 0.0, 1.0], [-5.0, 1.0, 2.0]])
     >>> teras.activations.sparsemax(x)
     <tf.Tensor: shape=(2, 3), dtype=float32, numpy=
     array([[0., 0., 1.],
@@ -61,11 +61,9 @@ def sparsemax(logits: tf, axis: int = -1) -> tf.Tensor:
     Raises:
         ValueError: In case `dim(logits) == 1`.
     """
-    logits = tf.convert_to_tensor(logits, name="logits")
-
     # We need its original shape for shape inference.
-    shape = logits.get_shape()
-    rank = shape.rank
+    shape = ops.shape(logits)
+    rank = len(shape)
     is_last_axis = (axis == -1) or (axis == rank - 1)
 
     if is_last_axis:
@@ -77,13 +75,13 @@ def sparsemax(logits: tf, axis: int = -1) -> tf.Tensor:
     # still perform softmax on its last dimension.
 
     # Swap logits' dimension of dim and its last dimension.
-    rank_op = tf.rank(logits)
+    rank_op =(logits)
     axis_norm = axis % rank
-    logits = _swap_axis(logits, axis_norm, tf.math.subtract(rank_op, 1))
+    logits = _swap_axis(logits, axis_norm, ops.subtract(rank_op, 1))
 
     # Do the actual softmax on its last dimension.
     output = _compute_2d_sparsemax(logits)
-    output = _swap_axis(output, axis_norm, tf.math.subtract(rank_op, 1))
+    output = _swap_axis(output, axis_norm, ops.subtract(rank_op, 1))
 
     # Make shape inference work since transpose may erase its static shape.
     output.set_shape(shape)
@@ -91,13 +89,13 @@ def sparsemax(logits: tf, axis: int = -1) -> tf.Tensor:
 
 
 def _swap_axis(logits, dim_index, last_index, **kwargs):
-    return tf.transpose(
+    return ops.transpose(
         logits,
-        tf.concat(
+        ops.concatenate(
             [
-                tf.range(dim_index),
+                ops.arange(dim_index),
                 [last_index],
-                tf.range(dim_index + 1, last_index),
+                ops.arange.range(dim_index + 1, last_index),
                 [dim_index],
             ],
             0,
@@ -108,8 +106,8 @@ def _swap_axis(logits, dim_index, last_index, **kwargs):
 
 def _compute_2d_sparsemax(logits):
     """Performs the sparsemax operation when axis=-1."""
-    shape_op = tf.shape(logits)
-    obs = tf.math.reduce_prod(shape_op[:-1])
+    shape_op = ops.shape(logits)
+    obs = ops.prod(shape_op[:-1])
     dims = shape_op[-1]
 
     # In the paper, they call the logits z.
@@ -121,18 +119,18 @@ def _compute_2d_sparsemax(logits):
     # input.
     # Reshape to [obs, dims] as it is almost free and means the remanining
     # code doesn't need to worry about the rank.
-    z = tf.reshape(logits, [obs, dims])
+    z = ops.reshape(logits, [obs, dims])
 
     # sort z
-    z_sorted, _ = tf.nn.top_k(z, k=dims)
+    z_sorted, _ = ops.nn.top_k(z, k=dims)
 
     # calculate k(z)
-    z_cumsum = tf.math.cumsum(z_sorted, axis=-1)
-    k = tf.range(1, tf.cast(dims, logits.dtype) + 1, dtype=logits.dtype)
+    z_cumsum = ops.cumsum(z_sorted, axis=-1)
+    k = ops.arange(1, ops.cast(dims, logits.dtype) + 1, dtype=logits.dtype)
     z_check = 1 + k * z_sorted > z_cumsum
     # because the z_check vector is always [1,1,...1,0,0,...0] finding the
     # (index + 1) of the last `1` is the same as just summing the number of 1.
-    k_z = tf.math.reduce_sum(tf.cast(z_check, tf.int32), axis=-1)
+    k_z = ops.sum(ops.cast(z_check, "int32"), axis=-1)
 
     # calculate tau(z)
     # If there are inf values or all values are -inf, the k_z will be zero,
@@ -140,33 +138,33 @@ def _compute_2d_sparsemax(logits):
     # Prevent this issue for now by setting k_z = 1 if k_z = 0, this is then
     # fixed later (see p_safe) by returning p = nan. This results in the same
     # behavior as softmax.
-    k_z_safe = tf.math.maximum(k_z, 1)
-    indices = tf.stack([tf.range(0, obs), tf.reshape(k_z_safe, [-1]) - 1], axis=1)
-    tau_sum = tf.gather_nd(z_cumsum, indices)
-    tau_z = (tau_sum - 1) / tf.cast(k_z, logits.dtype)
+    k_z_safe = ops.maximum(k_z, 1)
+    indices = ops.stack([ops.arange(0, obs), ops.reshape(k_z_safe, [-1]) - 1], axis=1)
+    tau_sum = ops.take(z_cumsum, indices)
+    tau_z = (tau_sum - 1) / ops.cast(k_z, logits.dtype)
 
     # calculate p
-    p = tf.math.maximum(tf.cast(0, logits.dtype), z - tf.expand_dims(tau_z, -1))
+    p = ops.maximum(ops.cast(0, logits.dtype), z - ops.expand_dims(tau_z, -1))
     # If k_z = 0 or if z = nan, then the input is invalid
-    p_safe = tf.where(
-        tf.expand_dims(
-            tf.math.logical_or(tf.math.equal(k_z, 0), tf.math.is_nan(z_cumsum[:, -1])),
+    p_safe = ops.where(
+        ops.expand_dims(
+            ops.logical_or(ops.equal(k_z, 0), ops.isnan(z_cumsum[:, -1])),
             axis=-1,
         ),
-        tf.fill([obs, dims], tf.cast(float("nan"), logits.dtype)),
+        ops.full([obs, dims], ops.cast(float("nan"), logits.dtype)),
         p,
     )
 
     # Reshape back to original size
-    p_safe = tf.reshape(p_safe, shape_op)
+    p_safe = ops.reshape(p_safe, shape_op)
     return p_safe
 
 
 # ================================= GUMBLE SOFTMAX =======================================
 @keras.saving.register_keras_serializable(package="teras.activations")
-def gumbel_softmax(logits: tf.Tensor,
+def gumbel_softmax(logits: keras.KerasTensor,
                    temperature: float = 0.2,
-                   hard: bool = False) -> tf.Tensor:
+                   hard: bool = False) -> keras.KerasTensor:
     """
     Implementation of the Gumbel Softmax activation function
     proposed by Eric Jang et al. in the paper
@@ -188,14 +186,14 @@ def gumbel_softmax(logits: tf.Tensor,
         hard: ``bool``, default False,
             Whether to return soft probabilities or hard one hot vectors.
     """
-    u = tf.random.uniform(tf.shape(logits),
-                          minval=0,
-                          maxval=1)
-    gumbels = -tf.math.log(-tf.math.log(u))
+    u = random.uniform(ops.shape(logits),
+                       minval=0,
+                       maxval=1)
+    gumbels = -ops.log(-ops.log(u))
     perturbed_logits = (logits + gumbels) / temperature
-    probabilities = tf.nn.softmax(perturbed_logits)
+    probabilities = ops.nn.softmax(perturbed_logits)
     if hard:
-        one_hot_labels = tf.one_hot(tf.argmax(probabilities, axis=-1),
-                                    tf.shape(logits)[-1])
+        one_hot_labels = ops.one_hot(ops.argmax(probabilities, axis=-1),
+                                     ops.shape(logits)[-1])
         return one_hot_labels
     return probabilities
