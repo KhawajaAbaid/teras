@@ -14,13 +14,11 @@
 
 
 # General purpose utility functions
-from teras.utils.utils import (tf_random_choice,
-                               get_normalization_layer,
+from teras.utils.utils import (get_normalization_layer,
                                get_categorical_features_cardinalities,
                                get_activation,
                                get_initializer,
                                get_features_metadata_for_embedding,
-                               dataframe_to_tf_dataset,
                                convert_dict_to_array_tensor,
                                serialize_layers_collection,
                                deserialize_layers_collection,
