@@ -1,4 +1,4 @@
-from tensorflow import keras
+import keras
 from teras.utils.utils import (serialize_layers_collection,
                                deserialize_layers_collection)
 from teras.utils.types import LayersList
@@ -21,16 +21,18 @@ class NODE(keras.Model):
             or, the number of features in the dataset.
 
         tree_layers: ``List[layers.Layer]``,
-            A list or tuple of `ObliviousDecisionTree` layers instances, or any custom
-            layer that can work in its place.
-            If None, default number of `ObliviousDecisionTree` layers with default values
-            will be used.
+            A list or tuple of `ObliviousDecisionTree` layers instances,
+            or any custom layer that can work in its place.
+            If None, default number of `ObliviousDecisionTree` layers with
+            default values will be used.
             You can import the `ObliviousDecisionTree` layer as follows,
                 >>> from teras.layers import ObliviousDecisionTree
 
         feature_selector: ``keras.layers.Layer``:
-            An instance of ``NodeFeatureSelector`` layer that selects features based on
-            In None, all features will be used (no ``NodeFeatureSelector`` layer will be applied).
+            An instance of ``NodeFeatureSelector`` layer that selects
+            features based on # TODO what????
+            In None, all features will be used (no ``NodeFeatureSelector``
+            layer will be applied).
             You can import the ``NodeFeatureSelector`` layer as follows,
                 >>> from teras.layers import NodeFeatureSelector
 
@@ -41,9 +43,11 @@ class NODE(keras.Model):
                 >>> from keras.layers import Dropout
 
         head: ``keras.layers.Layer``,
-            An instance of either ``ClassificationHead`` or ``RegressionHead`` layers,
+            An instance of either ``ClassificationHead`` or
+            ``RegressionHead`` layers,
             depending on the task at hand.
-            You can import the ``ClassificationHead`` and ``RegressionHead`` layers as follows,
+            You can import the ``ClassificationHead`` and
+            ``RegressionHead`` layers as follows,
                 >>> from teras.layers import ClassificationHead
                 >>> from teras.layers import RegressionHead
     """
@@ -55,7 +59,8 @@ class NODE(keras.Model):
                  head: keras.layers.Layer = None,
                  **kwargs):
         if not isinstance(tree_layers, (list, tuple)):
-            raise ValueError("`tree_layers` must be a list or tuple of `ObliviousDecisionTree` layers, "
+            raise ValueError("`tree_layers` must be a list or tuple of "
+                             "`ObliviousDecisionTree` layers, "
                              f"but received type: {type(tree_layers)}.")
 
         inputs = keras.layers.Input(shape=(input_dim,),
@@ -86,8 +91,10 @@ class NODE(keras.Model):
     def get_config(self):
         config = super().get_config()
         config.update({'input_dim': self.input_dim,
-                       'tree_layers': serialize_layers_collection(self.tree_layers),
-                       'feature_selector': keras.layers.serialize(self.feature_selector),
+                       'tree_layers': serialize_layers_collection(
+                           self.tree_layers),
+                       'feature_selector': keras.layers.serialize(
+                           self.feature_selector),
                        'dropout': keras.layers.serialize(self.dropout),
                        'head': keras.layers.serialize(self.head)
                        })
@@ -96,8 +103,10 @@ class NODE(keras.Model):
     @classmethod
     def from_config(cls, config):
         input_dim = config.pop("input_dim")
-        tree_layers = deserialize_layers_collection(config.pop("tree_layers"))
-        feature_selector = keras.layers.deserialize(config.pop("feature_selector"))
+        tree_layers = deserialize_layers_collection(
+            config.pop("tree_layers"))
+        feature_selector = keras.layers.deserialize(
+            config.pop("feature_selector"))
         dropout = keras.layers.deserialize(config.pop("dropout"))
         head = keras.layers.deserialize(config.pop("head"))
         return cls(input_dim=input_dim,
