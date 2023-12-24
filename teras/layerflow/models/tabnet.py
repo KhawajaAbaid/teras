@@ -1,10 +1,19 @@
-import tensorflow as tf
-from tensorflow import keras
-from tensorflow.keras import backend as K
+import keras
+from keras import ops, random
 from teras.layers.numerical_features_extractor import NumericalFeaturesExtractor
-from teras.losses.tabnet import reconstruction_loss
-import tensorflow_probability as tfp
+from teras.losses.tabnet import (reconstruction_loss as
+                                 reconstruction_loss_fn)
+from keras.backend import backend
+if backend() == "tensorflow":
+    import tensorflow as tf
+elif backend() == "torch":
+    import torch
+elif backend() == "jax":
+    import jax
 
+# TODO: Add a default callback that resets the reconstruction loss tracker
+#       metric? Maybe we won't need it anymore if out workaround of
+#       customizing the metrics property method works... :)
 
 @keras.saving.register_keras_serializable(package="keras.layerflow.models")
 class TabNet(keras.Model):
@@ -202,9 +211,9 @@ class TabNetPretrainer(keras.Model):
         self._numerical_features_exist = len(self.features_metadata["numerical"]) > 0
         self.input_dim = len(self.features_metadata["categorical"]) + len(self.features_metadata["numerical"])
 
-        self.binary_mask_generator = tfp.distributions.Binomial(total_count=1,
-                                                                probs=self.missing_feature_probability,
-                                                                name="binary_mask_generator")
+        # self.binary_mask_generator = tfp.distributions.Binomial(total_count=1,
+        #                                                         probs=self.missing_feature_probability,
+        #                                                         name="binary_mask_generator")
         self._reconstruction_loss_tracker = keras.metrics.Mean(name="reconstruction_loss")
 
     def get_pretrained_model(self):
@@ -219,20 +228,21 @@ class TabNetPretrainer(keras.Model):
     @property
     def feature_importances_per_sample(self):
         """Returns feature importances per sample computed during training."""
-        return tf.concat(self.encoder.feature_importances_per_sample, axis=0)
+        return ops.concatenate(self.encoder.feature_importances_per_sample, axis=0)
 
     @property
     def feature_importances(self):
         """Returns average feature importances across samples computed during training."""
-        return tf.reduce_mean(self.feature_importances_per_sample, axis=0)
+        return ops.mean(self.feature_importances_per_sample, axis=0)
 
     def compile(self,
-                loss=reconstruction_loss,
+                reconstruction_loss=reconstruction_loss_fn,
                 optimizer=keras.optimizers.Adam(learning_rate=0.001),
                 **kwargs):
-        super().compile(**kwargs)
-        self.reconstruction_loss = loss
-        self.optimizer = optimizer
+        super().compile(optimizer=optimizer,
+                        **kwargs)
+        self.reconstruction_loss = reconstruction_loss
+        # self.optimizer = optimizer
 
     def call(self, inputs, mask=None):
         # this mask below is what `S` means in the paper, where if an index contains
@@ -248,63 +258,214 @@ class TabNetPretrainer(keras.Model):
         decoder_outputs = self.decoder(encoded_representations)
         return decoder_outputs
 
-    def train_step(self, data):
+    def pre_train_step(self, data):
         if isinstance(data, tuple):
             data = data[0]
         cat_embed_dim = 0
         num_embed_dim = 0
+        embedded_inputs = None
+        if self._categorical_features_exist:
+            categorical_embeddings = (
+                self.model.categorical_feature_embedding(data))
+            # flatten it
+            categorical_embeddings = ops.ravel(categorical_embeddings)
+            cat_embed_dim = ops.shape(categorical_embeddings)[1]
+            embedded_inputs = categorical_embeddings
+        # We need to concatenate numerical features to the categorical embeddings
+        if self._numerical_features_exist:
+            if (hasattr(self.model, "numerical_feature_embedding")
+                    and self.model.numerical_feature_embedding is not None):
+                numerical_embeddings = (
+                    self.model.numerical_feature_embedding(data))
+            else:
+                numerical_embeddings = ops.take(
+                    data,
+                    indices=self.numerical_features_indices,
+                    axis=1)
+            num_embed_dim = ops.shape(numerical_embeddings)[1]
+            if embedded_inputs is None:
+                embedded_inputs = numerical_embeddings
+            else:
+                embedded_inputs = ops.concatenate(
+                    [embedded_inputs, numerical_embeddings], axis=1)
+        total_dim = cat_embed_dim + num_embed_dim
+        # Generate mask to create missing samples
+        batch_size = ops.shape(embedded_inputs)[0]
+        mask = random.binomial(
+            shape=(batch_size, total_dim),
+            counts=1,
+            probabilities=self.missing_feature_probability)
+        return embedded_inputs, mask, total_dim
 
-        with tf.GradientTape() as tape:
-            embedded_inputs = None
-            if self._categorical_features_exist:
-                categorical_embeddings = self.model.categorical_feature_embedding(data)
-                categorical_embeddings = K.flatten(categorical_embeddings)
-                cat_embed_dim = tf.shape(categorical_embeddings)[1]
-                embedded_inputs = categorical_embeddings
-            # We need to concatenate numerical features to the categorical embeddings
-            if self._numerical_features_exist:
-                if (hasattr(self.model, "numerical_feature_embedding")
-                        and self.model.numerical_feature_embedding is not None):
-                    numerical_embeddings = self.model.numerical_feature_embedding(data)
-                else:
-                    numerical_embeddings = tf.gather(data,
-                                                     indices=self.numerical_features_indices,
-                                                     axis=1)
-                num_embed_dim = tf.shape(numerical_embeddings)[1]
-                if embedded_inputs is None:
-                    embedded_inputs = numerical_embeddings
-                else:
-                    embedded_inputs = K.concatenate([embedded_inputs, numerical_embeddings], axis=1)
-            total_dim = cat_embed_dim + num_embed_dim
+    if backend() == "tensorflow":
+        def train_step(self, data):
+            embedded_inputs, mask, total_dim = self.pre_train_step(data)
             embedded_inputs.set_shape((None, total_dim))
-            # Generate mask to create missing samples
-            batch_size = tf.shape(embedded_inputs)[0]
-            mask = self.binary_mask_generator.sample(sample_shape=(batch_size, total_dim))
-            tape.watch(mask)
+            with tf.GradientTape() as tape:
+                tape.watch(embedded_inputs)
+                tape.watch(mask)
+                # Reconstruct samples
+                reconstructed_samples = self(embedded_inputs, mask=mask)
+                # Compute reconstruction loss
+                loss = self.loss(
+                    real_samples=embedded_inputs,
+                    reconstructed_samples=reconstructed_samples,
+                    mask=mask)
+            gradients = tape.gradient(loss, self.trainable_weights)
+            self.optimizer.apply(
+                grads=gradients,
+                trainable_variables=self.trainable_weights)
+            self._reconstruction_loss_tracker.update_state(loss)
+
+            for metric in self.metrics:
+                metric.update_state(embedded_inputs, reconstructed_samples)
+
+            if self._compile_loss is not None:
+                self.compute_loss(x=None,
+                                  y=embedded_inputs,
+                                  y_pred=reconstructed_samples)
+            results = {m.name: m.result() for m in self.metrics}
+            # results["reconstruction_loss"] = (
+            #                  self._reconstruction_loss_tracker.result())
+            return results
+
+    elif backend() == "torch":
+        def train_step(self, data):
+            embedded_inputs, mask, total_dim = self.pre_train_step(data)
+            embedded_inputs.requires_grad = True
+            mask.requires_grad = True
             # Reconstruct samples
             reconstructed_samples = self(embedded_inputs, mask=mask)
             # Compute reconstruction loss
-            loss = self.reconstruction_loss(real_samples=embedded_inputs,
-                                            reconstructed_samples=reconstructed_samples,
-                                            mask=mask)
-        gradients = tape.gradient(loss, self.trainable_weights)
-        self.optimizer.apply_gradients(zip(gradients, self.trainable_weights))
-        self._reconstruction_loss_tracker.update_state(loss)
-        # If user has passed any additional metrics to compile, we should update their states
-        if len(self.compiled_metrics.metrics) > 0:
-            self.compiled_metrics.update_state(embedded_inputs, reconstructed_samples)
-        # If user has passed any additional losses to compile, we should call them
-        if self.compiled_loss._losses is not None:
-            self.compiled_loss(embedded_inputs, reconstructed_samples)
-        results = {m.name: m.result() for m in self.metrics}
-        return results
+            loss = self.loss(
+                real_samples=embedded_inputs,
+                reconstructed_samples=reconstructed_samples,
+                mask=mask)
+            loss.backward()
+
+            trainable_weights = [v for v in self.trainable_weights]
+            gradients = [v.value.grad for v in trainable_weights]
+
+            with torch.no_grad():
+                self.optimizer.apply(
+                    grads=gradients,
+                    trainable_variables=self.trainable_weights)
+            self._reconstruction_loss_tracker.update_state(loss)
+
+            for metric in self.metrics:
+                metric.update_state(embedded_inputs, reconstructed_samples)
+
+            if self._compile_loss is not None:
+                self.compute_loss(x=None,
+                                  y=embedded_inputs,
+                                  y_pred=reconstructed_samples)
+            results = {m.name: m.result() for m in self.metrics}
+            return results
+
+    elif backend() == "jax":
+        def compute_loss_and_updates(
+                self,
+                trainable_variables,
+                non_trainable_variables,
+                x,
+                mask,
+                training=False
+        ):
+            reconstructed_samples, non_trainable_variables = (
+                self.stateless_call(
+                    trainable_variables,
+                    non_trainable_variables,
+                    x,
+                    mask,
+                    training=training
+                )
+            )
+            # TODO: currently only computing reconstruction loss
+            #       no checking for self._compiled_loss etc.
+            reconstruction_loss = self.reconstruction_loss(
+                real_samples=x,
+                reconstructed_samples=reconstructed_samples,
+                mask=mask
+            )
+            return reconstruction_loss, (reconstructed_samples,
+                                         non_trainable_variables)
+
+        def train_step(self, state, data):
+            (
+                trainable_variables,
+                non_trainable_variables,
+                optimizer_variables,
+                metrics_variables,
+            ) = state
+            embedded_inputs, mask, total_dim = self.pre_train_step(data)
+            grad_fn = jax.value_and_grad(self.compute_loss_and_updates,
+                                         has_aux=True)
+            ((loss, (reconstructed_samples, non_trainable_variables)),
+             grads) = (
+                grad_fn(
+                    trainable_variables,
+                    non_trainable_variables,
+                    embedded_inputs,
+                    mask,
+                    training=True
+                )
+            )
+
+            # Update trainable variables and optimizer variables
+            trainable_variables, optimizer_variables = (
+                self.optimizer.stateless_apply(
+                    optimizer_variables,
+                    grads,
+                    trainable_variables
+                )
+            )
+
+            # Update metrics
+            logs = {}
+            new_metrics_vars = []
+            for metric in self.metrics:
+                this_metric_vars = metrics_variables[
+                                   len(new_metrics_vars): len(new_metrics_vars) + len(metric.variables)
+                                   ]
+                if (metric.name == "reconstruction_loss" or
+                        metric.name == "loss"):
+                    this_metric_vars = metric.stateless_update_state(
+                        this_metric_vars,
+                        loss
+                    )
+                else:
+                    this_metric_vars = metric.stateless_update_state(
+                        this_metric_vars,
+                        embedded_inputs,
+                        reconstructed_samples
+                    )
+                logs[metric.name] = metric.stateless_result(
+                    this_metric_vars
+                )
+                new_metrics_vars += this_metric_vars
+            # Return metric logs and updated state variables.
+            state = (
+                trainable_variables,
+                non_trainable_variables,
+                optimizer_variables,
+                new_metrics_vars,
+            )
+            return logs, state
+
+
+    @property
+    def metrics(self):
+        _metrics = super().metrics()
+        _metrics.append(self._reconstruction_loss_tracker)
+        return _metrics
 
     def get_config(self):
         config = super().get_config()
         config.update({'model': keras.layers.serialize(self.model),
                        'features_metadata': self.features_metadata,
                        'decoder': keras.layers.serialize(self.decoder),
-                       'missing_feature_probability': self.missing_feature_probability
+                       'missing_feature_probability':
+                           self.missing_feature_probability
                        }
                       )
         return config
