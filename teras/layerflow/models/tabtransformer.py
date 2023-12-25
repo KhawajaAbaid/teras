@@ -326,7 +326,7 @@ class TabTransformerPretrainer(keras.Model):
                                      x,
                                      mask,
                                      training=True):
-            mask_pred, trainable_variables = self.stateless_call(
+            mask_pred, non_trainable_variables = self.stateless_call(
                 trainable_variables,
                 non_trainable_variables,
                 x,
