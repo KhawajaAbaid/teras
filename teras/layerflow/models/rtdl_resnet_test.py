@@ -19,12 +19,12 @@ def setup_data_rtdl_resnet():
     return inputs, model
 
 
-def test_valid_call(setup_data_rtdl_resnet):
+def test_rtdl_resnet_valid_call(setup_data_rtdl_resnet):
     inputs, model = setup_data_rtdl_resnet
     model(inputs)
 
 
-def test_save_and_load(setup_data_rtdl_resnet):
+def test_rtdl_resnet_save_and_load(setup_data_rtdl_resnet):
     inputs, model = setup_data_rtdl_resnet
     save_path = os.path.join(get_tmp_dir(), "rtdl_resnet_lf.keras")
     model.save(save_path)
