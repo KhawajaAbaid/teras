@@ -20,15 +20,15 @@ def setup_data():
     return inputs, model
 
 
-def test_valid_call(setup_data):
+def test_dnfnet_valid_call(setup_data):
     inputs, model = setup_data
     model(inputs)
 
 
-def test_save_and_load(setup_data):
+def test_dnfnet_save_and_load(setup_data):
     inputs, model = setup_data
     save_path = os.path.join(get_tmp_dir(), "dnfnet_lf.keras")
-    model.save(save_path, save_format="keras_v3")
+    model.save(save_path)
     reloaded_model = keras.models.load_model(save_path)
     outputs_original = model(inputs)
     outputs_reloaded = reloaded_model(inputs)
