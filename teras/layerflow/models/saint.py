@@ -420,9 +420,10 @@ class SAINTPretrainer(keras.Model):
             )
             loss = c_loss + self.lambda_ * d_loss
             loss.backward()
-            gradients = data.grad
+            trainable_weights = [v for v in self.trainable_weights]
+            gradients = [v.value.grad for v in trainable_weights]
             self.optimizer.apply(gradients,
-                                 self.trainable_weights)
+                                 trainable_weights)
 
             for metric in self.metrics:
                 if metric.name == "contrastive_loss":
