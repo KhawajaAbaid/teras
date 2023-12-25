@@ -353,6 +353,15 @@ class TabTransformerPretrainer(keras.Model):
                 training=True
             )
 
+            # Optimizer
+            (trainable_variables,
+             optimizer_variables) = self.optimizer.stateless_apply(
+                optimizer_variables,
+                grads,
+                trainable_variables
+            )
+
+            # Update metrics
             logs = {}
             new_metrics_vars = []
             for metric in self.metrics:
