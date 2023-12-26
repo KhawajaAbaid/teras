@@ -4,12 +4,13 @@ import keras
 from keras import ops, random
 
 
-def flatten(x: keras.KerasTensor):
+def binomial(shape: tuple):
     """
-    Flattens the given tensor/array.
-
+    Samples from a binomial distribution of a given shape
     Args:
-        x: ``keras.Tensor``,
-            Tensor array to flatten.
+        shape: 
+
+    Returns:
+
     """
-    return ops.reshape(x, ops.prod(ops.shape(x)))
+    pass

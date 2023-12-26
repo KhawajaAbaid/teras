@@ -14,7 +14,7 @@
 
 
 from keras.backend import backend
-from .wrappers import flatten
+
 
 if backend() == "tensorflow":
     from teras.backend.tensorflow import *
