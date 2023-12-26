@@ -1,4 +1,4 @@
-# Copyright 2023 Khawaja Abaid Ullah
+# Copyright 2024 Khawaja Abaid Ullah
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -10,7 +10,25 @@
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
-# limitations under the License.5
+# limitations under the License.
 
 
 from keras.backend import backend
+from .wrappers import flatten
+
+if backend() == "tensorflow":
+    from teras.backend.tensorflow import *
+
+elif backend() == "torch":
+    from teras.backend.torch import *
+
+elif backend() == "jax":
+    from teras.backend.jax import *
+
+elif backend() == "numpy":
+    from teras.backend.numpy import *
+
+else:
+    raise ValueError("Backend not support. "
+                     "Expected one of ['tensorflow', 'jax', 'torch']. "
+                     f"Found {backend()}")
