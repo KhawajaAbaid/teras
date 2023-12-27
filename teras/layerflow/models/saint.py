@@ -405,6 +405,8 @@ class SAINTPretrainer(keras.Model):
         def train_step(self, data):
             if isinstance(data, tuple):
                 data = data[0]
+            # Clear any left-over gradients
+            self.zero_grad()
 
             data.requires_grad = True
             z, z_prime, reconstructed_samples = self(data)
