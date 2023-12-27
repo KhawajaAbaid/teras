@@ -306,6 +306,8 @@ class TabTransformerPretrainer(keras.Model):
     elif backend() == "torch":
         def train_step(self, data):
             data, mask = self.pre_train_step(data)
+            # Clear any left-over gradients
+            self.zero_grad()
             data.requires_grad = True
             mask.requires_grad = True
             mask_pred = self(data, mask=mask)
