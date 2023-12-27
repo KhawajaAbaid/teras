@@ -332,6 +332,8 @@ class TabNetPretrainer(keras.Model):
     elif backend() == "torch":
         def train_step(self, data):
             embedded_inputs, mask, total_dim = self.pre_train_step(data)
+            # Clear any left-over gradients
+            self.zero_grad()
             embedded_inputs.requires_grad = True
             mask.requires_grad = True
             # Reconstruct samples
