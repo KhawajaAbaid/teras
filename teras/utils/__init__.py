@@ -36,3 +36,7 @@ from teras.utils.vime import (vime_mask_generator,
                               vime_pretext_generator,
                               preprocess_input_vime_self,
                               preprocess_input_vime_semi)
+
+# dtypes utils
+from teras.utils.dtypes import (get_default_numpy_floatx,
+                                set_default_numpy_floatx)
