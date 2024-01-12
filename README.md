@@ -2,10 +2,11 @@
 
 ![Teras logo banner](./data/imgs/Teras_logo_github_banner.jpg)
 
-## STATUS UPDATE as of October 02, 2023:
-Hello everyone, I'm super sorry for another delay. I was working towards the Teras v0.3.0 for the end of last month but then I got selected for Fulbright scholarship for my masters in Machine Learning, and now I've been trying to clear out the documentation and tests for admissions. I wont be able to work on this project this month at all, sorry again. I love this project and I'll make it the best version of it. I understand there's so many things to improve and fix. Rest assured that next month I'll be going super saiyan mode to pump out incredible updates because i have so many plans for it that I'm sure you'll love. 
+## STATUS UPDATE as of January 12, 2024:
 
-See y'all in November! :) 
+I'm actively working on the Teras v0.3 update but I've discovered some critical flaws in the design as well as code, and many inefficiencies and hacks that shouldn't be part of a good stable project, especially not that offers the state of the art research models. Because I'm a self taught ML and Software Engineer, there's so many things for me to learn and the more I learn the more flaws I keep finding in my code. Also, this library was my first attempt at translating research to usable code, and not just usable code but also one that is modular and intuitive, which is an inspiration from the Keras design. I made lots of mistakes in my first attempt, I redesigned the whole library in Teras v0.2 release and thought that'll now be a solid foundation, and i'd like to think it kind of was, but now with the release of Keras 3, there's lot to change, way more than I anticipated, mainly because of how some of the models require bunch of low level code.
+I'll try my best to release this update within this month!
+Peace!
 
 ---
 
