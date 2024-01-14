@@ -2,8 +2,12 @@
 
 ![Teras logo banner](./data/imgs/Teras_logo_github_banner.jpg)
 
-## STATUS UPDATE as of January 12, 2024:
+## STATUS UPDATE as of January 14, 2024:
 
+Please do not use the current repository as it is in a highly unstable state as I'm starting to rewrite this whole library from scratch. Please bear with me!
+
+
+#### Status update as of January 12, 2024:
 I'm actively working on the Teras v0.3 update but I've discovered some critical flaws in the design as well as code, and many inefficiencies and hacks that shouldn't be part of a good stable project, especially not that offers the state of the art research models. Because I'm a self taught ML and Software Engineer, there's so many things for me to learn and the more I learn the more flaws I keep finding in my code. Also, this library was my first attempt at translating research to usable code, and not just usable code but also one that is modular and intuitive, which is an inspiration from the Keras design. I made lots of mistakes in my first attempt, I redesigned the whole library in Teras v0.2 release and thought that'll now be a solid foundation, and i'd like to think it kind of was, but now with the release of Keras 3, there's lot to change, way more than I anticipated, mainly because of how some of the models require bunch of low level code.
 I'll try my best to release this update within this month!
 Peace!
