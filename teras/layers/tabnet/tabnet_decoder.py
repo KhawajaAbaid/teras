@@ -1,5 +1,5 @@
-import tensorflow as tf
-from tensorflow import keras
+import keras
+from keras import ops
 from teras.layers.tabnet import TabNetFeatureTransformer
 
 
@@ -124,8 +124,8 @@ class TabNetDecoder(keras.layers.Layer):
         Returns:
 
         """
-        batch_size = tf.shape(inputs)[0]
-        reconstructed_features = tf.zeros(shape=(batch_size, self.data_dim))
+        batch_size = ops.shape(inputs)[0]
+        reconstructed_features = ops.zeros(shape=(batch_size, self.data_dim))
 
         for i in range(self.num_decision_steps):
             feat_output = self.features_transformers_per_step[i](inputs)

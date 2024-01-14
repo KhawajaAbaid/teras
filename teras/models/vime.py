@@ -1,5 +1,4 @@
-import tensorflow as tf
-from tensorflow import keras
+import keras
 from teras.layers import (VimeEncoder,
                           VimeMaskEstimator,
                           VimeFeatureEstimator,
@@ -59,8 +58,6 @@ class VimeSelf(_VimeSelfLF):
         _, input_dim = input_shape
         inputs = keras.layers.Input(shape=(input_dim,))
         # Encoder
-
-
 
     def get_config(self):
         config = super().get_config()

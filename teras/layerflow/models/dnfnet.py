@@ -1,4 +1,4 @@
-from tensorflow import keras
+import keras
 from teras.utils.types import LayersCollection
 
 
@@ -25,9 +25,11 @@ class DNFNet(keras.Model):
                 >>> from teras.layers import DNNF
 
         head: ``keras.layers.Layer``,
-            An instance of either ``ClassificationHead`` or ``RegressionHead`` layers,
+            An instance of either ``ClassificationHead`` or
+            ``RegressionHead`` layers,
             depending on the task at hand.
-            You can import the ``ClassificationHead`` and ``RegressionHead`` layers as follows,
+            You can import the ``ClassificationHead`` and
+            ``RegressionHead`` layers as follows,
                 >>> from teras.layers import ClassificationHead
                 >>> from teras.layers import RegressionHead
     """
@@ -36,15 +38,18 @@ class DNFNet(keras.Model):
                  dnnf_layers: LayersCollection,
                  head: keras.layers.Layer = None,
                  **kwargs):
-        if isinstance(dnnf_layers, (keras.layers.Layer, keras.models.Model)):
+        if isinstance(dnnf_layers, (keras.layers.Layer,
+                                    keras.models.Model)):
             # keep it as is
             dnnf_layers = dnnf_layers
         elif isinstance(dnnf_layers, (list, tuple)):
             dnnf_layers = keras.models.Sequential(dnnf_layers,
                                                   name="dnnf_layers")
         else:
-            raise ValueError("`dnnf_layers` can either be a list of `DNNF` layers, a Keras Layer, "
-                             f"or a Keras model model but received type: {type(dnnf_layers)}.")
+            raise ValueError("`dnnf_layers` can either be a list of "
+                             "`DNNF` layers, a Keras Layer, "
+                             f"or a Keras model model but received type: "
+                             f"{type(dnnf_layers)}.")
         inputs = keras.layers.Input(shape=(input_dim,))
         outputs = dnnf_layers(inputs)
         if head is not None:
@@ -58,11 +63,12 @@ class DNFNet(keras.Model):
 
     def get_config(self):
         config = super().get_config()
-        config.update({'input_dim': self.input_dim,
-                       'dnnf_layers': keras.layers.serialize(self.dnnf_layers),
-                       'head': keras.layers.serialize(self.head)
-                       }
-                      )
+        config.update(
+            {'input_dim': self.input_dim,
+             'dnnf_layers': keras.layers.serialize(self.dnnf_layers),
+             'head': keras.layers.serialize(self.head)
+             }
+        )
         return config
 
     @classmethod

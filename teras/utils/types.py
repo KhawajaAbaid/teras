@@ -1,10 +1,9 @@
-import tensorflow as tf
-from tensorflow import keras
+import keras
 from typing import Union, List, Callable, Tuple
 import numpy as np
 
 
-# Taken from TensorFlow Addons
+# Taken from TensorFlow Addons - Sorry!
 
 Number = Union[
                 float,
@@ -22,16 +21,6 @@ Number = Union[
                 np.uint64,
             ]
 
-
-TensorLike = Union[
-                List[Union[Number, list]],
-                tuple,
-                Number,
-                np.ndarray,
-                tf.Tensor,
-                tf.SparseTensor,
-                tf.Variable,
-            ]
 
 ActivationType = Union[str,
                        Callable,

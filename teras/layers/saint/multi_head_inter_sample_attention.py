@@ -1,5 +1,5 @@
-import tensorflow as tf
-from tensorflow import keras
+import keras
+from keras import ops
 
 
 @keras.saving.register_keras_serializable(package="teras.layers.saint")
@@ -40,11 +40,11 @@ class MultiHeadInterSampleAttention(keras.layers.Layer):
         # Expected inputs shape: (b, n, d)
         # b: batch_size, n: num_features, d: embedding_dim
         x = inputs
-        x = tf.reshape(x, shape=(1,
-                                 tf.shape(x)[0],
-                                 tf.shape(x)[1] * tf.shape(x)[2]))
+        x = ops.reshape(x, (1,
+                            ops.shape(x)[0],
+                            ops.shape(x)[1] * ops.shape(x)[2]))
         x = self.multi_head_attention(x, x)
-        x = tf.reshape(x, shape=tf.shape(inputs))
+        x = ops.reshape(x, ops.shape(inputs))
         return x
 
     def get_config(self):

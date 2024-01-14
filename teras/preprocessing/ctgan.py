@@ -1,11 +1,75 @@
+from keras import ops
+from keras import random
 from sklearn.preprocessing import OneHotEncoder
-import tensorflow as tf
 from sklearn.mixture import BayesianGaussianMixture
-from teras.utils import tf_random_choice
-import numpy as np
 import pandas as pd
 from teras.preprocessing.base import BaseDataTransformer
 from teras.utils.types import FeaturesNamesType
+import concurrent.futures
+import numpy as np
+
+
+# TODO: implement a backend agnostic random choice function
+# Sample/Select a cluster for each value based on the given clusters
+# probabilities array for that value
+def random_choice(probs_array):
+    probs_array[np.isnan(probs_array)] = 1e-10
+    probs_array /= np.sum(probs_array)
+    return np.random.choice(np.arange(len(probs_array)), p=probs_array)
+
+
+def numerical_feature_transformer(args):
+    x, feature_name, weight_threshold, bgm_kwargs = args
+    print("processing feature: ", feature_name)
+    if isinstance(x, pd.DataFrame):
+        feature = x[feature_name].values.reshape(-1, 1)
+    elif isinstance(x, np.ndarray):
+        feature = x[:, feature_name].reshape(-1, 1)
+    else:
+        raise ValueError(
+            f"`x` must be either a pandas DataFrame or numpy ndarray. "
+            f"{type(x)} was given.")
+
+    feature_metadata = {}
+    feature_metadata["name"] = feature_name
+    bay_guass_mix = BayesianGaussianMixture(**bgm_kwargs)
+    bay_guass_mix.fit(feature)
+    # The authors use a weight threshold to filter out components in their
+    # implementation.
+    # For consistency's sake, we're going to use this idea but with slight
+    # modification.
+    # Reference to the official implementation:
+    # https://github.com/sdv-dev/CTGAN
+    valid_clusters_indicator = bay_guass_mix.weights_ > weight_threshold
+    # Compute probability of coming from each cluster for each value in the
+    # given (numerical) feature.
+    clusters_probs = bay_guass_mix.predict_proba(feature)
+    # Filter out the "invalid" clusters
+    clusters_probs = clusters_probs[:, valid_clusters_indicator]
+    clusters_probs[np.isnan(clusters_probs)] = 1e-10
+    # Normalize probabilities to sum up to 1 for each row
+    clusters_probs /= np.sum(clusters_probs, axis=1, keepdims=True)
+    selected_clusters_indices = np.apply_along_axis(
+        random_choice,
+        axis=1,
+        arr=clusters_probs)
+    # To create one-hot component, we'll store the selected clusters indices
+    # and the number of valid clusters
+    num_valid_clusters = sum(valid_clusters_indicator)
+    feature_metadata[
+        'selected_clusters_indices'] = selected_clusters_indices
+    feature_metadata["num_valid_clusters"] = num_valid_clusters
+    # Use the selected clusters to normalize the values.
+    # To normalize, we need the means and standard deviations
+    # Means
+    clusters_means = bay_guass_mix.means_.squeeze()[
+        valid_clusters_indicator]
+    feature_metadata['clusters_means'] = clusters_means
+    # Standard Deviations
+    clusters_stds = np.sqrt(bay_guass_mix.covariances_).squeeze()[
+        valid_clusters_indicator]
+    feature_metadata['clusters_stds'] = clusters_stds
+    return feature_metadata
 
 
 class ModeSpecificNormalization:
@@ -20,7 +84,7 @@ class ModeSpecificNormalization:
     Args:
         numerical_features: ``List[str]``
             List of numerical features names.
-            In the case of ndarray, pass a list of numerical column indices.
+            In the case of ndarray, pass a list of numerical column indices
 
         max_clusters: ``int``, default 10,
             Maximum clusters
@@ -31,13 +95,15 @@ class ModeSpecificNormalization:
 
         weight_threshold: ``int``, default 0.005,
             Taken from the official implementation.
-            The minimum value a component weight can take to be considered a valid component.
+            The minimum value a component weight can take to be considered
+            a valid component.
             `weights_` under this value will be ignored.
 
         covariance_type: ``str``,
             Parameter for the ``GaussianMixtureModel`` class of sklearn
 
-        weight_concentration_prior_type: ``str``, default "dirichlet_process",
+        weight_concentration_prior_type: ``str``,
+            default "dirichlet_process",
             Parameter for the ``GaussianMixtureModel`` class of sklearn
 
         weight_concentration_prior: ``float``, default 0.01,
@@ -59,22 +125,27 @@ class ModeSpecificNormalization:
         self.weight_concentration_prior_type = weight_concentration_prior_type
         self.weight_concentration_prior = weight_concentration_prior
 
-        # Features meta-data dictionary will contain all the information about a feature
-        # such as selected clusters indices, number of valid clusters, clusters means & stds.
-        #
+        # Features meta-data dictionary will contain all the information
+        # about a feature such as selected clusters indices, number of
+        # valid clusters, clusters means & stds.
         # 1. `Clusters indices` will be used in the transform method
-        #       to create the one hot vector B(i,j) where B stands for Beta, for each value c(i,j)
-        #       where c(i,j) is the jth value in the ith numerical feature.
-        #       as proposed in the paper in the steps to apply mode specific normalization method on page 3-4.
-        # 2. `Number of valid clusters` will be used in the transform method when one-hotting
+        #       to create the one hot vector B(i,j) where B stands for
+        #       Beta, for each value c(i,j) where c(i,j) is the jth
+        #       value in the ith numerical feature as proposed in the
+        #       paper in the steps to apply mode specific normalization
+        #       method on page 3-4.
+        # 2. `Number of valid clusters` will be used in the transform
+        #       method when one-hotting
         # 3. `means` and `standard deviations` will be used in transform
-        #       step to normalize the value c(i,j) to create a(i,j) where a stands for alpha.
+        #       step to normalize the value c(i,j) to create a(i,j) where
+        #       a stands for alpha.
         self.metadata = {}
 
-        self.bay_guass_mix = BayesianGaussianMixture(n_components=self.max_clusters,
-                                                     covariance_type=self.covariance_type,
-                                                     weight_concentration_prior_type=self.weight_concentration_prior_type,
-                                                     weight_concentration_prior=self.weight_concentration_prior)
+        self.bay_guass_mix = BayesianGaussianMixture(
+            n_components=self.max_clusters,
+            covariance_type=self.covariance_type,
+            weight_concentration_prior_type=self.weight_concentration_prior_type,
+            weight_concentration_prior=self.weight_concentration_prior)
 
         self.fitted = False
 
@@ -86,62 +157,20 @@ class ModeSpecificNormalization:
         relative_indices_all = []
         num_valid_clusters_all = []
         relative_index = 0
-        for feature_name in self.numerical_features:
-            if isinstance(x, pd.DataFrame):
-                feature = x[feature_name].values.reshape(-1, 1)
-            elif isinstance(x, np.ndarray):
-                feature = x[:, feature_name].reshape(-1, 1)
-            else:
-                raise ValueError(f"`x` must be either a pandas DataFrame or numpy ndarray. "
-                                 f"{type(x)} was given.")
 
-            self.metadata[feature_name] = {}
-            self.bay_guass_mix.fit(feature)
-            # The authors use a weight threshold to filter out components in their implementation.
-            # For consistency's sake, we're going to use this idea but with slight modification.
-            # Reference to the official implementation: https://github.com/sdv-dev/CTGAN
-            valid_clusters_indicator = self.bay_guass_mix.weights_ > self.weight_threshold
-            # Compute probability of coming from each cluster for each value in the given (numerical) feature.
-            clusters_probs = self.bay_guass_mix.predict_proba(feature)
-            # Filter out the "invalid" clusters
-            clusters_probs = clusters_probs[:, valid_clusters_indicator]
-            clusters_probs[np.isnan(clusters_probs)] = 1e-10
-            # Normalize probabilities to sum up to 1 for each row
-            clusters_probs /= np.sum(clusters_probs, axis=1, keepdims=True)
-
-            # Sample/Select a cluster for each value based on the given clusters probabilities array for that value
-            def random_choice(probs_array):
-                probs_array[np.isnan(probs_array)] = 1e-10
-                probs_array /= np.sum(probs_array)
-                return np.random.choice(np.arange(len(probs_array)), p=probs_array)
-
-            selected_clusters_indices = np.apply_along_axis(
-                random_choice,
-                axis=1,
-                arr=clusters_probs)
-
-            # To create one-hot component, we'll store the selected clusters indices
-            # and the number of valid clusters
-            num_valid_clusters = sum(valid_clusters_indicator)
-            self.metadata[feature_name]['selected_clusters_indices'] = selected_clusters_indices
-            self.metadata[feature_name]['num_valid_clusters'] = num_valid_clusters
-
-            relative_indices_all.append(relative_index)
-            # The 1 is for the alpha feature, since each numerical feature
-            # gets transformed into alpha + betas where,
-            # |alpha| = 1 and |betas| = num_valid_clusters
-            relative_index += (1 + num_valid_clusters)
-            num_valid_clusters_all.append(num_valid_clusters)
-
-            # Use the selected clusters to normalize the values.
-            # To normalize, we need the means and standard deviations
-            # Means
-            clusters_means = self.bay_guass_mix.means_.squeeze()[valid_clusters_indicator]
-            self.metadata[feature_name]['clusters_means'] = clusters_means
-            # Standard Deviations
-            clusters_stds = np.sqrt(self.bay_guass_mix.covariances_).squeeze()[valid_clusters_indicator]
-            self.metadata[feature_name]['clusters_stds'] = clusters_stds
-
+        feat_args = [(x, feature_name, self.weight_threshold,
+                      self.bgm_kwargs)
+                     for feature_name in self.numerical_features]
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            results = executor.map(numerical_feature_transformer,
+                                   feat_args)
+            for r in results:
+                _name = r["name"]
+                relative_indices_all.append(relative_index)
+                relative_index += (1 + r["num_valid_clusters"])
+                num_valid_clusters_all.append(r["num_valid_clusters"])
+                del r["name"]
+                self.metadata[_name] = r
         self.metadata["relative_indices_all"] = np.array(relative_indices_all)
         self.metadata["num_valid_clusters_all"] = num_valid_clusters_all
         self.fitted = True
@@ -156,32 +185,34 @@ class ModeSpecificNormalization:
         # Contain the normalized numerical features
         x_cont_normalized = []
         for feature_name in self.numerical_features:
-            selected_clusters_indices = self.metadata[feature_name]['selected_clusters_indices']
-            num_valid_clusters = self.metadata[feature_name]['num_valid_clusters']
+            selected_clusters_indices = self.metadata[feature_name][
+                'selected_clusters_indices']
+            num_valid_clusters = self.metadata[feature_name][
+                'num_valid_clusters']
             # One hot components for all values in the feature
             # we borrow the beta notation from the paper
             # for clarity and understanding's sake.
-            betas = np.eye(num_valid_clusters)[selected_clusters_indices]
+            betas = ops.eye(num_valid_clusters)[selected_clusters_indices]
 
             # Normalizing
             means = self.metadata[feature_name]['clusters_means']
             stds = self.metadata[feature_name]['clusters_stds']
             if isinstance(x, pd.DataFrame):
                 feature = x[feature_name].values
-            elif isinstance(x, np.ndarray):
+            elif isinstance(x, ops.ndarray):
                 feature = x[:, feature_name]
             else:
-                raise ValueError(f"`x` must be either a pandas DataFrame or numpy ndarray. "
-                                 f"{type(x)} was given.")
+                raise ValueError(f"`x` must be either a pandas DataFrame "
+                                 f"or numpy ndarray. {type(x)} was given.")
             means = means[selected_clusters_indices]
             stds = stds[selected_clusters_indices]
             alphas = (feature - means) / (self.std_multiplier * stds)
-            alphas = np.expand_dims(alphas, 1)
+            alphas = ops.expand_dims(alphas, 1)
 
-            normalized_feature = np.concatenate([alphas, betas], axis=1)
+            normalized_feature = ops.concatenate([alphas, betas], axis=1)
             x_cont_normalized.append(normalized_feature)
 
-        x_cont_normalized = np.concatenate(x_cont_normalized, axis=1)
+        x_cont_normalized = ops.concatenate(x_cont_normalized, axis=1)
         return x_cont_normalized
 
     def fit_transform(self, x):
@@ -208,7 +239,7 @@ class ModeSpecificNormalization:
             if isinstance(x_normalized, pd.DataFrame):
                 normalized_feature = x_normalized[feature_name].values
                 x[feature_name] = normalized_feature * (self.std_multiplier * stds) + means
-            elif isinstance(x_normalized, np.ndarray):
+            elif isinstance(x_normalized, ops.ndarray):
                 # todo delete this part and just stick with pandas dataframe
                 normalized_feature = x_normalized[:, feature_name]
                 x[:, feature_name] = normalized_feature * (self.std_multiplier * stds) + means
@@ -322,20 +353,20 @@ class CTGANDataTransformer(BaseDataTransformer):
             relative_indices_all.append(feature_relative_index)
             feature_relative_index += num_categories
 
-            log_freqs = x[feature_name].value_counts().apply(np.log)
+            log_freqs = x[feature_name].value_counts().apply(ops.log)
             categories_probs_dict = log_freqs.to_dict()
             # To overcome the floating point precision issue which causes probabilities to not sum up to 1
-            # and resultantly causes error in np.random.choice method,
+            # and resultantly causes error in ops.random.choice method,
             # we round the probabilities to 7 decimal points
-            probs = np.around(np.array(list(categories_probs_dict.values())), 7)
+            probs = ops.around(ops.array(list(categories_probs_dict.values())), 7)
             # Normalizing so all probs sum up to 1
-            probs = probs / np.sum(probs)
+            probs = probs / ops.sum(probs)
             categories, categories_probs = list(categories_probs_dict.keys()), probs
             categories_probs_all.append(categories_probs)
             categories_all.append(categories)
         categorical_metadata["total_num_categories"] = sum(num_categories_all)
         categorical_metadata["num_categories_all"] = num_categories_all
-        categorical_metadata["relative_indices_all"] = np.array(relative_indices_all)
+        categorical_metadata["relative_indices_all"] = ops.array(relative_indices_all)
         categorical_metadata["categories_probs_all"] = categories_probs_all
         categorical_metadata["categories_all"] = categories_all
 
@@ -375,7 +406,7 @@ class CTGANDataTransformer(BaseDataTransformer):
             relative_indices_all.extend(self.metadata["categorical"]["relative_indices_all"] + 1 + offset)
         self.metadata["relative_indices_all"] = relative_indices_all
         self.metadata["total_transformed_features"] = total_transformed_features
-        x_transformed = np.concatenate([x_numerical, x_categorical.toarray()], axis=1)
+        x_transformed = ops.concatenate([x_numerical, x_categorical.toarray()], axis=1)
         return x_transformed
 
     def reverse_transform(self, x_generated):
@@ -402,7 +433,7 @@ class CTGANDataTransformer(BaseDataTransformer):
                 alphas = x_generated[:, index]
                 betas = x_generated[:, index + 1 : index + 1 + num_valid_clusters_all[cont_index]]
                 # Recall that betas represent the one hot encoded form of the cluster number
-                cluster_indices = np.argmax(betas, axis=1)
+                cluster_indices = ops.argmax(betas, axis=1)
                 # List of cluster means for a feature. contains one value per cluster
                 means = self.metadata["numerical"][feature_name]["clusters_means"]
 
@@ -422,7 +453,7 @@ class CTGANDataTransformer(BaseDataTransformer):
                 # then the column at hand is categorical
                 raw_feature_parts = x_generated[:, index: index + num_categories_all[cat_index]]
                 categories = self.one_hot_enc.categories_[cat_index]
-                categories_indices = tf.argmax(raw_feature_parts, axis=1)
+                categories_indices = ops.argmax(raw_feature_parts, axis=1)
                 feature = categories[categories_indices]
                 data[feature_name] = feature
                 cat_index += 1
@@ -498,9 +529,9 @@ class CTGANDataSampler:
         # adapting the approach from the official implementation
         # to sample evenly across the categories to combat imbalance
         row_idx_raw = [x_original.groupby(feature).groups for feature in self.categorical_features]
-        self.row_idx_by_categories = tf.ragged.constant([[values.to_list()
-                                                          for values in feat.values()]
-                                                         for feat in row_idx_raw])
+        self.row_idx_by_categories = [[values.to_list()
+                                       for values in feat.values()]
+                                      for feat in row_idx_raw]
 
         total_num_categories = self.metadata["categorical"]["total_num_categories"]
 
@@ -524,13 +555,13 @@ class CTGANDataSampler:
         # 1. Create Nd zero-filled mask vectors mi = [mi(k)] where k=1...|Di| and for i = 1,...,Nd,
         # so the ith mask vector corresponds to the ith column,
         # and each component is associated to the category of that column.
-        masks = tf.zeros([self.batch_size, len(self.categorical_features)])
-        cond_vectors = tf.zeros([self.batch_size, self.metadata["categorical"]["total_num_categories"]])
+        masks = ops.zeros([self.batch_size, len(self.categorical_features)])
+        cond_vectors = ops.zeros([self.batch_size, self.metadata["categorical"]["total_num_categories"]])
         # 2. Randomly select a discrete column Di out of all the Nd discrete columns, with equal probability.
         # >>> We select them in generator method
 
-        random_features_relative_indices = tf.gather(self.metadata["categorical"]["relative_indices_all"],
-                                                     indices=random_features_idx)
+        random_features_relative_indices = ops.take(self.metadata["categorical"]["relative_indices_all"],
+                                                    indices=random_features_idx)
 
         # 3. Construct a PMF across the range of values of the column selected in 2, Di* , such that the
         # probability mass of each value is the logarithm of its frequency in that column.
@@ -544,17 +575,17 @@ class CTGANDataSampler:
         # Offset this index by relative index of the feature that it belongs to.
         # because the final cond vector is the concatenation of all features and
         # is just one vector that has the length equal to total_num_categories
-        random_values_idx_offsetted = random_values_idx + tf.cast(random_features_relative_indices,
-                                                                  dtype=tf.int32)
+        random_values_idx_offsetted = random_values_idx + ops.cast(random_features_relative_indices,
+                                                                   dtype="int32")
         # Indices are required by the tensor_scatter_nd_update method to be of type int32 and NOT int64
         # random_values_idx_offsetted = tf.cast(random_values_idx_offsetted, dtype=tf.int32)
         # indices_cond = list(zip(tf.range(batch_size), random_values_idx_offsetted))
-        indices_cond = tf.stack([tf.range(self.batch_size), random_values_idx_offsetted], axis=1)
-        ones = tf.ones(self.batch_size)
-        cond_vectors = tf.tensor_scatter_nd_update(cond_vectors, indices_cond, ones)
+        indices_cond = ops.stack([ops.arange(self.batch_size), random_values_idx_offsetted], axis=1)
+        ones = ops.ones(self.batch_size)
+        cond_vectors = ops.scatter_update(cond_vectors, indices_cond, ones)
         # indices_mask = list(zip(tf.range(batch_size), tf.cast(random_features_idx, dtype=tf.int32)))
-        indices_mask = tf.stack([tf.range(self.batch_size), random_features_idx], axis=1)
-        masks = tf.tensor_scatter_nd_update(masks, indices_mask, tf.ones(self.batch_size))
+        indices_mask = ops.stack([ops.arange(self.batch_size), random_features_idx], axis=1)
+        masks = ops.scatter_update(masks, indices_mask, ops.ones(self.batch_size))
         return cond_vectors, masks
 
     def sample_cond_vectors_for_generation(self, batch_size):
@@ -564,29 +595,32 @@ class CTGANDataSampler:
         probability as proposed in the paper.
         """
         num_categories_all = self.metadata["categorical"]["num_categories_all"]
-        cond_vectors = tf.zeros((batch_size, self.metadata["categorical"]["total_num_categories"]))
-        random_features_idx = tf.random.uniform(shape=(batch_size,),
-                                                minval=0, maxval=len(self.categorical_features),
-                                                dtype=tf.int32)
+        cond_vectors = ops.zeros((batch_size, self.metadata["categorical"]["total_num_categories"]))
+        random_features_idx = ops.cast(random.uniform(shape=(batch_size,),
+                                                      minval=0,
+                                                      maxval=len(self.categorical_features)),
+                                       dtype="int32")
 
         # For each randomly picked feature, we get it's corresponding num_categories
-        random_num_categories_all = tf.gather(num_categories_all,
-                                              indices=random_features_idx)
+        random_num_categories_all = ops.take(num_categories_all,
+                                             indices=random_features_idx)
         # Then we select one category index from a feature using a range of 0 — num_categories
-        random_values_idx = [tf.squeeze(tf.random.uniform(shape=(1,),
-                                                          minval=0, maxval=num_categories, dtype=tf.int32))
+        random_values_idx = [ops.squeeze(ops.cast(random.uniform(shape=(1,),
+                                                                 minval=0,
+                                                                 maxval=num_categories),
+                                                  dtype="int32"))
                              for num_categories in random_num_categories_all]
-        random_values_idx = tf.stack(random_values_idx)
+        random_values_idx = ops.stack(random_values_idx)
         # Offset this index by relative index of the feature that it belongs to.
         # because the final cond vector is the concatenation of all features and
         # is just one vector that has the length equal to total_num_categories
-        random_features_relative_indices = tf.gather(self.metadata["categorical"]["relative_indices_all"],
-                                                     indices=random_features_idx)
-        random_values_idx_offsetted =  random_values_idx + tf.cast(random_features_relative_indices, dtype=tf.int32)
+        random_features_relative_indices = ops.take(self.metadata["categorical"]["relative_indices_all"],
+                                                    indices=random_features_idx)
+        random_values_idx_offsetted =  random_values_idx + ops.cast(random_features_relative_indices, dtype="int32")
         # random_values_idx_offsetted = tf.cast(random_values_idx_offsetted, dtype=tf.int32)
-        indices_cond = list(zip(tf.range(batch_size), random_values_idx_offsetted))
-        ones = tf.ones(batch_size)
-        cond_vectors = tf.tensor_scatter_nd_update(cond_vectors, indices_cond, ones)
+        indices_cond = list(zip(ops.arange(batch_size), random_values_idx_offsetted))
+        ones = ops.ones(batch_size)
+        cond_vectors = ops.scatter_update(cond_vectors, indices_cond, ones)
         return cond_vectors
 
     def generator(self, x_transformed, for_tvae=False):
@@ -602,32 +636,32 @@ class CTGANDataSampler:
         # and pass them as argument to the sample cond_vec but for now let's just work with it.
         num_steps_per_epoch = self.num_samples // self.batch_size
         for _ in range(num_steps_per_epoch):
-            random_features_idx = tf.random.uniform([self.batch_size], minval=0,
-                                                    maxval=len(self.categorical_features),
-                                                    dtype=tf.int32)
+            random_features_idx = ops.cast(random.uniform([self.batch_size],
+                                                          minval=0,
+                                                          maxval=len(self.categorical_features)),
+                                           dtype="int32")
             # NOTE: We've precomputed the probabilities in the DataTransformer class for each feature already
             # to speed things up.
-            random_features_categories_probs = tf.gather(
-                tf.ragged.constant(self.metadata["categorical"]["categories_probs_all"]),
+            random_features_categories_probs = ops.take(
+                self.metadata["categorical"]["categories_probs_all"],
                 indices=random_features_idx)
-            random_values_idx = [tf_random_choice(np.arange(len(feature_probs)),
+            random_values_idx = [tf_random_choice(ops.arange(len(feature_probs)),
                                                   n_samples=1,
                                                   p=feature_probs)
                                  for feature_probs in random_features_categories_probs]
-            random_values_idx = tf.cast(tf.squeeze(random_values_idx), dtype=tf.int32)
+            random_values_idx = ops.cast(ops.squeeze(random_values_idx), dtype="int32")
             # the official implementation uses actual indices during the sample_cond_vector method
             # but uses the shuffled version in sampling data, so we're gonna do just that.
-            shuffled_idx = tf.random.shuffle(tf.range(self.batch_size))
+            shuffled_idx = random.shuffle(ops.arange(self.batch_size))
             # features_idx = random_features_idx
             # values_idx = random_values_idx
-            shuffled_features_idx = tf.gather(random_features_idx, indices=shuffled_idx)
-            shuffled_values_idx = tf.gather(random_values_idx, indices=shuffled_idx)
+            shuffled_features_idx = ops.take(random_features_idx, indices=shuffled_idx)
+            shuffled_values_idx = ops.take(random_values_idx, indices=shuffled_idx)
             sample_idx = []
-            # TODO make it more efficient -- maybe replace with gather or gathernd or something
             for feat_id, val_id in zip(shuffled_features_idx, shuffled_values_idx):
-                s_id = tf_random_choice(self.row_idx_by_categories[tf.squeeze(feat_id)][tf.squeeze(val_id)],
+                s_id = tf_random_choice(self.row_idx_by_categories[ops.squeeze(feat_id)][ops.squeeze(val_id)],
                                         n_samples=1)
-                sample_idx.append(tf.squeeze(s_id))
+                sample_idx.append(ops.squeeze(s_id))
 
             # we also return shuffled_idx because it will be required to shuffle the conditional vector
             # in the training loop as we want to keep the shuffling consistent as the batch of
@@ -641,6 +675,6 @@ class CTGANDataSampler:
                                                                        random_values_idx=random_values_idx)
             # `cond_vectors_real` will be concatenated with the real_samples
             # and passed to the discriminator
-            cond_vectors_real = tf.gather(cond_vectors, indices=shuffled_idx)
+            cond_vectors_real = ops.take(cond_vectors, indices=shuffled_idx)
             real_samples = x_transformed[sample_idx]
             yield real_samples, cond_vectors_real, cond_vectors, mask

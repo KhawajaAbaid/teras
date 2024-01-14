@@ -1,4 +1,4 @@
-import tensorflow as tf
+from keras import ops
 from teras.layers.saint.saint_reconstruction_head import SAINTReconstructionHead
 from teras.utils import get_features_metadata_for_embedding
 import pandas as pd
@@ -21,8 +21,8 @@ def test_saint_reconstruction_head_output_shape():
 
     saint_reconstruction_head = SAINTReconstructionHead(features_metadata,
                                                         embedding_dim=32)
-    inputs = tf.ones(shape=(16, 4, 32), dtype=tf.float32)
+    inputs = ops.ones(shape=(16, 4, 32))
     outputs = saint_reconstruction_head(inputs)
-    assert len(tf.shape(outputs)) == 2
-    assert tf.shape(outputs)[0] == 16
-    assert tf.shape(outputs)[1] == sum_of_features_cardinalities
+    assert len(ops.shape(outputs)) == 2
+    assert ops.shape(outputs)[0] == 16
+    assert ops.shape(outputs)[1] == sum_of_features_cardinalities

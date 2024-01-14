@@ -1,6 +1,5 @@
-from tensorflow import keras
-import numpy as np
-import tensorflow as tf
+import keras
+from keras import ops
 from teras.utils.types import Number
 
 
@@ -87,8 +86,8 @@ class CategoricalFeatureEmbedding(keras.layers.Layer):
 
     def call(self, inputs):
         # Encode and embedd categorical features
-        categorical_feature_embeddings = tf.TensorArray(size=self._num_categorical_features,
-                                                        dtype=tf.float32)
+        categorical_feature_embeddings = ops.array([], dtype="float32")
+
         # feature_idx is the overall index of feature in the dataset
         # so it can't be used to retrieve lookup table and embedding layer from list
         # which are both of length equal to number of categorical features - not input dimensions
@@ -96,7 +95,7 @@ class CategoricalFeatureEmbedding(keras.layers.Layer):
         current_idx = 0
         # We only embedd the categorical features
         for feature_name, (feature_idx, _) in self.categorical_features_metadata.items():
-            feature = tf.expand_dims(inputs[:, feature_idx], 1)
+            feature = ops.expand_dims(inputs[:, feature_idx], 1)
             if self.encode:
                 # Convert string input values to integer indices
                 lookup = self.lookup_tables[current_idx]
@@ -104,12 +103,11 @@ class CategoricalFeatureEmbedding(keras.layers.Layer):
             # Convert index values to embedding representations
             embedding = self.embedding_layers[current_idx]
             feature = embedding(feature)
-            categorical_feature_embeddings = categorical_feature_embeddings.write(current_idx, feature)
+            categorical_feature_embeddings = ops.append(categorical_feature_embeddings, feature)
             current_idx += 1
-        categorical_feature_embeddings = categorical_feature_embeddings.stack()
-        categorical_feature_embeddings = tf.squeeze(categorical_feature_embeddings, axis=2)
-        categorical_feature_embeddings = tf.transpose(categorical_feature_embeddings, perm=[1, 0, 2])
-        categorical_feature_embeddings.set_shape((None, self._num_categorical_features, self.embedding_dim))
+        categorical_feature_embeddings = ops.reshape(categorical_feature_embeddings, (-1,
+                                                                                      self._num_categorical_features,
+                                                                                      self.embedding_dim))
         return categorical_feature_embeddings
 
     def get_config(self):

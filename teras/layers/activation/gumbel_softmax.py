@@ -1,5 +1,4 @@
-import tensorflow as tf
-from tensorflow import keras
+import keras
 from teras.activations import gumbel_softmax
 
 
@@ -31,7 +30,7 @@ class GumbelSoftmax(keras.layers.Layer):
         self.temperature = temperature
         self.hard = hard
 
-    def call(self, logits: tf.Tensor):
+    def call(self, logits: keras.KerasTensor):
         return gumbel_softmax(logits,
                               temperature=self.temperature,
                               hard=self.hard)

@@ -1,5 +1,6 @@
-import tensorflow as tf
-from tensorflow import keras
+import keras
+from keras import ops
+from keras import random
 from typing import Literal
 import math
 
@@ -70,32 +71,33 @@ class PeriodicEmbedding(keras.layers.Layer):
 
     def build(self, input_shape):
         if self.initialization == "log-linear":
-            self.coefficients = self.sigma ** (tf.range(self.n) / self.n)
-            self.coefficients = tf.repeat(self.coefficients[None],
-                                          repeats=self._num_numerical_features,
-                                          axis=1)
+            self.coefficients = self.sigma ** (ops.arange(self.n) / self.n)
+            self.coefficients = ops.repeat(self.coefficients[None],
+                                           repeats=self._num_numerical_features,
+                                           axis=1)
         else:
             # initialization must be normal
-            self.coefficients = tf.random.normal(shape=(self._num_numerical_features, self.n),
-                                                 mean=0.,
-                                                 stddev=self.sigma)
+            self.coefficients = random.normal(shape=(self._num_numerical_features, self.n),
+                                              mean=0.,
+                                              stddev=self.sigma)
 
-        self.coefficients = tf.Variable(self.coefficients)
+        # self.coefficients = tf.Variable(self.coefficients)
 
     @staticmethod
     def cos_sin(x):
-        return tf.concat([tf.cos(x), tf.sin(x)], -1)
+        return ops.concatenate([ops.cos(x), ops.sin(x)],
+                               axis=-1)
 
     def call(self, inputs):
-        numerical_features = tf.gather(inputs,
-                                       indices=self._numerical_features_indices,
-                                       axis=1)
-        numerical_features = tf.cast(numerical_features, dtype=tf.float32)
+        numerical_features = ops.take(inputs,
+                                      indices=self._numerical_features_indices,
+                                      axis=1)
+        numerical_features = ops.cast(numerical_features, dtype="float32")
 
-        pi = tf.constant(math.pi)
+        pi = math.pi
         return self.cos_sin(2. * pi
-                            * tf.expand_dims(self.coefficients, axis=0)
-                            * tf.expand_dims(numerical_features, axis=-1))
+                            * ops.expand_dims(self.coefficients, axis=0)
+                            * ops.expand_dims(numerical_features, axis=-1))
 
     def get_config(self):
         config = super().get_config()

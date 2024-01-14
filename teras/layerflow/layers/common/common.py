@@ -3,8 +3,8 @@ This module contains general purpose common layers that can't be
 classified into some category or attributed to a base architecture
 like transformers.
 """
-from tensorflow import keras
-from tensorflow.keras import layers
+import keras
+from keras import layers
 
 
 @keras.saving.register_keras_serializable(package="teras.layerflow.layers")

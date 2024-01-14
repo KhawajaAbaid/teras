@@ -1,4 +1,4 @@
-import tensorflow as tf
+from keras import ops
 from teras.layers.categorical_feature_embedding import CategoricalFeatureEmbedding
 from teras.utils import get_features_metadata_for_embedding
 import pandas as pd
@@ -27,10 +27,10 @@ def test_categorical_feature_embedding_valid_call(setup_data):
 def test_categorical_feature_embedding_output_shape(setup_data):
     data, categorical_embedding = setup_data
     outputs = categorical_embedding(data)
-    assert len(tf.shape(outputs)) == 3
-    assert tf.shape(outputs)[0] == 8    # number of items in each column
-    assert tf.shape(outputs)[1] == 2
-    assert tf.shape(outputs)[2] == 32
+    assert len(ops.shape(outputs)) == 3
+    assert ops.shape(outputs)[0] == 8    # number of items in each column
+    assert ops.shape(outputs)[1] == 2
+    assert ops.shape(outputs)[2] == 32
 
 
 def test_categorical_feature_embedding_raises_error_when_categorical_features_dont_exist():

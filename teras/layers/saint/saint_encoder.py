@@ -1,4 +1,4 @@
-from tensorflow import keras
+import keras
 from teras.layerflow.layers.saint.saint_encoder import SAINTEncoder as _SAINTEncoderLF
 from teras.layers.saint.saint_transformer import SAINTTransformer
 

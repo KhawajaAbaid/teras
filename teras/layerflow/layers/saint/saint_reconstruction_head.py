@@ -1,5 +1,5 @@
-from tensorflow import keras
-from tensorflow.keras import backend as K
+import keras
+from keras import ops
 from teras.layerflow.layers.common.common import HiLOL
 from teras.utils import (serialize_layers_collection,
                          deserialize_layers_collection)
@@ -84,7 +84,7 @@ class SAINTReconstructionHead(keras.layers.Layer):
             reconstructed_inputs.append(reconstructed_feature)
         # the reconstructed inputs will have features equal to
         # `number of numerical features` + `number of categories in the categorical features`
-        reconstructed_inputs = K.concatenate(reconstructed_inputs, axis=1)
+        reconstructed_inputs = ops.concatenate(reconstructed_inputs, axis=1)
         return reconstructed_inputs
 
     def get_config(self):

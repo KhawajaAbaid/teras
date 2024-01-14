@@ -1,4 +1,4 @@
-from tensorflow import keras
+import keras
 from teras.layers.gain import GAINGeneratorBlock, GAINDiscriminatorBlock
 from teras.layerflow.models.gain import GAIN as _GAIN_LF
 from teras.utils.types import UnitsValuesType, ActivationType

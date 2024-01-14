@@ -1,5 +1,5 @@
-import tensorflow as tf
-from tensorflow import keras
+import keras
+from keras import ops
 
 
 @keras.saving.register_keras_serializable(package="teras.layers.saint")
@@ -60,18 +60,19 @@ class SAINTNumericalFeatureEmbedding(keras.layers.Layer):
             )
 
     def call(self, inputs):
-        numerical_feature_embeddings = tf.TensorArray(size=self._num_numerical_features,
-                                                      dtype=tf.float32)
+        numerical_feature_embeddings = ops.array([])
 
         for i, (feature_name, feature_idx) in enumerate(self.features_metadata["numerical"].items()):
-            feature = tf.expand_dims(inputs[:, feature_idx], 1)
+            feature = ops.expand_dims(inputs[:, feature_idx], 1)
             embedding = self.embedding_layers[i]
             feature = embedding(feature)
-            numerical_feature_embeddings = numerical_feature_embeddings.write(i, feature)
+            numerical_feature_embeddings = ops.append(numerical_feature_embeddings, feature)
 
-        numerical_feature_embeddings = tf.squeeze(numerical_feature_embeddings.stack())
-        numerical_feature_embeddings = tf.transpose(numerical_feature_embeddings, perm=[1, 0, 2])
-        numerical_feature_embeddings.set_shape((None, self._num_numerical_features, self.embedding_dim))
+        numerical_feature_embeddings = ops.reshape(numerical_feature_embeddings,
+                                                   (-1,
+                                                    self._num_numerical_features,
+                                                    self.embedding_dim)
+                                                   )
         return numerical_feature_embeddings
 
     def get_config(self):

@@ -1,4 +1,4 @@
-import tensorflow as tf
+from keras import ops
 from teras.layers.numerical_features_extractor import NumericalFeaturesExtractor
 from teras.utils import get_features_metadata_for_embedding
 import pandas as pd
@@ -27,8 +27,8 @@ def test_numerical_feature_extractor_output_shape_when_numerical_features_exist(
     extractor = NumericalFeaturesExtractor(features_metadata=metadata)
     outputs = extractor(inputs)
 
-    assert tf.shape(outputs)[0] == 8
-    assert tf.shape(outputs)[1] == 1    # there's only one numerical feature
+    assert ops.shape(outputs)[0] == 8
+    assert ops.shape(outputs)[1] == 1    # there's only one numerical feature
 
 
 def test_numerical_feature_extractor_raises_error_when_numerical_features_dont_exist():

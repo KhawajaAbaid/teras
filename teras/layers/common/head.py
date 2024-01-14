@@ -1,4 +1,4 @@
-from tensorflow import keras
+import keras
 from teras.utils import get_normalization_layer
 from teras.utils.types import (UnitsValuesType,
                                NormalizationType,

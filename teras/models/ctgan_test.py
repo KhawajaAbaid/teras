@@ -1,127 +1,125 @@
-import tensorflow as tf
-from tensorflow import keras
+import keras
+from keras import ops
+from keras import random
 from teras.models.ctgan import CTGANGenerator, CTGANDiscriminator, CTGAN
 from teras.preprocessing.ctgan import CTGANDataTransformer, CTGANDataSampler
-from teras.utils import inject_missing_values, generate_fake_gemstone_data
+from teras.utils import generate_fake_gemstone_data, get_tmp_dir
 import os
+import pytest
 
 
-class CTGANGeneratorTest(tf.test.TestCase):
-    def setUp(self):
-        fake_gem_df = generate_fake_gemstone_data(num_samples=32)
-        num_cols = ["depth", "table"]
-        cat_cols = ["cut", "color", "clarity"]
-        self.data_transformer = CTGANDataTransformer(numerical_features=num_cols,
-                                                     categorical_features=cat_cols)
-        x_transformed = self.data_transformer.transform(fake_gem_df)
+@pytest.fixture
+def setup_data_ctgan():
+    fake_gem_df = generate_fake_gemstone_data(num_samples=32)
+    num_cols = ["depth", "table"]
+    cat_cols = ["cut", "color", "clarity"]
+    data_transformer = CTGANDataTransformer(numerical_features=num_cols,
+                                            categorical_features=cat_cols)
+    x_transformed = data_transformer.transform(fake_gem_df)
 
-        self.data_sampler = CTGANDataSampler(batch_size=8,
-                                             categorical_features=cat_cols,
-                                             metadata=self.data_transformer.get_metadata())
-        self.dataset = self.data_sampler.get_dataset(x_transformed=x_transformed,
-                                                     x_original=fake_gem_df)
-        self.metadata = self.data_transformer.get_metadata()
-
-    def test_valid_call(self):
-        z = tf.random.uniform((8, 16))
-        generator = CTGANGenerator(data_dim=5,
-                                   metadata=self.metadata)
-        outputs = generator(z)
-
-    def test_output_shape(self):
-        z = tf.random.uniform((8, 16))
-        generator = CTGANGenerator(data_dim=5,
-                                   metadata=self.metadata)
-        outputs = generator(z)
-        self.assertAllEqual(tf.shape(outputs), (8, 5))
-
-    def test_save_and_load(self):
-        z = tf.random.uniform((8, 16))
-        generator = CTGANGenerator(data_dim=5,
-                                   metadata=self.metadata)
-        save_path = os.path.join(self.get_temp_dir(), "ctgan_generator.keras")
-        generator.save(save_path, save_format="keras_v3")
-        reloaded_model = keras.models.load_model(save_path)
-        outputs_original = generator(z)
-        outputs_reloaded = reloaded_model(z)
-        # self.assertAllClose(outputs_original, outputs_reloaded)
+    data_sampler = CTGANDataSampler(batch_size=8,
+                                    categorical_features=cat_cols,
+                                    metadata=data_transformer.get_metadata())
+    dataset = data_sampler.get_dataset(x_transformed=x_transformed,
+                                       x_original=fake_gem_df)
+    metadata = data_transformer.get_metadata()
+    data_dim = data_sampler.data_dim
+    ctgan = CTGAN(input_dim=data_dim,
+                  metadata=metadata)
+    return {"dataset": dataset,
+            "metadata": metadata,
+            "data_dim": data_dim,
+            "ctgan": ctgan,
+            "data_sampler": data_sampler,
+            "data_transformer": data_transformer
+            }
 
 
-class CTGANDiscriminatorTest(tf.test.TestCase):
-    def setUp(self):
-        self.inputs = tf.ones((8, 5))
-
-    def test_valid_call(self):
-        discriminator = CTGANDiscriminator()
-        outputs = discriminator(self.inputs)
-
-    def test_output_shape(self):
-        discriminator = CTGANDiscriminator()
-        outputs = discriminator(self.inputs)
-        self.assertAllEqual(tf.shape(outputs), (1, 1))
-
-    def test_save_and_load(self):
-        discriminator = CTGANDiscriminator()
-        save_path = os.path.join(self.get_temp_dir(), "ctgan_discriminator.keras")
-        discriminator.save(save_path, save_format="keras_v3")
-        reloaded_model = keras.models.load_model(save_path)
-        outputs_original = discriminator(self.inputs)
-        outputs_reloaded = reloaded_model(self.inputs)
-        # self.assertAllClose(outputs_original, outputs_reloaded)
+def test_ctgan_generator_valid_call(setup_data_ctgan):
+    z = random.uniform((8, 16))
+    generator = CTGANGenerator(data_dim=5,
+                               metadata=setup_data_ctgan["metadata"])
+    outputs = generator(z)
 
 
-class CTGANTest(tf.test.TestCase):
-    def setUp(self):
-        fake_gem_df = generate_fake_gemstone_data(num_samples=32)
-        num_cols = ["depth", "table"]
-        cat_cols = ["cut", "color", "clarity"]
-        self.data_transformer = CTGANDataTransformer(numerical_features=num_cols,
-                                                     categorical_features=cat_cols)
-        x_transformed = self.data_transformer.transform(fake_gem_df)
+def test_ctgan_generator_output_shape(setup_data_ctgan):
+    z = random.uniform((8, 16))
+    generator = CTGANGenerator(data_dim=5,
+                               metadata=setup_data_ctgan["metadata"])
+    outputs = generator(z)
+    ops.shape(outputs) == (8, 5)
 
-        self.data_sampler = CTGANDataSampler(batch_size=8,
-                                             categorical_features=cat_cols,
-                                             metadata=self.data_transformer.get_metadata())
-        self.dataset = self.data_sampler.get_dataset(x_transformed=x_transformed,
-                                                     x_original=fake_gem_df)
-        self.metadata = self.data_transformer.get_metadata()
-        self.data_dim = self.data_sampler.data_dim
-        self.ctgan = CTGAN(input_dim=self.data_dim,
-                           metadata=self.metadata)
 
-    def test_valid_call(self):
-        # CTGAN's call method is just calls the generator's call method
-        z = tf.random.normal((8, 16))
-        ctgan = CTGAN(input_dim=self.data_dim,
-                      metadata=self.metadata)
-        outputs = ctgan(z)
+def test_ctgan_generator_save_and_load(setup_data_ctgan):
+    z = random.uniform((8, 16))
+    generator = CTGANGenerator(data_dim=5,
+                               metadata=setup_data_ctgan["metadata"])
+    save_path = os.path.join(get_tmp_dir(), "ctgan_generator.keras")
+    generator.save(save_path, save_format="keras_v3")
+    reloaded_model = keras.models.load_model(save_path)
+    outputs_original = generator(z)
+    outputs_reloaded = reloaded_model(z)
+    # assertAllClose(outputs_original, outputs_reloaded)
 
-    def test_output_shape(self):
-        # CTGAN's call method is just calls the generator's call method
-        z = tf.random.normal((8, 16))
-        ctgan = CTGAN(input_dim=self.data_dim,
-                      metadata=self.metadata)
-        outputs = ctgan(z)
-        self.assertAllEqual(tf.shape(outputs), (8, self.data_dim))
 
-    def test_save_and_load(self):
-        z = tf.random.normal((8, 16))
-        ctgan = CTGAN(input_dim=self.data_dim,
-                      metadata=self.metadata)
-        save_path = os.path.join(self.get_temp_dir(), "ctgan.keras")
-        ctgan.save(save_path, save_format="keras_v3")
-        reloaded_model = keras.models.load_model(save_path)
-        outputs_original = ctgan(z)
-        outputs_reloaded = reloaded_model(z)
-        # self.assertAllClose(outputs_original, outputs_reloaded)
+def test_ctgan_discriminator_valid_call():
+    inputs = ops.ones((8, 5))
+    discriminator = CTGANDiscriminator()
+    outputs = discriminator(inputs)
 
-    def test_fit(self):
-        self.ctgan.compile()
-        self.ctgan.fit(self.dataset)
 
-    def test_generate(self):
-        generated_data = self.ctgan.generate(num_samples=16,
-                                             data_sampler=self.data_sampler,
-                                             data_transformer=self.data_transformer,
-                                             reverse_transform=True)
-        assert len(generated_data) == 16
+def test_ctgan_discriminator_output_shape():
+    inputs = ops.ones((8, 5))
+    discriminator = CTGANDiscriminator()
+    outputs = discriminator(inputs)
+    ops.shape(outputs) == (1, 1)
+
+
+def test_ctgan_discriminator_save_and_load():
+    inputs = ops.ones((8, 5))
+    discriminator = CTGANDiscriminator()
+    save_path = os.path.join(get_tmp_dir(), "ctgan_discriminator.keras")
+    discriminator.save(save_path, save_format="keras_v3")
+    reloaded_model = keras.models.load_model(save_path)
+    outputs_original = discriminator(inputs)
+    outputs_reloaded = reloaded_model(inputs)
+    # assertAllClose(outputs_original, outputs_reloaded)
+
+
+def test_ctgan_valid_call(setup_data_ctgan):
+    # CTGAN's call method is just calls the generator's call method
+    z = random.normal((8, 16))
+    outputs = setup_data_ctgan["ctgan"](z)
+
+
+def test_ctgan_output_shape(setup_data_ctgan):
+    # CTGAN's call method is just calls the generator's call method
+    z = random.normal((8, 16))
+    outputs = setup_data_ctgan["ctgan"](z)
+    ops.shape(outputs) == (8, setup_data_ctgan["data_dim"])
+
+
+def test_ctgan_save_and_load(setup_data_ctgan):
+    ctgan = setup_data_ctgan["ctgan"]
+    z = random.normal((8, 16))
+    save_path = os.path.join(get_tmp_dir(), "ctgan.keras")
+    ctgan.save(save_path, save_format="keras_v3")
+    reloaded_model = keras.models.load_model(save_path)
+    outputs_original = ctgan(z)
+    outputs_reloaded = reloaded_model(z)
+    # assertAllClose(outputs_original, outputs_reloaded)
+
+
+def test_ctgan_fit(setup_data_ctgan):
+    ctgan = setup_data_ctgan["ctgan"]
+    ctgan.compile()
+    ctgan.fit(setup_data_ctgan["dataset"])
+
+
+def test_ctgan_generate(setup_data_ctgan):
+    ctgan = setup_data_ctgan["ctgan"]
+    generated_data = ctgan.generate(num_samples=16,
+                                    data_sampler=setup_data_ctgan["data_sampler"],
+                                    data_transformer=setup_data_ctgan["data_transformer"],
+                                    reverse_transform=True)
+    assert len(generated_data) == 16

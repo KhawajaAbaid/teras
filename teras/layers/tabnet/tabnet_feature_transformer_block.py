@@ -1,5 +1,5 @@
-import tensorflow as tf
-from tensorflow import keras
+import keras
+from keras import ops
 from teras.activations import glu
 
 
@@ -63,7 +63,7 @@ class TabNetFeatureTransformerBlock(keras.layers.Layer):
         x = self.norm(x)
         x = glu(x)
         if self.use_residual_normalization:
-            x = self.add([x, inputs]) * tf.math.sqrt(self.residual_normalization_factor)
+            x = self.add([x, inputs]) * ops.sqrt(self.residual_normalization_factor)
         return x
 
     def get_config(self):

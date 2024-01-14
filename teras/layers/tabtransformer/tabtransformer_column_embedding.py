@@ -1,5 +1,5 @@
-import tensorflow as tf
-from tensorflow import keras
+import keras
+from keras import ops
 
 
 @keras.saving.register_keras_serializable(package="teras.layers.tabtransformer")
@@ -27,10 +27,10 @@ class TabTransformerColumnEmbedding(keras.layers.Layer):
         self.num_categorical_features = num_categorical_features
         self.column_embedding = keras.layers.Embedding(input_dim=self.num_categorical_features,
                                                        output_dim=self.embedding_dim)
-        self.column_indices = tf.range(start=0,
-                                       limit=self.num_categorical_features,
-                                       delta=1)
-        self.column_indices = tf.cast(self.column_indices, dtype="float32")
+        self.column_indices = ops.arange(start=0,
+                                         stop=self.num_categorical_features,
+                                         step=1)
+        self.column_indices = ops.cast(self.column_indices, dtype="float32")
 
     def call(self, inputs):
         """

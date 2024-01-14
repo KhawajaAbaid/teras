@@ -1,4 +1,4 @@
-import tensorflow as tf
+from keras import ops
 from teras.layers.ft_transformer.ft_numerical_feature_embedding import FTNumericalFeatureEmbedding
 from teras.utils import get_features_metadata_for_embedding
 import pandas as pd
@@ -29,11 +29,11 @@ def test_ft_numerical_feature_embedding_output_shape(setup_data):
     normalization = FTNumericalFeatureEmbedding(features_metadata=metadata,
                                                 embedding_dim=16)
     outputs = normalization(inputs)
-    assert len(tf.shape(outputs)) == 3
-    assert tf.shape(outputs)[0] == 8
+    assert len(ops.shape(outputs)) == 3
+    assert ops.shape(outputs)[0] == 8
     # FTNumericalFeatureEmbedding layer returns embedded numerical features only
-    assert tf.shape(outputs)[1] == 2
-    assert tf.shape(outputs)[2] == 16
+    assert ops.shape(outputs)[1] == 2
+    assert ops.shape(outputs)[2] == 16
 
 
 def test_ft_numerical_feature_embedding_raises_error_when_numerical_features_dont_exist():

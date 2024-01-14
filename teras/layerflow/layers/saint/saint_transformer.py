@@ -1,4 +1,4 @@
-from tensorflow import keras
+import keras
 
 
 @keras.saving.register_keras_serializable(package="teras.layerflow.layers.saint")
