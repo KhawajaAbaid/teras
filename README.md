@@ -4,7 +4,7 @@
 
 ## STATUS UPDATE as of January 14, 2024:
 
-Please do not use the current repository as it is in a highly unstable state as I'm starting to rewrite this whole library from scratch. Please bear with me!
+The current repository is in a highly unstable state as I'm starting to rewrite this whole library from scratch. All the previous code uptil Teras v0.2.0 has been moved to the new `teras.legacy` module.
 
 
 #### Status update as of January 12, 2024:
