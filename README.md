@@ -2,7 +2,7 @@
 
 ![Teras logo banner](./data/imgs/Teras_logo_github_banner.jpg)
 
-## STATUS UPDATE as of January 14, 2024:
+## STATUS UPDATE as of January 19, 2024:
 
 The current repository is in a highly unstable state as I'm starting to rewrite this whole library from scratch. All the previous code uptil Teras v0.2.0 has been moved to the new `teras.legacy` module.
 
