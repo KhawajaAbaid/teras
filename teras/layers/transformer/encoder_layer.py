@@ -3,10 +3,7 @@ from teras.layers.transformer.feedforward import TransformerFeedForward
 from teras.api_export import teras_export
 
 
-@teras_export(path=[
-                    "teras.layers.TransformerEncoderLayer",
-                    "teras.layers.transformer.TransformerEncoderLayer"
-                    ])
+@teras_export("teras.layers.TransformerEncoderLayer")
 class TransformerEncoderLayer(keras.layers.Layer):
     """
     Transformer Encoder Layer as proposed in the original Transformer
@@ -51,19 +48,19 @@ class TransformerEncoderLayer(keras.layers.Layer):
         self.layer_norm_epsilon = layer_norm_epsilon
 
         self.attention = keras.layers.MultiHeadAttention(
-                                num_heads=self.num_heads,
-                                key_dim=self.embedding_dim,
-                                dropout=attention_dropout
+            num_heads=self.num_heads,
+            key_dim=self.embedding_dim,
+            dropout=attention_dropout
         )
         self.feedforward = TransformerFeedForward(
-                                embedding_dim=self.embedding_dim,
-                                hidden_dim=self.feedforward_dim,
-                                dropout=self.feedforward_dropout
+            embedding_dim=self.embedding_dim,
+            hidden_dim=self.feedforward_dim,
+            dropout=self.feedforward_dropout
         )
         self.add_1 = keras.layers.Add()
         self.add_2 = keras.layers.Add()
         self.layer_norm_1 = keras.layers.LayerNormalization(
-                                epsilon=self.layer_norm_epsilon
+            epsilon=self.layer_norm_epsilon
         )
         self.layer_norm_2 = keras.layers.LayerNormalization(
             epsilon=self.layer_norm_epsilon

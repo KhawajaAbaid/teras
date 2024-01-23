@@ -3,10 +3,7 @@ from teras.api_export import teras_export
 from teras.utils.types import ActivationType
 
 
-@teras_export(path=[
-    "teras.layers.TransformerFeedForward",
-    "teras.layers.transformer.TransformerFeedForward"
-])
+@teras_export("teras.layers.TransformerFeedForward")
 class TransformerFeedForward(keras.layers.Layer):
     """
     Transformer Feed Forward layer as proposed in the original
