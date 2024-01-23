@@ -3,12 +3,14 @@ from abc import abstractmethod
 from keras.backend import backend
 from teras.backend.generic_utils import dataset_type
 import time
+from teras.api_export import teras_export
 
 
 _BACKEND = backend()
 
 
-class GAN:
+@teras_export("teras.models.blueprints")
+class GANBlueprint:
     """
     A base class for building specialized GAN-based architectures in Teras.
 
