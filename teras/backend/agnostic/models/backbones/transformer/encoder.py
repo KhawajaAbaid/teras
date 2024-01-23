@@ -4,8 +4,8 @@ from teras.layers.transformer.encoder_layer import TransformerEncoderLayer
 from teras.api_export import teras_export
 
 
-@teras_export("teras.models.TransformerEncoder")
-class TransformerEncoder(Backbone):
+@teras_export("teras.models.TransformerEncoderBackbone")
+class TransformerEncoderBackbone(Backbone):
     """
     Transformer Encoder model as proposed in the "Attention is all you
     need" paper.
