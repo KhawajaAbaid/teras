@@ -1,5 +1,5 @@
 import keras.models
-from teras.backend.agnostic.models.backbones.transformer.encoder import TransformerEncoder
+from teras.models.backbones.transformer.encoder import TransformerEncoder
 from keras import random, ops
 from keras.src.testing.test_case import TestCase
 import pytest
