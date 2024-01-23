@@ -9,12 +9,15 @@ from teras.api_export import teras_export
                     ])
 class TransformerEncoderLayer(keras.layers.Layer):
     """
-    Transformer Encoder Layer as proposed in the Transformer
+    Transformer Encoder Layer as proposed in the original Transformer
     architecture in the "Attention is all you need" paper.
 
     This is the layer that makes up the encoder in the architecture.
-    This is made up of MultiHeadAttention and TransformerFeedForward
+    This is made up of `MultiHeadAttention` and `TransformerFeedForward`
     layers.
+
+    Reference(s):
+        https://arxiv.org/abs/1706.03762
 
     Args:
         embedding_dim: int, dimensionality of the embeddings used

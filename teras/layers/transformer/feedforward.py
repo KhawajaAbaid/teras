@@ -10,9 +10,11 @@ from teras.utils.types import ActivationType
 class TransformerFeedForward(keras.layers.Layer):
     """
     Transformer Feed Forward layer as proposed in the original
-    Transformers paper,
-    titled,"Attention is all you need", with a slight addition of
-    optional `Dropout` layer.
+    Transformers architecture, in the paper,"Attention is all you need",
+    with a slight addition of optional `Dropout` layer.
+
+    Reference(s):
+        https://arxiv.org/abs/1706.03762
 
     Args:
         embedding_dim: int, dimensionality of embeddings being used in
