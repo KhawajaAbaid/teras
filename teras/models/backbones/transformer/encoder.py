@@ -1,5 +1,5 @@
 import keras
-from teras.backend.agnostic.models.blueprints.backbone import Backbone
+from teras.models.blueprints.backbone import Backbone
 from teras.layers.transformer.encoder_layer import TransformerEncoderLayer
 from teras.api_export import teras_export
 
