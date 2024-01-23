@@ -66,6 +66,9 @@ class TransformerEncoderLayer(keras.layers.Layer):
             epsilon=self.layer_norm_epsilon
         )
 
+    def build(self, input_shape):
+        self.feedforward.build(input_shape)
+
     def call(self, inputs):
         residue = inputs
         x = self.attention(inputs, inputs)

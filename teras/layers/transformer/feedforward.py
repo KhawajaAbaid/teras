@@ -46,6 +46,11 @@ class TransformerFeedForward(keras.layers.Layer):
                                         self.dropout,
                                         name="feedforward_dropout")
 
+    def build(self, input_shape):
+        self.inner.build(input_shape)
+        hidden_shape = input_shape[:-1] + (self.hidden_dim,)
+        self.outer.build(hidden_shape)
+
     def call(self, inputs):
         x = self.inner(inputs)
         x = self.dropout_layer(x)
