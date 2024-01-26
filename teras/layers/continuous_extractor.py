@@ -1,6 +1,7 @@
 import keras
 from keras import ops
 from teras.api_export import teras_export
+from teras.utils.dtypes import ListOrArray
 
 
 @teras_export("teras.layers.ContinuousExtractor")
@@ -15,7 +16,7 @@ class ContinuousExtractor(keras.layers.Layer):
             features in the given dataset.
     """
     def __init__(self,
-                 continuous_idx: list,
+                 continuous_idx: ListOrArray,
                  **kwargs):
         super().__init__(**kwargs)
         self.continuous_idx = continuous_idx
