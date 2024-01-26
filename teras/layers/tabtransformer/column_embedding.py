@@ -145,6 +145,9 @@ class TabTransformerColumnEmbedding(keras.layers.Layer):
                 embeddings += self.shared_embedding
         return embeddings
 
+    def compute_output_shape(self, input_shape):
+        return input_shape + (self.embedding_dim,)
+
     def get_config(self):
         config = super().get_config()
         config.update({
