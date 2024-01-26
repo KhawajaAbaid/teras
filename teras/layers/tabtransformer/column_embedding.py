@@ -3,7 +3,6 @@ import numpy as np
 from keras import ops
 from keras.backend import floatx
 from teras.api_export import teras_export
-from teras.utils.dtypes import OptionalIntOrStr
 
 
 _VALID_JOIN_METHODS = ['concat', 'add']
@@ -26,6 +25,10 @@ class TabTransformerColumnEmbedding(keras.layers.Layer):
             You can use the `compute_cardinalities` function from
             `teras.utils` package for this purpose.
         embedding_dim: int, dimensionality of the embeddings
+        use_shared_embedding: bool, whether to use the shared embeddings.
+            Defaults to `True`.
+            If `False`, this layer will be effectively equivalent to a
+            `keras.layers.Embedding` layer.
         shared_embedding_dim: int, dimensionality of the shared embeddings.
             Shared embeddings are the embeddings of the unique column
             identifiers, which according to the paper, help the model
@@ -33,9 +36,6 @@ class TabTransformerColumnEmbedding(keras.layers.Layer):
             By default, its value is set to `embedding_dim / 8` as this
             setup is the most superior in the results presented by the
             authors.
-            You can also set it to `None` if you don't want to use shared
-            embeddings. In which case this layer will be equivalent to a
-            `keras.layers.Embedding` layer.
         join_method: str, one of ['concat', 'add'] method to join the
             shared embeddings with feature embeddings.
             Defaults to 'concat', which is the recommended method,
@@ -49,7 +49,8 @@ class TabTransformerColumnEmbedding(keras.layers.Layer):
     def __init__(self,
                  cardinalities: list,
                  embedding_dim: int,
-                 shared_embedding_dim: OptionalIntOrStr = "default",
+                 use_shared_embedding: bool = True,
+                 shared_embedding_dim: int = None,
                  join_method: str = "concat",
                  **kwargs):
         super().__init__(**kwargs)
@@ -59,7 +60,10 @@ class TabTransformerColumnEmbedding(keras.layers.Layer):
                 f"but received, {join_method}")
         self.cardinalities = cardinalities
         self.embedding_dim = embedding_dim
-        self.shared_embedding_dim = shared_embedding_dim
+        self.use_shared_embedding = use_shared_embedding
+        self.shared_embedding_dim = (
+            shared_embedding_dim if shared_embedding_dim else
+            embedding_dim // 8)
         self.join_method = join_method
 
         # indices of categorical features
@@ -92,24 +96,18 @@ class TabTransformerColumnEmbedding(keras.layers.Layer):
                                            "float32")
         _total_categories = sum(self.cardinalities) + _num_special_tokens
 
-        self._use_shared_embedding = False
-        _shared_embedding_dim = 0
         _feature_embedding_dim = self.embedding_dim
+        _shared_embedding_dim = self.shared_embedding_dim
 
-        if self.shared_embedding_dim is not None:
-            self._use_shared_embedding = True
+        if self.use_shared_embedding:
             if self.join_method == "concat":
-                if self.shared_embedding_dim == "default":
-                    _shared_embedding_dim = self.embedding_dim // 8
-                else:
-                    _shared_embedding_dim = self.shared_embedding_dim
                 _feature_embedding_dim -= _shared_embedding_dim
             # if user specifies any shared embedding dimensions, but the
             # join method is set to add, then shared embeddings will be
             # the same dimensions as the feature embedding and user's
             # supplied value will be overwritten
             else:
-                _shared_embedding_dim = self.embedding_dim
+                _shared_embedding_dim = _feature_embedding_dim
 
         self.feature_embedding = self.add_weight(
             shape=(_total_categories, _feature_embedding_dim),
@@ -117,7 +115,7 @@ class TabTransformerColumnEmbedding(keras.layers.Layer):
             dtype=floatx(),
             name="feature_embedding")
 
-        if self._use_shared_embedding:
+        if self.use_shared_embedding:
             self.shared_embedding = self.add_weight(
                 shape=(_num_categorical_features,
                        _shared_embedding_dim),
@@ -137,7 +135,7 @@ class TabTransformerColumnEmbedding(keras.layers.Layer):
                               indices=inputs,
                               axis=0)
         embeddings = ops.cast(embeddings, dtype=_dtype)
-        if self._use_shared_embedding:
+        if self.use_shared_embedding:
             if self.join_method == "concat":
                 _shared_emb = ops.tile(self.shared_embedding,
                                        (_batch_size, 1, 1))
@@ -146,3 +144,14 @@ class TabTransformerColumnEmbedding(keras.layers.Layer):
             else:
                 embeddings += self.shared_embedding
         return embeddings
+
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            "cardinalities": self.cardinalities,
+            "embedding_dim": self.embedding_dim,
+            "use_shared_embedding": self.use_shared_embedding,
+            "shared_embedding_dim": self.shared_embedding_dim,
+            "join_method": self.join_method
+        })
+        return config

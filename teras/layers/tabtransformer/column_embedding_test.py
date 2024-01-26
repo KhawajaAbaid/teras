@@ -35,16 +35,16 @@ class TabTransformerColumnEmbeddingTest(TestCase):
         embeddings = column_embedding(self.input_batch)
         self.assertEqual((16, 4, 32), ops.shape(embeddings))
 
-    def test_when_shared_embedding_set_to_none(self):
+    def test_when_use_shared_embedding_is_false(self):
         column_embedding = TabTransformerColumnEmbedding(
             cardinalities=self.cardinalities,
             embedding_dim=32,
-            shared_embedding_dim=None,
+            use_shared_embedding=False,
         )
         embeddings = column_embedding(self.input_batch)
         self.assertEqual((16, 4, 32), ops.shape(embeddings))
 
-    def test_when_join_method_is_set_to_add(self):
+    def test_when_join_method_is_add(self):
         column_embedding = TabTransformerColumnEmbedding(
             cardinalities=self.cardinalities,
             embedding_dim=32,
