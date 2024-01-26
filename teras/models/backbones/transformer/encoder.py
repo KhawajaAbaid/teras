@@ -16,11 +16,11 @@ class TransformerEncoderBackbone(Backbone):
     Args:
         input_dim: int, dimensionality of the input dataset. i.e. the
             number of features in the dataset.
-        num_layers: int, number of `TransformerEncoderLayer`s to use in
-            the encoder.
         embedding_dim: int, dimensionality of the embeddings used
             by the model. It is also referred to as the `d_model` or
             model dimensionality.
+        num_layers: int, number of `TransformerEncoderLayer`s to use in
+            the encoder.
         num_heads: int, number of attention heads to use in the
             `MultiHeadAttention` layer.
         feedforward_dim: int, hidden dimensionality to use in the
@@ -34,8 +34,8 @@ class TransformerEncoderBackbone(Backbone):
     """
     def __init__(self,
                  input_dim: int,
-                 num_layers: int,
                  embedding_dim: int,
+                 num_layers: int = 6,
                  num_heads: int = 8,
                  feedforward_dim: int = None,
                  attention_dropout: float = 0.,
