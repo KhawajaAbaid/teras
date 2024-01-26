@@ -1,9 +1,9 @@
 from keras import ops, random
-from teras.layers.numerical_extractor import NumericalExtractor
+from teras.layers.continuous_extractor import ContinuousExtractor
 from keras.src.testing.test_case import TestCase
 
 
-class NumericalExtractorTest(TestCase):
+class ContinuousExtractorTest(TestCase):
     def setUp(self):
         self.input_batch = ops.array([random.normal((16,)),
                                       ops.repeat([1., 2., 3., 4.], 4),
@@ -11,9 +11,9 @@ class NumericalExtractorTest(TestCase):
                                       ops.repeat([10., 20.], 8),
                                       random.normal((16,))])
         self.input_batch = ops.transpose(self.input_batch)
-        self.numerical_idx = [0, 2, 4]
+        self.continuous_idx = [0, 2, 4]
 
     def test_valid_output_shape(self):
-        extractor = NumericalExtractor(numerical_idx=self.numerical_idx)
-        numerical_features = extractor(self.input_batch)
-        self.assertEqual((16, 3), ops.shape(numerical_features))
+        extractor = ContinuousExtractor(continuous_idx=self.continuous_idx)
+        continuous_features = extractor(self.input_batch)
+        self.assertEqual((16, 3), ops.shape(continuous_features))
