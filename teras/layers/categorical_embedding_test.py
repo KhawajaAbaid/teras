@@ -5,7 +5,7 @@ from keras.src.testing.test_case import TestCase
 
 class CategoricalEmbeddingTest(TestCase):
     def setUp(self):
-        self.input_batch = ops.array([ops.repeat([1., 2.], 5),
+        self.input_batch = ops.array([ops.repeat(ops.array([1., 2.]), 5),
                                       ops.arange(0., 10.),
                                       random.normal((10,)),
                                       ])
@@ -24,7 +24,7 @@ class CategoricalEmbeddingTest(TestCase):
     def test_valid_output_shape_when_only_one_categorical(self):
         input_batch = ops.array([random.normal((10,)),
                                  random.normal((10,)),
-                                 ops.repeat([1., 2.], 5),
+                                 ops.repeat(ops.array([1., 2.]), 5),
                                  ])
         input_batch = ops.transpose(input_batch)
         cardinalities = [0, 0, 2]
