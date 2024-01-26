@@ -71,8 +71,8 @@ class TransformerEncoderBackbone(Backbone):
         config = super().get_config()
         config.update({
             "input_dim": self.input_dim,
-            "num_layers": self.num_layers,
             "embedding_dim": self.embedding_dim,
+            "num_layers": self.num_layers,
             "num_heads": self.num_heads,
             "feedforward_dim": self.feedforward_dim,
             "attention_dropout": self.attention_dropout,
