@@ -19,13 +19,13 @@ class CategoricalExtraction(keras.layers.Layer):
     def __init__(self,
                  categorical_idx: ListOrArray,
                  **kwargs):
-        super().__init__(**kwargs)
+        super().__init__(trainable=False, **kwargs)
         self.categorical_idx = categorical_idx
 
     def compute_output_shape(self, input_shape):
-        output_shape = input_shape
+        output_shape = list(input_shape)
         output_shape[1] = len(self.categorical_idx)
-        return output_shape
+        return tuple(output_shape)
 
     def call(self, inputs):
         categorical_features = ops.take(inputs,

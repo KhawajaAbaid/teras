@@ -19,13 +19,13 @@ class ContinuousExtraction(keras.layers.Layer):
     def __init__(self,
                  continuous_idx: ListOrArray,
                  **kwargs):
-        super().__init__(**kwargs)
+        super().__init__(trainable=False, **kwargs)
         self.continuous_idx = continuous_idx
 
     def compute_output_shape(self, input_shape):
-        output_shape = input_shape
+        output_shape = list(input_shape)
         output_shape[1] = len(self.continuous_idx)
-        return output_shape
+        return tuple(output_shape)
 
     def call(self, inputs):
         continuous_features = ops.take(inputs,
