@@ -22,8 +22,19 @@ class ContinuousExtraction(keras.layers.Layer):
         super().__init__(**kwargs)
         self.continuous_idx = continuous_idx
 
+    def compute_output_shape(self, input_shape):
+        output_shape = input_shape
+        output_shape[1] = len(self.continuous_idx)
+        return output_shape
+
     def call(self, inputs):
         continuous_features = ops.take(inputs,
                                        indices=self.continuous_idx,
                                        axis=1)
         return continuous_features
+
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            "continuous_idx": self.continuous_idx
+        })

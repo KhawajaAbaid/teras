@@ -22,8 +22,19 @@ class CategoricalExtraction(keras.layers.Layer):
         super().__init__(**kwargs)
         self.categorical_idx = categorical_idx
 
+    def compute_output_shape(self, input_shape):
+        output_shape = input_shape
+        output_shape[1] = len(self.categorical_idx)
+        return output_shape
+
     def call(self, inputs):
         categorical_features = ops.take(inputs,
                                         indices=self.categorical_idx,
                                         axis=1)
         return categorical_features
+
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            "categorical_idx": self.categorical_idx
+        })
