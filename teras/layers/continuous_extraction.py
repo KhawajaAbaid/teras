@@ -4,12 +4,13 @@ from teras.api_export import teras_export
 from teras.utils.dtypes import ListOrArray
 
 
-@teras_export("teras.layers.ContinuousExtractor")
-class ContinuousExtractor(keras.layers.Layer):
+@teras_export("teras.layers.ContinuousExtraction")
+class ContinuousExtraction(keras.layers.Layer):
     """
-    ContinuousExtractor layer extracts continuous features from inputs 
-    as is. It helps us build functional model where inputs must diverge
-    into categorical and continuous parts for separate  processing.
+    ContinuousExtraction layer extracts continuous features from inputs
+    as is. It helps us build functional model where inputs to the
+    model contain both categorical and continuous features, but they
+    must diverge into two different branches for separate processing.
 
     Args:
         continuous_idx: list or ndarray, list of indices of continuous
