@@ -14,8 +14,7 @@ class TransformerEncoderBackbone(Backbone):
         https://arxiv.org/abs/1706.03762
 
     Args:
-        input_dim: int, dimensionality of the input dataset. i.e. the
-            number of features in the dataset.
+        input_dim: int, dimensionality of the input data.
         embedding_dim: int, dimensionality of the embeddings used
             by the model. It is also referred to as the `d_model` or
             model dimensionality.
