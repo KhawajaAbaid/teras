@@ -1,5 +1,5 @@
 from keras import ops, random
-from teras.layers.continuous_extractor import ContinuousExtractor
+from teras.layers.continuous_extraction import ContinuousExtractor
 from keras.src.testing.test_case import TestCase
 
 

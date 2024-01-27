@@ -8,8 +8,8 @@ from teras.utils.dtypes import ListOrArray
 class ContinuousExtractor(keras.layers.Layer):
     """
     ContinuousExtractor layer extracts continuous features from inputs 
-    as is. It helps us build functional model where `CategoricalEmbedding`
-    layer is used but no continuous embedding layer is applied.
+    as is. It helps us build functional model where inputs must diverge
+    into categorical and continuous parts for separate  processing.
 
     Args:
         continuous_idx: list or ndarray, list of indices of continuous
