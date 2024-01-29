@@ -10,9 +10,10 @@ class TabTransformerColumnEmbeddingTest(TestCase):
         # categories, feature 3 with 2 unique categories and feature 4
         # with 7 unique categories
         x_cat = ops.array([
-            random.randint((16,), minval=0, maxval=card)
-            for card in [5, 3, 2, 7]],
-            dtype="float32")
+            ops.cast(random.randint((16,), minval=0, maxval=card),
+                     dtype="float32")
+            for card in [5, 3, 2, 7]]
+        )
         x_cat = ops.transpose(x_cat)
         x_cont = random.normal((16, 3), dtype="float32")
         self.input_batch = ops.concatenate([x_cat, x_cont], axis=1)
