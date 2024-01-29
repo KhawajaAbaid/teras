@@ -11,7 +11,3 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-
-from teras.layers.ft_transformer.ft_numerical_feature_embedding import FTNumericalFeatureEmbedding
-from teras.layers.ft_transformer.ft_cls_token import FTCLSToken
