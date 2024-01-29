@@ -1,7 +1,6 @@
 import keras
 import numpy as np
 from keras import ops
-from keras.backend import floatx
 from teras.api_export import teras_export
 
 
@@ -114,15 +113,16 @@ class TabTransformerColumnEmbedding(keras.layers.Layer):
         self.feature_embedding = self.add_weight(
             shape=(self._total_tokens, feature_embedding_dim),
             initializer="random_normal",
-            dtype=floatx(),
-            name="feature_embedding")
+            trainable=True,
+            name="feature_embedding",
+        )
 
         if self.use_shared_embedding:
             self.shared_embedding = self.add_weight(
                 shape=(num_categorical_features,
                        shared_embedding_dim),
                 initializer="random_normal",
-                dtype=floatx(),
+                trainable=True,
                 name="shared_embedding"
             )
         self.built = True
