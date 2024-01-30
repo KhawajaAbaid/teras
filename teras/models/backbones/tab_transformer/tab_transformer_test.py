@@ -2,7 +2,6 @@ from teras.models.backbones.tab_transformer.tab_transformer import TabTransforme
 from keras import random, ops
 from keras.src.testing.test_case import TestCase
 import keras
-import pytest
 import os
 
 
@@ -47,7 +46,6 @@ class TabTransformerBackboneTest(TestCase):
         )
         self.assertEqual(true_output_shape, ops.shape(outputs))
 
-    @pytest.mark.large
     def test_model_save_and_load(self):
         model = TabTransformerBackbone(
             input_dim=self.input_batch.shape[1],

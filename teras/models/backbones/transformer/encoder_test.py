@@ -2,7 +2,6 @@ import keras.models
 from teras.models.backbones.transformer.encoder import TransformerEncoderBackbone
 from keras import random, ops
 from keras.src.testing.test_case import TestCase
-import pytest
 import os
 
 
@@ -31,7 +30,6 @@ class TransformerEncoderTest(TestCase):
         outputs = model(self.input_batch)
         self.assertEqual(self.input_shape, ops.shape(outputs))
 
-    @pytest.mark.large
     def test_model_save_and_load(self):
         model = TransformerEncoderBackbone(
             input_dim=self.input_shape[1],
