@@ -1,7 +1,6 @@
 import keras
 import numpy as np
 from keras import ops
-from keras.backend import floatx
 from teras.api_export import teras_export
 
 
@@ -65,18 +64,18 @@ class TabTransformerColumnEmbedding(keras.layers.Layer):
             shared_embedding_dim if shared_embedding_dim else
             embedding_dim // 8)
         self.join_method = join_method
-
         # indices of categorical features
-        _cardinalities_arr = np.array(self.cardinalities)
-        self._categorical_idx = np.flatnonzero(_cardinalities_arr != 0)
-        _categorical_cardinalities = _cardinalities_arr[self._categorical_idx]
-        _num_categorical_features = len(self._categorical_idx)
+        self._cardinalities_arr = np.array(self.cardinalities)
+        self._categorical_idx = np.flatnonzero(
+            self._cardinalities_arr != 0)
+
+        categorical_cardinalities = self._cardinalities_arr[self._categorical_idx]
 
         # The paper assumes each categorical feature has
         # num_categories + 1 embeddings where additional embedding
         # corresponds to a missing value - but we'll just stick to using
         # one extra embedding for the whole embedding table
-        _num_special_tokens = 1
+        num_special_tokens = 1
 
         # We create a one big lookup table of embeddings for all
         # the categories/classes of categorical features. And we assume
@@ -86,43 +85,47 @@ class TabTransformerColumnEmbedding(keras.layers.Layer):
         # other we create an offset array to offset the values.
         # Additionally, we insert 1 to the leftmost position to reserve
         # the value of 0 for special purpose of 'missing value'.
-        _categorical_cardinalities = ops.pad(
-            _categorical_cardinalities,
+        categorical_cardinalities = ops.pad(
+            categorical_cardinalities,
             (1, 0),
-            constant_values=_num_special_tokens)
+            constant_values=num_special_tokens)
         self._categories_offset = ops.cumsum(
-            _categorical_cardinalities)[:-1]
+            categorical_cardinalities)[:-1]
         self._categories_offset = ops.cast(self._categories_offset,
                                            "float32")
-        _total_categories = sum(self.cardinalities) + _num_special_tokens
+        self._total_tokens = sum(self.cardinalities) + num_special_tokens
 
-        _feature_embedding_dim = self.embedding_dim
-        _shared_embedding_dim = self.shared_embedding_dim
+    def build(self, input_shape=None):
+        num_categorical_features = len(self._categorical_idx)
+        feature_embedding_dim = self.embedding_dim
+        shared_embedding_dim = self.shared_embedding_dim
 
         if self.use_shared_embedding:
             if self.join_method == "concat":
-                _feature_embedding_dim -= _shared_embedding_dim
+                feature_embedding_dim -= shared_embedding_dim
             # if user specifies any shared embedding dimensions, but the
             # join method is set to add, then shared embeddings will be
             # the same dimensions as the feature embedding and user's
             # supplied value will be overwritten
             else:
-                _shared_embedding_dim = _feature_embedding_dim
+                shared_embedding_dim = feature_embedding_dim
 
         self.feature_embedding = self.add_weight(
-            shape=(_total_categories, _feature_embedding_dim),
+            shape=(self._total_tokens, feature_embedding_dim),
             initializer="random_normal",
-            dtype=floatx(),
-            name="feature_embedding")
+            trainable=True,
+            name="feature_embedding",
+        )
 
         if self.use_shared_embedding:
             self.shared_embedding = self.add_weight(
-                shape=(_num_categorical_features,
-                       _shared_embedding_dim),
+                shape=(num_categorical_features,
+                       shared_embedding_dim),
                 initializer="random_normal",
-                dtype=floatx(),
+                trainable=True,
                 name="shared_embedding"
             )
+        self.built = True
 
     def call(self, inputs):
         _dtype = inputs.dtype

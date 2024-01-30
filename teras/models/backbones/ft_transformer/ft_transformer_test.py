@@ -1,11 +1,11 @@
-from teras.models.backbones.tab_transformer.tab_transformer import TabTransformerBackbone
+from teras.models.backbones.ft_transformer.ft_transformer import FTTransformerBackbone
+import keras
 from keras import random, ops
 from keras.src.testing.test_case import TestCase
-import keras
 import os
 
 
-class TabTransformerBackboneTest(TestCase):
+class FTTransformerBackboneTest(TestCase):
     def setUp(self):
         # we assume there are 4 categorical features in the dataset,
         # with feature 1 having 5 unique categories, feature 2 having 3
@@ -24,7 +24,7 @@ class TabTransformerBackboneTest(TestCase):
         self.embedding_dim = 16
 
     def test_valid_call(self):
-        model = TabTransformerBackbone(
+        model = FTTransformerBackbone(
             input_dim=self.input_batch.shape[1],
             cardinalities=self.cardinalities,
             embedding_dim=self.embedding_dim
@@ -32,35 +32,33 @@ class TabTransformerBackboneTest(TestCase):
         outputs = model(self.input_batch)
 
     def test_valid_output_shape(self):
-        model = TabTransformerBackbone(
+        model = FTTransformerBackbone(
             input_dim=self.input_batch.shape[1],
             cardinalities=self.cardinalities,
             embedding_dim=self.embedding_dim
         )
         outputs = model(self.input_batch)
-        # Outputs must have the following shape,
-        # (batch_size, `num_categorical` * `embedding_dim` + `num_continuous)
-        true_output_shape = (
-            self.input_batch.shape[0],
-            self.num_categorical * self.embedding_dim + self.num_continuous
-        )
-        self.assertEqual(true_output_shape, ops.shape(outputs))
+        # model returns embeddings for the cls token only!
+        true_output_shape = (self.input_batch.shape[0],
+                             1,
+                             self.embedding_dim)
+        self.assertEqual(ops.shape(outputs), true_output_shape)
 
     def test_model_save_and_load(self):
-        model = TabTransformerBackbone(
+        model = FTTransformerBackbone(
             input_dim=self.input_batch.shape[1],
             cardinalities=self.cardinalities,
             embedding_dim=self.embedding_dim
         )
         outputs = model(self.input_batch)
         save_path = os.path.join(self.get_temp_dir(),
-                                 "tab_transformer_backbone.keras"
+                                 "ft_transformer_backbone.keras"
                                  )
         model.save(save_path)
         reloaded_model = keras.models.load_model(save_path)
 
         # Check we got the real object back
-        self.assertIsInstance(reloaded_model, TabTransformerBackbone)
+        self.assertIsInstance(reloaded_model, FTTransformerBackbone)
 
         # Check that output matches
         reloaded_outputs = reloaded_model(self.input_batch)
