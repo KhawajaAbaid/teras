@@ -30,6 +30,21 @@ class TransformerEncoderLayer(keras.layers.Layer):
             `TransformerFeedForward` layer. Defaults to 0.
         layer_norm_epsilon: float, epsilon value to use in the
             `LayerNormalization` layer. Defaults to 1e-5.
+        use_normalization: bool, whether to use `LayerNormalization`.
+            In some architecture, normalization isn't applied to the
+            very first layer, so to accomodate such architectures,
+            we introduced this parameter.
+            Defaults to `True`.
+        pre_normalization: bool, whether to use Pre-Normalization technique
+            whereby `LayerNormalization` is applied to inputs of the
+            `MultiHeadAttention` or `FeedForward` and then outputs of
+            those layers are elementwise added to the original inputs.
+            Defaults to `False`, as the original Transformers architecture
+            doesn't use pre-normalization.
+
+    Shapes:
+        Input Shape: `(batch_size, num_features, embedding_dim)`
+        Output Shape: `(batch_size, num_features, embedding_dim)`
     """
     def __init__(self,
                  embedding_dim: int,
@@ -38,6 +53,8 @@ class TransformerEncoderLayer(keras.layers.Layer):
                  attention_dropout: float = 0.,
                  feedforward_dropout: float = 0.,
                  layer_norm_epsilon: float = 1e-5,
+                 use_normalization: bool = True,
+                 pre_normalization: bool = False,
                  **kwargs):
         super().__init__(**kwargs)
         self.embedding_dim = embedding_dim
@@ -46,6 +63,8 @@ class TransformerEncoderLayer(keras.layers.Layer):
         self.attention_dropout = attention_dropout
         self.feedforward_dropout = feedforward_dropout
         self.layer_norm_epsilon = layer_norm_epsilon
+        self.use_normalization = use_normalization
+        self.pre_normalization = pre_normalization
 
         self.attention = keras.layers.MultiHeadAttention(
             num_heads=self.num_heads,
@@ -59,24 +78,35 @@ class TransformerEncoderLayer(keras.layers.Layer):
         )
         self.add_1 = keras.layers.Add()
         self.add_2 = keras.layers.Add()
-        self.layer_norm_1 = keras.layers.LayerNormalization(
-            epsilon=self.layer_norm_epsilon
-        )
-        self.layer_norm_2 = keras.layers.LayerNormalization(
-            epsilon=self.layer_norm_epsilon
-        )
+        if self.use_normalization:
+            self.layer_norm_1 = keras.layers.LayerNormalization(
+                epsilon=self.layer_norm_epsilon
+            )
+            self.layer_norm_2 = keras.layers.LayerNormalization(
+                epsilon=self.layer_norm_epsilon
+            )
 
     def build(self, input_shape):
         self.feedforward.build(input_shape)
 
     def call(self, inputs):
         residue = inputs
-        x = self.attention(inputs, inputs)
-        x = self.add_1([x, residue])
-        x = self.layer_norm_1(x)
-        residue = x
-        x = self.feedforward(x)
-        x = self.add_2([x, residue])
+        if self.pre_normalization:
+            x = self.layer_norm_1(inputs)
+            x = self.attention(x, x)
+            x = self.add_1([x, residue])
+            residue = x
+            x = self.layer_norm_2(x)
+            x = self.feedforward(x)
+            x = self.add_2([x, residue])
+        else:
+            x = self.attention(inputs, inputs)
+            x = self.add_1([x, residue])
+            x = self.layer_norm_1(x)
+            residue = x
+            x = self.feedforward(x)
+            x = self.add_2([x, residue])
+            x = self.layer_norm_2(x)
         return x
 
     def get_config(self):
@@ -87,6 +117,8 @@ class TransformerEncoderLayer(keras.layers.Layer):
             "feedforward_dim": self.feedforward_dim,
             "attention_dropout": self.attention_dropout,
             "feedforward_dropout": self.feedforward_dropout,
-            "layer_norm_epsilon": self.layer_norm_epsilon
+            "layer_norm_epsilon": self.layer_norm_epsilon,
+            "use_normalization": self.use_normalization,
+            "pre_normalization": self.pre_normalization
         })
         return config
