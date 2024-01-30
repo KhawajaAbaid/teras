@@ -61,20 +61,27 @@ class TransformerEncoderBackbone(Backbone):
         if num_layers < 1:
             raise ValueError(
                 f"`num_layers` must be 1 or greater. Received {num_layers}")
+        if (len(unnormalized_layers) > 0 and
+                (max(unnormalized_layers) > (num_layers - 1) or
+                 min(unnormalized_layers) < 0)):
+            raise ValueError(
+                f"Layer indices must be in the interval [0, num_layers). "
+                f"Received {unnormalized_layers}"
+            )
         inputs = keras.layers.Input(shape=(input_dim, embedding_dim))
         x = inputs
         for i in range(num_layers):
             use_normalization = i not in unnormalized_layers
             x = TransformerEncoderLayer(
-                                embedding_dim=embedding_dim,
-                                num_heads=num_heads,
-                                feedforward_dim=feedforward_dim,
-                                attention_dropout=attention_dropout,
-                                feedforward_dropout=feedforward_dropout,
-                                layer_norm_epsilon=layer_norm_epsilon,
-                                use_normalization=use_normalization,
-                                pre_normalization=pre_normalization,
-                                name=f"transformer_encoder_layer_{i+1}")(x)
+                embedding_dim=embedding_dim,
+                num_heads=num_heads,
+                feedforward_dim=feedforward_dim,
+                attention_dropout=attention_dropout,
+                feedforward_dropout=feedforward_dropout,
+                layer_norm_epsilon=layer_norm_epsilon,
+                use_normalization=use_normalization,
+                pre_normalization=pre_normalization,
+                name=f"transformer_encoder_layer_{i+1}")(x)
         outputs = x
         super().__init__(inputs=inputs, outputs=outputs, **kwargs)
         self.input_dim = input_dim

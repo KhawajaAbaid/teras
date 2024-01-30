@@ -91,7 +91,7 @@ class TransformerEncoderLayer(keras.layers.Layer):
 
     def call(self, inputs):
         residue = inputs
-        if self.pre_normalization:
+        if self.use_normalization and self.pre_normalization:
             x = self.layer_norm_1(inputs)
             x = self.attention(x, x)
             x = self.add_1([x, residue])
@@ -102,11 +102,13 @@ class TransformerEncoderLayer(keras.layers.Layer):
         else:
             x = self.attention(inputs, inputs)
             x = self.add_1([x, residue])
-            x = self.layer_norm_1(x)
+            if self.use_normalization:
+                x = self.layer_norm_1(x)
             residue = x
             x = self.feedforward(x)
             x = self.add_2([x, residue])
-            x = self.layer_norm_2(x)
+            if self.use_normalization:
+                x = self.layer_norm_2(x)
         return x
 
     def get_config(self):
