@@ -35,9 +35,10 @@ class CLSToken(keras.layers.Layer):
         )
 
     def call(self, inputs):
+        # TODO Remove the call to `convert_to_tensor` as soon as Keras
+        #  fixes `broadcast_to` method for JAX backend
         token_broadcasted = ops.broadcast_to(
-            self.cls_token.numpy(),     # TODO remove numpy() but will
-                                        #   result in error on jax backend
+            ops.convert_to_tensor(self.cls_token),
             shape=(ops.shape(inputs)[0], *ops.shape(self.cls_token)))
         return ops.concatenate([token_broadcasted, inputs],
                                axis=1)
