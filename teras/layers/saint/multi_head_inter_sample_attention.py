@@ -1,56 +1,62 @@
 import keras
 from keras import ops
+from teras.api_export import teras_export
 
 
-@keras.saving.register_keras_serializable(package="teras.layers.saint")
-class MultiHeadInterSampleAttention(keras.layers.Layer):
+@teras_export("teras.layers.SAINTMultiHeadInterSampleAttention")
+class SAINTMultiHeadInterSampleAttention(keras.layers.Layer):
     """
-    MultiHeadInterSampleAttention layer as proposed by Gowthami Somepalli et al.
-    in the paper SAINT: Improved Neural Networks for Tabular Data
-    via Row Attention and Contrastive Pre-Training.
-    Unlike the usual MultiHeadAttention layer, this MultiHeadInterSampleAttention layer,
-    as the name enunciates, applies attention over samples/rows instead of features/columns.
+    Multi Head Inter Sample Attention layer based on the SAINT architecture
+    proposed in the "SAINT: Improved Neural Networks for Tabular Data"
+    paper.
 
     Reference(s):
         https://arxiv.org/abs/2106.01342
 
     Args:
-        num_heads: `int`, default 8,
-            Number of Attention heads to use
-        key_dim: `int`, default 32,
-            Key dimensionality for attention.
-        dropout: `float`, default 0.1,
-            Dropout rate to use.
+        num_heads: int, number of attention heads to use.
+        key_dim: int, the paper proposes to use embedding_dim/num_heads
+            dimensions for your key dimensionality
+        value_dim: int, same value as key_dim is used by the paper.
+        dropout: float, dropout value to use. Defaults to 0.
     """
     def __init__(self,
-                 num_heads: int = 8,
-                 key_dim: int = 32,
-                 dropout: float = 0.1,
+                 num_heads: int,
+                 key_dim: int,
+                 value_dim: int = None,
+                 dropout: float = 0.0,
                  **kwargs):
-        super().__init__()
+        super().__init__(**kwargs)
         self.num_heads = num_heads
         self.key_dim = key_dim
+        self.value_dim = value_dim
         self.dropout = dropout
-        self.multi_head_attention = keras.layers.MultiHeadAttention(num_heads=self.num_heads,
-                                                                    key_dim=self.key_dim,
-                                                                    dropout=dropout,
-                                                                    **kwargs)
+
+        self.multi_head_attention = keras.layers.MultiHeadAttention(
+            num_heads=self.num_heads,
+            key_dim=self.key_dim,
+            value_dim=self.value_dim,
+            dropout=self.dropout,
+        )
 
     def call(self, inputs):
-        # Expected inputs shape: (b, n, d)
-        # b: batch_size, n: num_features, d: embedding_dim
-        x = inputs
-        x = ops.reshape(x, (1,
-                            ops.shape(x)[0],
-                            ops.shape(x)[1] * ops.shape(x)[2]))
+        batch_size, num_features, embedding_dim = ops.shape(inputs)
+        x = ops.reshape(inputs,
+                        (1, batch_size, num_features * embedding_dim),
+                        )
         x = self.multi_head_attention(x, x)
-        x = ops.reshape(x, ops.shape(inputs))
+        x = ops.reshape(x,
+                        (batch_size, num_features, embedding_dim))
         return x
+
+    def compute_output_shape(self, input_shape):
+        return input_shape  # easy!
 
     def get_config(self):
         config = super().get_config()
-        config.update({'num_heads': self.num_heads,
-                       'key_dim': self.key_dim,
-                       'dropout': self.dropout,
-                       })
-        return config
+        config.update({
+            "num_heads": self.num_heads,
+            "key_dim": self.key_dim,
+            "value_dim": self.value_dim,
+            "dropout": self.dropout
+        })
