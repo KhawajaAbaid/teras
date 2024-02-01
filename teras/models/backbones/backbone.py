@@ -1,6 +1,8 @@
 import keras
+from teras.api_export import teras_export
 
 
+@teras_export("teras.models.Backbone")
 class Backbone(keras.Model):
     """
     Base class for Backbone models.
