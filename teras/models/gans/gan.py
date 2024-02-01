@@ -9,8 +9,8 @@ from teras.api_export import teras_export
 _BACKEND = backend()
 
 
-@teras_export("teras.models.blueprints")
-class GANBlueprint:
+@teras_export("teras.models.GAN")
+class GAN:
     """
     A base class for building specialized GAN-based architectures in Teras.
 

@@ -1,5 +1,5 @@
 import keras
-from teras.models.blueprints.backbone import Backbone
+from teras.models.backbones.backbone import Backbone
 from teras.models.backbones.transformer.encoder import TransformerEncoderBackbone
 from teras.layers.tab_transformer.column_embedding import TabTransformerColumnEmbedding
 from teras.layers.continuous_extraction import ContinuousExtraction

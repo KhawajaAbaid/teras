@@ -1,5 +1,5 @@
 import keras
-from teras.models.blueprints.backbone import Backbone
+from teras.models.backbones.backbone import Backbone
 from teras.layers.ft_transformer.feature_tokenizer import FTTransformerFeatureTokenizer
 from teras.models.backbones.transformer.encoder import TransformerEncoderBackbone
 from teras.layers.cls_token import CLSToken

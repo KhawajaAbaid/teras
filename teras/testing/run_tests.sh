@@ -2,7 +2,7 @@
 
 FILE_PATH=${1:-../}
 WARNING_OPTION=${2:---disable-warnings}
-VERBOSE_OPTION=$3
+VERBOSE_OPTION=${3:--v}
 
 run_tests(){
     echo "Testing with backend: $1"

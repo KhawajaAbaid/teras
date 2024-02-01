@@ -49,6 +49,9 @@ class CategoricalEmbedding(keras.layers.Layer):
                 xs=[categorical_embeddings, f_e], axis=1)
         return categorical_embeddings
 
+    def compute_output_shape(self, input_shape):
+        return input_shape + (self.embedding_dim,)
+
     def get_config(self):
         config = super().get_config()
         config.update({

@@ -1,12 +1,18 @@
-from keras import ops
-from teras.layers.saint.multi_head_inter_sample_attention import MultiHeadInterSampleAttention
+from teras.layers.saint.multi_head_inter_sample_attention import SAINTMultiHeadInterSampleAttention
+from keras.src.testing.test_case import TestCase
+from keras import ops, random
 
 
-def test_saint_multi_head_inter_sample_attention_output_shape():
-    multihead_attention = MultiHeadInterSampleAttention(key_dim=32)
-    inputs = ops.ones(shape=(16, 10, 32))
-    outputs = multihead_attention(inputs)
-    assert len(ops.shape(outputs)) == 3
-    assert ops.shape(outputs)[0] == 16   # number of items in each column
-    assert ops.shape(outputs)[1] == 10
-    assert ops.shape(outputs)[2] == 32
+class SAINTMultiHeadInterSampleAttentionTest(TestCase):
+    def setUp(self):
+        self.input_shape = (8, 5, 16)
+        self.input_batch = random.normal((8, 5, 16))
+        self.embedding_dim = self.input_shape[-1]
+
+    def test_valid_output_shape(self):
+        inter_sample_attention = SAINTMultiHeadInterSampleAttention(
+            num_heads=4,
+            key_dim=self.embedding_dim//8
+        )
+        outputs = inter_sample_attention(self.input_batch)
+        self.assertEqual(ops.shape(outputs), self.input_shape)
