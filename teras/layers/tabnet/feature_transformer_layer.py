@@ -27,7 +27,8 @@ class TabNetFeatureTransformerLayer(keras.layers.Layer):
         self.dim = dim
         self.batch_momentum = batch_momentum
 
-        self.dense = keras.layers.Dense(self.dim * 2)
+        self.dense = keras.layers.Dense(self.dim * 2,
+                                        use_bias=False)
         self.batch_norm = keras.layers.BatchNormalization(
             momentum=self.batch_momentum)
 
