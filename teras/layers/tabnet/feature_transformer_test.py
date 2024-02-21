@@ -3,7 +3,7 @@ from teras.layers.tabnet.feature_transformer import TabNetFeatureTransformer
 from keras.src.testing.test_case import TestCase
 
 
-class FeatureTransformerTest(TestCase):
+class TabNetFeatureTransformerTest(TestCase):
     def setUp(self):
         self.batch_size = 16
         self.input_batch = random.normal((self.batch_size, 5))
