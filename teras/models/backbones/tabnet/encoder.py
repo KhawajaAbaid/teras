@@ -154,3 +154,18 @@ class TabNetEncoderBackbone(Backbone):
         self.add_loss(total_entropy)
 
         return decision_out_aggregated
+
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            'data_dim': self.data_dim,
+            'feature_transformer_dim': self.feature_transformer_dim,
+            'decision_step_dim': self.decision_step_dim,
+            'num_decision_steps': self.num_decision_steps,
+            'num_shared_layers': self.num_shared_layers,
+            'num_decision_dependent_layers': self.num_decision_dependent_layers,
+            'relaxation_factor': self.relaxation_factor,
+            'batch_momentum': self.batch_momentum,
+            'epsilon': self.epsilon,
+        })
+        return config
