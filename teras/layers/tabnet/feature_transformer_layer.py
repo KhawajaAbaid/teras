@@ -37,7 +37,7 @@ class TabNetFeatureTransformerLayer(keras.layers.Layer):
         return glu(x)
 
     def compute_output_shape(self, input_shape):
-        return (input_shape[:-1], self.dim)
+        return input_shape[:-1] + (self.dim,)
 
     def get_config(self):
         config = super().get_config()
