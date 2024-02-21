@@ -53,15 +53,16 @@ def sparsemax(logits, axis: int = -1):
             Defaults to -1.
     """
     K = ops.shape(logits)[-1]
-    idx = ops.arange(1, K+1).reshape(1, K)
+    idx = ops.expand_dims(ops.arange(1, K+1, dtype=logits.dtype), 0)
     z_sorted, _ = ops.top_k(logits, k=K)
-    z_cumsum = ops.cumsum(z_sorted, axis=axis)
+    z_cumsum = ops.cumsum(z_sorted, axis=axis, dtype=logits.dtype)
     kz = ops.sum(1 + (idx * z_sorted) > z_cumsum, axis=axis, keepdims=True)
     # subtract 1 from kz to bring indices in range [0, K),
     # instead of (0, K]
     selective_cumsum = ops.take_along_axis(z_cumsum, indices=kz - 1,
                                            axis=axis)
-    threshold = (selective_cumsum - 1) / kz
+
+    threshold = (selective_cumsum - 1) / ops.cast(kz, selective_cumsum.dtype)
     logits_sub_threshold = logits - threshold
     p = ops.relu(logits_sub_threshold)
     return p
