@@ -105,13 +105,17 @@ class TabNetEncoderBackbone(Backbone):
             momentum=self.batch_momentum
         )
 
-    def call(self, inputs):
+    def call(self, inputs, mask=None):
         normalized_inputs = self.batch_norm(inputs)
         batch_size = ops.shape(inputs)[0]
         decision_out_aggregated = ops.zeros(
             (batch_size, self.decision_step_dim))
+        # During pretraining, we pass mask alongside inputs to the encoder
         masked_features = normalized_inputs
-        mask_values = ops.zeros_like(inputs)
+        if mask is not None:
+            mask_values = mask
+        else:
+            mask_values = ops.zeros_like(inputs)
         aggregated_mask_values = ops.zeros_like(inputs)
         # Prior scales denote how much a feature has been used previously
         prior_scales = ops.ones_like(inputs)
