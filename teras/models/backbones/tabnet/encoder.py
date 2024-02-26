@@ -1,5 +1,5 @@
 import keras
-from keras import random, ops
+from keras import ops
 from teras.models.backbones.backbone import Backbone
 from teras.layers.tabnet.attentive_transformer import TabNetAttentiveTransformer
 from teras.layers.tabnet.feature_transformer import TabNetFeatureTransformer
@@ -16,7 +16,7 @@ class TabNetEncoderBackbone(Backbone):
         https://arxiv.org/abs/1908.07442
 
     Args:
-        data_dim: int, The dimensionality of the original input dataset.
+        input_dim: int, The dimensionality of the input dataset.
         feature_transformer_dim: int, the dimensionality of the hidden
             representation in feature transformation block.
             The dense layer inside the `TabNetFeatureTransformer` first
@@ -62,9 +62,16 @@ class TabNetEncoderBackbone(Backbone):
         epsilon: float, epsilon is a small number for numerical stability
             during the computation of entropy loss.
             Defaults to 0.00001
+        reuse_shared_layers: bool, whether to reset shared layers of the
+            `TabNetFeatureTransformer` layer.
+            Although we want to use the same shared layers across
+            multiple instances of `TabNetFeatureTransformer` but we may
+            not want to use the same shared layers across different
+            `TabNetEncoder` instances.
+            Defaults to `False`.
     """
     def __init__(self,
-                 data_dim: int,
+                 input_dim: int,
                  feature_transformer_dim: int,
                  decision_step_dim: int,
                  num_decision_steps: int = 5,
@@ -73,9 +80,10 @@ class TabNetEncoderBackbone(Backbone):
                  relaxation_factor: float = 1.5,
                  batch_momentum: float = 0.9,
                  epsilon: float = 1e-5,
+                 reset_shared_layers: bool = True,
                  **kwargs):
         super().__init__(**kwargs)
-        self.data_dim = data_dim
+        self.input_dim = input_dim
         self.feature_transformer_dim = feature_transformer_dim
         self.decision_step_dim = decision_step_dim
         self.num_decision_steps = num_decision_steps
@@ -84,6 +92,10 @@ class TabNetEncoderBackbone(Backbone):
         self.relaxation_factor = relaxation_factor
         self.batch_momentum = batch_momentum
         self.epsilon = epsilon
+        self.reset_shared_layers = reset_shared_layers
+
+        if self.reset_shared_layers:
+            TabNetFeatureTransformer.reset_shared_layers()
 
         self.feature_transformers = [
             TabNetFeatureTransformer(
@@ -96,7 +108,7 @@ class TabNetEncoderBackbone(Backbone):
         ]
         self.attentive_transformers = [
             TabNetAttentiveTransformer(
-                data_dim=data_dim,
+                data_dim=input_dim,
                 batch_momentum=self.batch_momentum
             )
             for _ in range(self.num_decision_steps - 1)
@@ -162,7 +174,7 @@ class TabNetEncoderBackbone(Backbone):
     def get_config(self):
         config = super().get_config()
         config.update({
-            'data_dim': self.data_dim,
+            'input_dim': self.input_dim,
             'feature_transformer_dim': self.feature_transformer_dim,
             'decision_step_dim': self.decision_step_dim,
             'num_decision_steps': self.num_decision_steps,
@@ -171,5 +183,6 @@ class TabNetEncoderBackbone(Backbone):
             'relaxation_factor': self.relaxation_factor,
             'batch_momentum': self.batch_momentum,
             'epsilon': self.epsilon,
+            'reset_shared_layers': self.reset_shared_layers,
         })
         return config
