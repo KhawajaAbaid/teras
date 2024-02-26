@@ -34,6 +34,7 @@ class TabNetFeatureTransformer(keras.layers.Layer):
         self.num_shared_layers = num_shared_layers
         self.num_decision_dependent_layers = num_decision_dependent_layers
         self.batch_momentum = batch_momentum
+
         self._maybe_create_shared_layers(self.num_shared_layers,
                                          self.hidden_dim,
                                          self.batch_momentum)
@@ -55,6 +56,10 @@ class TabNetFeatureTransformer(keras.layers.Layer):
             batch_momentum=batch_momentum,
             name=f"shared_layer_{i+1}"
         ) for i in range(num_layers)]
+
+    @classmethod
+    def reset_shared_layers(cls):
+        cls.shared_layers = None
 
     def call(self, inputs):
         x = inputs
