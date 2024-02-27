@@ -258,5 +258,7 @@ class TabNetEncoderBackbone(Backbone):
             'batch_momentum': self.batch_momentum,
             'epsilon': self.epsilon,
             'reset_shared_layers': self.reset_shared_layers,
+            'compute_feature_importances_per_sample':
+                self.compute_feature_importances_per_sample,
         })
         return config
