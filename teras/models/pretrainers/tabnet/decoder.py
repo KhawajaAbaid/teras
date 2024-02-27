@@ -1,8 +1,10 @@
 import keras
 from keras import ops
 from teras.layers.tabnet.feature_transformer import TabNetFeatureTransformer
+from teras.api_export import teras_export
 
 
+@teras_export("teras.models.TabNetDecoder")
 class TabNetDecoder(keras.Model):
     """
     TabNetDecoder model for self-supervised learning,
