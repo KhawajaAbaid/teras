@@ -69,6 +69,17 @@ class TabNetEncoderBackbone(Backbone):
             not want to use the same shared layers across different
             `TabNetEncoder` instances.
             Defaults to `False`.
+        compute_feature_importances_per_sample: bool, whether to keep
+            record of feature importances for each input sample. If set
+            to `True`, this will be a matrix identical in size to the
+            input dataset containing importance of each feature for each
+            record.
+            Defaults to `False`, it will occupy almost same amount of
+            memory as the input dataset and user may not have that much
+            memory available. But if you do have plenty of memory,
+            feel free to set it to `True`.
+            Feature importances per sample can be accessed through the
+            property attribute `feature_importances_per_sample`.
     """
     def __init__(self,
                  input_dim: int,
@@ -81,6 +92,7 @@ class TabNetEncoderBackbone(Backbone):
                  batch_momentum: float = 0.9,
                  epsilon: float = 1e-5,
                  reset_shared_layers: bool = True,
+                 compute_feature_importances_per_sample: bool = False,
                  **kwargs):
         super().__init__(**kwargs)
         self.input_dim = input_dim
@@ -93,6 +105,11 @@ class TabNetEncoderBackbone(Backbone):
         self.batch_momentum = batch_momentum
         self.epsilon = epsilon
         self.reset_shared_layers = reset_shared_layers
+        self.compute_feature_importances_per_sample = compute_feature_importances_per_sample
+
+        self._feature_importances_per_sample = None
+        self._feature_importances_sum = 0.
+        self._num_samples = 0
 
         if self.reset_shared_layers:
             TabNetFeatureTransformer.reset_shared_layers()
@@ -169,7 +186,64 @@ class TabNetEncoderBackbone(Backbone):
 
         self.add_loss(total_entropy)
 
+        if self.compute_feature_importances_per_sample:
+            if self._feature_importances_per_sample is None:
+                self._feature_importances_per_sample = aggregated_mask_values
+            else:
+                self._feature_importances_per_sample = ops.concatenate(
+                    [self._feature_importances_per_sample,
+                     aggregated_mask_values],
+                    axis=0)
+
+        self._feature_importances_sum += ops.sum(aggregated_mask_values,
+                                                 axis=0)
+        self._num_samples += batch_size
+
         return decision_out_aggregated
+
+    @property
+    def feature_importances_per_sample(self):
+        """
+        Returns a tensor of size equal to the input dataset, containing
+        feature importances for every sample in the dataset.
+
+        Notes:
+            Can only be accessible if
+            `compute_feature_importances_per_sample` is set to `True`.
+
+        Warnings:
+            Only set the `compute_feature_importances_per_sample` to `True`
+            if you have enough memory to load the dataset as well as the
+            feature importances per sample tensor that is equal in size
+            to the input dataset.
+
+        Raises:
+            `AttributeError` if `compute_feature_importances_per_sample`
+            is set to `False`.
+        """
+        if not self.compute_feature_importances_per_sample:
+            raise AttributeError(
+                "`compute_feature_importances_per_sample` is set to "
+                "False. Hence per sample feature importances were not "
+                "kept. Although you can access the `feature_importances`"
+                "attribute for average of feature importances across "
+                "samples.")
+        return self._feature_importances_per_sample
+
+    @property
+    def feature_importances(self):
+        """
+        Returns a tensor of size equal to the number of features in
+        the dataset, containing mean importances of features computed
+        across all the input samples.
+        """
+        if self._num_samples == 0:
+            raise ValueError(
+                "`TabNetEncoder` has not yet been called on any inputs."
+                "Please call it on some inputs before access the "
+                "`feature_importances` attribute."
+            )
+        return self._feature_importances_sum / self._num_samples
 
     def get_config(self):
         config = super().get_config()
