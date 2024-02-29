@@ -25,9 +25,6 @@ elif backend() == "torch":
 elif backend() == "jax":
     from teras.backend.jax import *
 
-elif backend() == "numpy":
-    from teras.backend.numpy import *
-
 else:
     raise ValueError("Backend not support. "
                      "Expected one of ['tensorflow', 'jax', 'torch']. "
