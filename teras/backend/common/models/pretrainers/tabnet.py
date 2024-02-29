@@ -16,8 +16,7 @@ class BaseTabNetPretrainer(keras.Model):
                  decoder: keras.Model,
                  missing_feature_probability: float = 0.3,
                  **kwargs):
-        super().__init__(base_model=encoder,
-                         **kwargs)
+        super().__init__(**kwargs)
         self.encoder = encoder
         self.decoder = decoder
         self.missing_feature_probability = missing_feature_probability
