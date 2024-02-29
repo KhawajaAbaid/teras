@@ -1,7 +1,7 @@
 import tensorflow as tf
 import keras
 from keras import ops, random
-from teras.models.pretrainers.tabnet import BaseTabNetPretrainer
+from teras.backend.common.models.pretrainers.tabnet import BaseTabNetPretrainer
 
 
 class TabNetPretrainer(BaseTabNetPretrainer):
