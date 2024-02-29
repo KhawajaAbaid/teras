@@ -1,6 +1,6 @@
 import keras
 from keras import random, ops
-from teras.models.pretrainers.tabnet.decoder import TabNetDecoder
+from teras.models.tabnet.decoder import TabNetDecoder
 from keras.src.testing.test_case import TestCase
 import os
 
