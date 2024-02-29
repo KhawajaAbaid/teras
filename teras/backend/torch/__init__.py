@@ -13,4 +13,4 @@
 # limitations under the License.
 
 
-from teras.backend.torch.ops import norm
+from teras.backend.torch import ops
