@@ -5,6 +5,11 @@ from teras.losses.tabnet import tabnet_reconstruction_loss
 class BaseTabNetPretrainer(keras.Model):
     """
     Base pretrainer model class for tabnet.
+
+    Args:
+        encoder: keras.Model, an instance of `TabNetEncoder`
+        decoder: keras.Model, an instance of `TabNetDecoder`
+        missing_feature_probability: float, probability of missing features
     """
     def __init__(self,
                  encoder: keras.Model,
