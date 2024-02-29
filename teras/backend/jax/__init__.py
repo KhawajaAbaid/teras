@@ -14,3 +14,4 @@
 
 
 from teras.backend.jax import ops
+from teras.backend.jax import models

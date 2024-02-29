@@ -13,3 +13,4 @@
 # limitations under the License.
 
 from teras.backend.tensorflow import ops
+from teras.backend.tensorflow import models
