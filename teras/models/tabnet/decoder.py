@@ -1,6 +1,7 @@
 import keras
 from keras import ops
 from teras.layers.tabnet.feature_transformer import TabNetFeatureTransformer
+from teras.layers.tabnet.feature_transformer_layer import TabNetFeatureTransformerLayer
 from teras.api_export import teras_export
 
 
@@ -61,13 +62,6 @@ class TabNetDecoder(keras.Model):
         epsilon: float, epsilon is a small number for numerical stability
             during the computation of entropy loss.
             Defaults to 0.00001
-        reuse_shared_layers: bool, whether to reset shared layers of the
-            `TabNetFeatureTransformer` layer.
-            Although we want to use the same shared layers across
-            multiple instances of `TabNetFeatureTransformer` but we may
-            not want to use the same shared layers across different
-            `TabNetEncoder` instances.
-            Defaults to `True`.
     """
     def __init__(self,
                  data_dim: int,
@@ -79,7 +73,6 @@ class TabNetDecoder(keras.Model):
                  relaxation_factor: float = 1.5,
                  batch_momentum: float = 0.9,
                  epsilon: float = 1e-5,
-                 reset_shared_layers: bool = True,
                  **kwargs):
         super().__init__(**kwargs)
         self.data_dim = data_dim
@@ -91,20 +84,30 @@ class TabNetDecoder(keras.Model):
         self.relaxation_factor = relaxation_factor
         self.batch_momentum = batch_momentum
         self.epsilon = epsilon
-        self.reset_shared_layers = reset_shared_layers
 
-        if self.reset_shared_layers:
-            TabNetFeatureTransformer.reset_shared_layers()
-
-        self.feature_transformers = [
-            TabNetFeatureTransformer(
-                hidden_dim=self.feature_transformer_dim,
-                num_shared_layers=self.num_decision_steps,
-                num_decision_dependent_layers=self.num_decision_dependent_layers,
-                batch_momentum=self.batch_momentum,
-                name=f"decoder_feature_transformer_{i}"
-            )
-            for i in range(self.num_decision_steps)
+        # self.feature_transformers = [
+        #     TabNetFeatureTransformer(
+        #         hidden_dim=self.feature_transformer_dim,
+        #         num_shared_layers=self.num_decision_steps,
+        #         num_decision_dependent_layers=self.num_decision_dependent_layers,
+        #         batch_momentum=self.batch_momentum,
+        #         name=f"decoder_feature_transformer_{i}"
+        #     )
+        #     for i in range(self.num_decision_steps)
+        # ]
+        self.shared_layers = [
+            TabNetFeatureTransformerLayer(
+                dim=feature_transformer_dim,
+                batch_momentum=batch_momentum,
+                name=f"decoder_shared_layer_{i}")
+            for i in range(self.num_shared_layers)
+        ]
+        self.decision_dependent_layers = [
+            TabNetFeatureTransformerLayer(
+                dim=feature_transformer_dim,
+                batch_momentum=batch_momentum,
+                name=f"decoder_decision_dependent_layer_{i}")
+            for i in range(self.num_decision_steps * self.num_decision_dependent_layers)
         ]
         self.projection_layers = [
             keras.layers.Dense(units=self.data_dim,
@@ -119,8 +122,23 @@ class TabNetDecoder(keras.Model):
         )
 
         for i in range(self.num_decision_steps):
-            feature_out = self.feature_transformers[i](inputs)
-            reconstructed_features += self.projection_layers[i](feature_out)
+            # feature_out = self.feature_transformers[i](inputs)
+            # reconstructed_features += self.projection_layers[i](feature_out)
+            x = inputs
+            residue = None
+            for layer in self.shared_layers:
+                x = layer(x)
+                if residue is not None:
+                    x += ops.sqrt(0.5) * residue
+                residue = x
+
+            start_idx = i * self.num_decision_steps
+            end_idx = start_idx + self.num_decision_steps
+            for layer in self.decision_dependent_layers[start_idx: end_idx]:
+                x = layer(x)
+                if residue is not None:
+                    x += ops.sqrt(0.5) * residue
+                residue = x
 
         # According to the paper, the decoder’s last FC (dense) layer is
         # multiplied with S (binary mask indicating which features are
@@ -142,6 +160,5 @@ class TabNetDecoder(keras.Model):
             'relaxation_factor': self.relaxation_factor,
             'batch_momentum': self.batch_momentum,
             'epsilon': self.epsilon,
-            'reset_shared_layers': self.reset_shared_layers,
         })
         return config
