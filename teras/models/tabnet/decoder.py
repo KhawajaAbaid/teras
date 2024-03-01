@@ -102,8 +102,9 @@ class TabNetDecoder(keras.Model):
                 num_shared_layers=self.num_decision_steps,
                 num_decision_dependent_layers=self.num_decision_dependent_layers,
                 batch_momentum=self.batch_momentum,
+                name=f"decoder_feature_transformer_{i}"
             )
-            for _ in range(self.num_decision_steps)
+            for i in range(self.num_decision_steps)
         ]
         self.projection_layers = [
             keras.layers.Dense(units=self.data_dim,

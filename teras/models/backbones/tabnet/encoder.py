@@ -103,15 +103,17 @@ class TabNetEncoderBackbone(Backbone):
                 num_shared_layers=self.num_decision_steps,
                 num_decision_dependent_layers=self.num_decision_dependent_layers,
                 batch_momentum=self.batch_momentum,
+                name=f"encoder_feature_transformer_{i}"
             )
-            for _ in range(self.num_decision_steps)
+            for i in range(self.num_decision_steps)
         ]
         self.attentive_transformers = [
             TabNetAttentiveTransformer(
                 data_dim=input_dim,
-                batch_momentum=self.batch_momentum
-            )
-            for _ in range(self.num_decision_steps - 1)
+                batch_momentum=self.batch_momentum,
+                name=f"encoder_attentive_transformer_{i}"
+        )
+            for i in range(self.num_decision_steps - 1)
         ]
         self.batch_norm = keras.layers.BatchNormalization(
             momentum=self.batch_momentum
