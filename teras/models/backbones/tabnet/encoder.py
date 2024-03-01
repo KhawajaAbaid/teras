@@ -68,7 +68,7 @@ class TabNetEncoderBackbone(Backbone):
             multiple instances of `TabNetFeatureTransformer` but we may
             not want to use the same shared layers across different
             `TabNetEncoder` instances.
-            Defaults to `False`.
+            Defaults to `True`.
     """
     def __init__(self,
                  input_dim: int,

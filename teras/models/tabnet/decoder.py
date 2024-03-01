@@ -67,7 +67,7 @@ class TabNetDecoder(keras.Model):
             multiple instances of `TabNetFeatureTransformer` but we may
             not want to use the same shared layers across different
             `TabNetEncoder` instances.
-            Defaults to `False`.
+            Defaults to `True`.
     """
     def __init__(self,
                  data_dim: int,
@@ -79,7 +79,7 @@ class TabNetDecoder(keras.Model):
                  relaxation_factor: float = 1.5,
                  batch_momentum: float = 0.9,
                  epsilon: float = 1e-5,
-                 reset_shared_layers: bool = False,
+                 reset_shared_layers: bool = True,
                  **kwargs):
         super().__init__(**kwargs)
         self.data_dim = data_dim
