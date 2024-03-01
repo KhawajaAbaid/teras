@@ -37,7 +37,7 @@ class BaseTabNetPretrainer(keras.Model):
 
     @property
     def metrics(self):
-        _metrics = super().metrics()
+        _metrics = super().metrics
         _metrics.append(self._reconstruction_loss_tracker)
         return _metrics
 
