@@ -4,6 +4,7 @@ from teras.models.backbones.backbone import Backbone
 from teras.layers.tabnet.attentive_transformer import TabNetAttentiveTransformer
 from teras.layers.tabnet.feature_transformer import TabNetFeatureTransformer
 from teras.api_export import teras_export
+from teras.layers.layer_list import LayerList
 
 
 @teras_export("teras.models.TabNetEncoderBackbone")
@@ -97,7 +98,7 @@ class TabNetEncoderBackbone(Backbone):
         if self.reset_shared_layers:
             TabNetFeatureTransformer.reset_shared_layers()
 
-        self.feature_transformers = [
+        self.feature_transformers = LayerList([
             TabNetFeatureTransformer(
                 hidden_dim=self.feature_transformer_dim,
                 num_shared_layers=self.num_decision_steps,
@@ -106,18 +107,33 @@ class TabNetEncoderBackbone(Backbone):
                 name=f"encoder_feature_transformer_{i}"
             )
             for i in range(self.num_decision_steps)
-        ]
-        self.attentive_transformers = [
+        ],
+            sequential=False,
+            name="encoder_feature_transformers"
+        )
+        self.attentive_transformers = LayerList([
             TabNetAttentiveTransformer(
                 data_dim=input_dim,
                 batch_momentum=self.batch_momentum,
                 name=f"encoder_attentive_transformer_{i}"
-        )
+            )
             for i in range(self.num_decision_steps - 1)
-        ]
+        ],
+            sequential=False,
+            name="encoder_attentive_transformers"
+        )
         self.batch_norm = keras.layers.BatchNormalization(
             momentum=self.batch_momentum
         )
+
+    def build(self, input_shape):
+        input_shape = tuple(input_shape)
+        self._input_shape = input_shape
+        self.batch_norm.build(input_shape)
+        self.feature_transformers.build(input_shape)
+        input_shape = input_shape[:-1] + (
+            self.feature_transformer_dim - self.decision_step_dim,)
+        self.attentive_transformers.build(input_shape)
 
     def call(self, inputs, mask=None):
         normalized_inputs = self.batch_norm(inputs)
@@ -173,6 +189,9 @@ class TabNetEncoderBackbone(Backbone):
 
         return decision_out_aggregated
 
+    def compute_output_shape(self, input_shape):
+        return input_shape[:-1] + (self.decision_step_dim,)
+
     def get_config(self):
         config = super().get_config()
         config.update({
@@ -188,3 +207,10 @@ class TabNetEncoderBackbone(Backbone):
             'reset_shared_layers': self.reset_shared_layers,
         })
         return config
+
+    def get_build_config(self):
+        build_config = dict(input_shape=self._input_shape)
+        return build_config
+
+    def build_from_config(self, build_config):
+        self.build(build_config["input_shape"])
