@@ -36,7 +36,8 @@ class TabNetPretrainer(BaseTabNetPretrainer):
             trainable_variables,
             non_trainable_variables,
             x,
-            training=training
+            mask=mask,
+            training=training,
         )
         loss = self._reconstruction_loss_fn(real=x,
                                             reconstructed=reconstructed,
@@ -58,7 +59,9 @@ class TabNetPretrainer(BaseTabNetPretrainer):
         mask = random.binomial(
             shape=ops.shape(data),
             counts=1,
-            probabilities=self.missing_feature_probability)
+            probabilities=self.missing_feature_probability,
+            seed=1337
+        )
 
         # Compute gradients
         (loss, (reconstructed, non_trainable_variables)), grads = grad_fn(
@@ -88,12 +91,12 @@ class TabNetPretrainer(BaseTabNetPretrainer):
             ]
             if (metric.name == "loss" or
                     metric.name == "reconstruction_loss"):
-                this_metric_variables = metric.stateless_update(
+                this_metric_variables = metric.stateless_update_state(
                     this_metric_variables,
                     loss
                 )
             else:
-                this_metric_variables = metric.stateless_update(
+                this_metric_variables = metric.stateless_update_state(
                     this_metric_variables,
                     data,
                     reconstructed
