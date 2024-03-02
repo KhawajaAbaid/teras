@@ -3,6 +3,7 @@ from keras import ops
 from teras.layers.tabnet.feature_transformer import TabNetFeatureTransformer
 from teras.layers.tabnet.feature_transformer_layer import TabNetFeatureTransformerLayer
 from teras.api_export import teras_export
+from teras.layers.layer_list import LayerList
 
 
 @teras_export("teras.models.TabNetDecoder")
@@ -95,25 +96,43 @@ class TabNetDecoder(keras.Model):
         #     )
         #     for i in range(self.num_decision_steps)
         # ]
-        self.shared_layers = [
+        self.shared_layers = LayerList([
             TabNetFeatureTransformerLayer(
                 dim=feature_transformer_dim,
                 batch_momentum=batch_momentum,
                 name=f"decoder_shared_layer_{i}")
             for i in range(self.num_shared_layers)
-        ]
-        self.decision_dependent_layers = [
+        ],
+            name="shared_layers")
+        self.decision_dependent_layers = LayerList([
             TabNetFeatureTransformerLayer(
                 dim=feature_transformer_dim,
                 batch_momentum=batch_momentum,
                 name=f"decoder_decision_dependent_layer_{i}")
             for i in range(self.num_decision_steps * self.num_decision_dependent_layers)
-        ]
-        self.projection_layers = [
+        ],
+            name="decision_dependent_layers"
+        )
+        self.projection_layers = LayerList([
             keras.layers.Dense(units=self.data_dim,
                                name=f"projection_layer_{i}")
             for i in range(self.num_decision_steps)
-        ]
+        ],
+            sequential=False,
+            name="projection_layers"
+        )
+
+    def build(self, input_shape):
+        input_shape = tuple(input_shape)
+        self._input_shape = input_shape
+        if not self.shared_layers.built:
+            self.shared_layers.build(input_shape)
+        input_shape = self.shared_layers.compute_output_shape(input_shape)
+        self.decision_dependent_layers.build(input_shape)
+        input_shape = self.decision_dependent_layers.compute_output_shape(
+            input_shape
+        )
+        self.projection_layers.build(input_shape)
 
     def call(self, inputs, mask=None):
         batch_size = ops.shape(inputs)[0]
@@ -162,3 +181,10 @@ class TabNetDecoder(keras.Model):
             'epsilon': self.epsilon,
         })
         return config
+
+    def get_build_config(self):
+        build_config = dict(input_shape=self._input_shape)
+        return build_config
+
+    def build_from_config(self, build_config):
+        self.build(build_config["input_shape"])
