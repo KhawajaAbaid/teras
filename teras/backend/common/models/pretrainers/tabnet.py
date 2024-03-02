@@ -26,6 +26,11 @@ class BaseTabNetPretrainer(keras.Model):
             name="reconstruction_loss"
         )
 
+    def build(self, input_shape):
+        self.encoder.build(input_shape)
+        input_shape = self.encoder.compute_output_shape(input_shape)
+        self.decoder.build(input_shape)
+
     def compile(self,
                 loss=None,
                 optimizer=None,
@@ -41,7 +46,7 @@ class BaseTabNetPretrainer(keras.Model):
         _metrics.append(self._reconstruction_loss_tracker)
         return _metrics
 
-    def call(self, inputs, mask):
+    def call(self, inputs, mask, **kwargs):
         inputs *= (1 - mask)
         # Encoded representations
         x = self.encoder(inputs, mask=(1 - mask))
