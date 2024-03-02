@@ -29,6 +29,12 @@ class TabNetAttentiveTransformer(keras.layers.Layer):
         self.batch_norm = keras.layers.BatchNormalization(
             momentum=self.batch_momentum)
 
+    def build(self, input_shape):
+        self.dense.build(input_shape)
+        input_shape = self.dense.compute_output_shape(input_shape)
+        self.batch_norm.build(input_shape)
+        self.built = True
+
     def call(self, inputs, prior_scales=None):
         x = self.dense(inputs)
         x = self.batch_norm(x)
