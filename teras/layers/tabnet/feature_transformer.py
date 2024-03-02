@@ -2,6 +2,7 @@ import keras
 from keras import ops
 from teras.layers.tabnet.feature_transformer_layer import TabNetFeatureTransformerLayer
 from teras.api_export import teras_export
+from teras.layers.layer_list import LayerList
 
 
 @teras_export("teras.layers.TabNetFeatureTransformer")
@@ -38,28 +39,41 @@ class TabNetFeatureTransformer(keras.layers.Layer):
         self._maybe_create_shared_layers(self.num_shared_layers,
                                          self.hidden_dim,
                                          self.batch_momentum)
-        self.decision_dependent_layers = [
+        self.decision_dependent_layers = LayerList([
             TabNetFeatureTransformerLayer(
                 dim=hidden_dim,
                 batch_momentum=batch_momentum,
                 name=f"decision_dependent_layer_{i+1}")
             for i in range(num_decision_dependent_layers)
-        ]
+        ],
+            name="decision_dependent_layers"
+        )
 
     @classmethod
     def _maybe_create_shared_layers(cls, num_layers, hidden_dim,
                                     batch_momentum):
         if cls.shared_layers:
             return
-        cls.shared_layers = [TabNetFeatureTransformerLayer(
+        cls.shared_layers = LayerList([TabNetFeatureTransformerLayer(
             dim=hidden_dim,
             batch_momentum=batch_momentum,
             name=f"shared_layer_{i+1}"
-        ) for i in range(num_layers)]
+        ) for i in range(num_layers)],
+            name="shared_layers"
+        )
 
     @classmethod
     def reset_shared_layers(cls):
         cls.shared_layers = None
+
+    def build(self, input_shape):
+        # Shared layers need only be built once, because they are
+        # shared across instances of `TabNetFeatureTransformer`
+        if not self.shared_layers.built:
+            self.shared_layers.build(input_shape)
+        input_shape = self.shared_layers.compute_output_shape(input_shape)
+        self.decision_dependent_layers.build(input_shape)
+        self.built = True
 
     def call(self, inputs):
         x = inputs
