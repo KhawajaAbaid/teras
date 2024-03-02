@@ -12,13 +12,13 @@ class TabNetDecoderTest(TestCase):
 
     def test_valid_call(self):
         model = TabNetDecoder(data_dim=5,
-                              feature_transformer_dim=8,
+                              feature_transformer_dim=16,
                               decision_step_dim=8)
         reconstructed_features = model(self.encoded_features)
 
     def test_valid_output_shape(self):
         model = TabNetDecoder(data_dim=5,
-                              feature_transformer_dim=8,
+                              feature_transformer_dim=16,
                               decision_step_dim=8)
         reconstructed_features = model(self.encoded_features)
         self.assertEqual(ops.shape(reconstructed_features),
@@ -26,7 +26,7 @@ class TabNetDecoderTest(TestCase):
 
     def test_model_save_and_load(self):
         model = TabNetDecoder(data_dim=5,
-                              feature_transformer_dim=8,
+                              feature_transformer_dim=16,
                               decision_step_dim=8)
         reconstructed_features = model(self.encoded_features)
         save_path = os.path.join(self.get_temp_dir(),
