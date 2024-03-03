@@ -1,4 +1,5 @@
 import keras
+from keras import random
 from teras.losses.tabnet import tabnet_reconstruction_loss
 
 
@@ -25,6 +26,7 @@ class BaseTabNetPretrainer(keras.Model):
         self._reconstruction_loss_tracker = keras.metrics.Mean(
             name="reconstruction_loss"
         )
+        self._mask_seed_generator = random.SeedGenerator(seed=1337)
 
     def build(self, input_shape):
         self.encoder.build(input_shape)
