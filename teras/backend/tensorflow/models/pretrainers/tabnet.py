@@ -33,9 +33,11 @@ class TabNetPretrainer(BaseTabNetPretrainer):
         mask = random.binomial(
             shape=ops.shape(data),
             counts=1,
-            probabilities=self.missing_feature_probability)
+            probabilities=self.missing_feature_probability,
+            seed=1337
+        )
         with tf.GradientTape() as tape:
-            reconstructed = self(data, mask)
+            reconstructed = self(data, mask, training=True)
             loss = self._reconstruction_loss_fn(
                 real=data,
                 reconstructed=reconstructed,
