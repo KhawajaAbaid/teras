@@ -47,9 +47,9 @@ class BaseTabNetPretrainer(keras.Model):
         return _metrics
 
     def call(self, inputs, mask, **kwargs):
-        inputs *= (1 - mask)
+        x = inputs * (1 - mask)
         # Encoded representations
-        x = self.encoder(inputs, mask=(1 - mask))
+        x = self.encoder(x, mask=(1 - mask))
         # Reconstructed features
         x = self.decoder(x, mask=mask)
         return x
