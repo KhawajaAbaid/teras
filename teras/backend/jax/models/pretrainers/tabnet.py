@@ -59,7 +59,7 @@ class TabNetPretrainer(BaseTabNetPretrainer):
             shape=ops.shape(data),
             counts=1,
             probabilities=self.missing_feature_probability,
-            seed=1337
+            seed=self._mask_seed_generator
         )
 
         # Compute gradients

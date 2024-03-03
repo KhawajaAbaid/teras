@@ -31,7 +31,8 @@ class TabNetPretrainer(BaseTabNetPretrainer):
         mask = random.binomial(
             shape=ops.shape(data),
             counts=1,
-            probabilities=self.missing_feature_probability)
+            probabilities=self.missing_feature_probability,
+            seed=self._mask_seed_generator)
         # Call torch.nn.Module.zero_grad() to clear the leftover gradients
         # for the weights from the previous train step.
         self.zero_grad()
