@@ -31,7 +31,7 @@ class TabNetPretrainer(BaseTabNetPretrainer):
                                  non_trainable_variables,
                                  x,
                                  mask,
-                                 training=None):
+                                 training=False):
         reconstructed, non_trainable_variables = self.stateless_call(
             trainable_variables,
             non_trainable_variables,
@@ -50,7 +50,6 @@ class TabNetPretrainer(BaseTabNetPretrainer):
          optimizer_variables,
          metrics_variables
          ) = state
-
         # Grad fn
         grad_fn = jax.value_and_grad(self.compute_loss_and_updates,
                                      has_aux=True)
@@ -98,7 +97,7 @@ class TabNetPretrainer(BaseTabNetPretrainer):
             else:
                 this_metric_variables = metric.stateless_update_state(
                     this_metric_variables,
-                    data,
+                    x,
                     reconstructed
                 )
             logs[metric.name] = metric.stateless_result(this_metric_variables)
