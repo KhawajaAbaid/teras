@@ -158,6 +158,7 @@ class TabNetDecoder(keras.Model):
                 if residue is not None:
                     x += ops.sqrt(0.5) * residue
                 residue = x
+            reconstructed_features += self.projection_layers[i](x)
 
         # According to the paper, the decoder’s last FC (dense) layer is
         # multiplied with S (binary mask indicating which features are
