@@ -175,11 +175,12 @@ class TabNetEncoderBackbone(Backbone):
                 # Relaxation factor controls the amount of reuse of
                 # features between different decision blocks and updated
                 # with the values of coefficients.
-                prior_scales *= (self.relaxation_factor - mask)
+                prior_scales = prior_scales * (self.relaxation_factor -
+                                               mask)
 
                 # Entropy is used to penalize the amount of sparsity in
                 # feature selection.
-                total_entropy += ops.mean(
+                total_entropy = total_entropy + ops.mean(
                     ops.sum(-mask * ops.log(mask + self.epsilon), axis=-1)
                 ) / self.num_decision_steps - 1
 
