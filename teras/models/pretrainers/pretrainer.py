@@ -19,13 +19,24 @@ class Pretrainer(keras.Model):
         self._pretrained = False
         self._pretrained_model = None
 
-    @abstractmethod
-    def get_pretrained_model(self):
+    @property
+    def pretrained_model(self):
+        return self._pretrained_model
+
+    @pretrained_model.setter
+    def pretrained_model(self, value):
+        if not isinstance(value, keras.Model):
+            raise ValueError(
+                "Pretrained model must be an instance of `keras.Model`. "
+                f"Received: {type(value)}.")
+        self._pretrained_model = value
+
+    @pretrained_model.getter
+    def pretrained_model(self):
         if not self._pretrained:
             raise Exception("Model has not yet been pretrained.")
         return self._pretrained_model
 
-    @property
     def is_pretrained(self):
         return self._pretrained
 
