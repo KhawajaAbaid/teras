@@ -13,4 +13,5 @@
 # limitations under the License.
 
 
-from teras.backend.jax.ops import norm
+from teras.backend.jax import ops
+from teras.backend.jax import models

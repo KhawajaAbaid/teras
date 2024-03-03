@@ -13,19 +13,4 @@
 # limitations under the License.
 
 
-from keras.backend import backend
-
-
-if backend() == "tensorflow":
-    from teras.backend.tensorflow import *
-
-elif backend() == "torch":
-    from teras.backend.torch import *
-
-elif backend() == "jax":
-    from teras.backend.jax import *
-
-else:
-    raise ValueError("Backend not support. "
-                     "Expected one of ['tensorflow', 'jax', 'torch']. "
-                     f"Found {backend()}")
+from teras.backend.tensorflow.models.pretrainers.tabnet import TabNetPretrainer

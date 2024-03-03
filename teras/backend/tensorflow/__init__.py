@@ -12,4 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from teras.backend.tensorflow.ops import norm
+from teras.backend.tensorflow import ops
+from teras.backend.tensorflow import models

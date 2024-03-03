@@ -1,23 +1,23 @@
 import keras
 from keras import ops
-from teras.models.backbones.backbone import Backbone
-from teras.layers.tabnet.attentive_transformer import TabNetAttentiveTransformer
 from teras.layers.tabnet.feature_transformer import TabNetFeatureTransformer
+from teras.layers.tabnet.feature_transformer_layer import TabNetFeatureTransformerLayer
 from teras.api_export import teras_export
 from teras.layers.layer_list import LayerList
 
 
-@teras_export("teras.models.TabNetEncoderBackbone")
-class TabNetEncoderBackbone(Backbone):
+@teras_export("teras.models.TabNetDecoder")
+class TabNetDecoder(keras.Model):
     """
-    TabNetEncoder proposed by Arik et al. in the
+    TabNetDecoder model for self-supervised learning,
+    proposed by Arik et al. in the
     "TabNet: Attentive Interpretable Tabular Learning" paper.
 
     Reference(s):
         https://arxiv.org/abs/1908.07442
 
     Args:
-        input_dim: int, The dimensionality of the input dataset.
+        data_dim: int, The dimensionality of the input dataset.
         feature_transformer_dim: int, the dimensionality of the hidden
             representation in feature transformation block.
             The dense layer inside the `TabNetFeatureTransformer` first
@@ -63,16 +63,9 @@ class TabNetEncoderBackbone(Backbone):
         epsilon: float, epsilon is a small number for numerical stability
             during the computation of entropy loss.
             Defaults to 0.00001
-        reuse_shared_layers: bool, whether to reset shared layers of the
-            `TabNetFeatureTransformer` layer.
-            Although we want to use the same shared layers across
-            multiple instances of `TabNetFeatureTransformer` but we may
-            not want to use the same shared layers across different
-            `TabNetEncoder` instances.
-            Defaults to `True`.
     """
     def __init__(self,
-                 input_dim: int,
+                 data_dim: int,
                  feature_transformer_dim: int,
                  decision_step_dim: int,
                  num_decision_steps: int = 5,
@@ -81,10 +74,9 @@ class TabNetEncoderBackbone(Backbone):
                  relaxation_factor: float = 1.5,
                  batch_momentum: float = 0.9,
                  epsilon: float = 1e-5,
-                 reset_shared_layers: bool = True,
                  **kwargs):
         super().__init__(**kwargs)
-        self.input_dim = input_dim
+        self.data_dim = data_dim
         self.feature_transformer_dim = feature_transformer_dim
         self.decision_step_dim = decision_step_dim
         self.num_decision_steps = num_decision_steps
@@ -93,110 +85,93 @@ class TabNetEncoderBackbone(Backbone):
         self.relaxation_factor = relaxation_factor
         self.batch_momentum = batch_momentum
         self.epsilon = epsilon
-        self.reset_shared_layers = reset_shared_layers
 
-        if self.reset_shared_layers:
-            TabNetFeatureTransformer.reset_shared_layers()
-
-        self.feature_transformers = LayerList([
-            TabNetFeatureTransformer(
-                hidden_dim=self.feature_transformer_dim,
-                num_shared_layers=self.num_decision_steps,
-                num_decision_dependent_layers=self.num_decision_dependent_layers,
-                batch_momentum=self.batch_momentum,
-                name=f"encoder_feature_transformer_{i}"
-            )
+        # self.feature_transformers = [
+        #     TabNetFeatureTransformer(
+        #         hidden_dim=self.feature_transformer_dim,
+        #         num_shared_layers=self.num_decision_steps,
+        #         num_decision_dependent_layers=self.num_decision_dependent_layers,
+        #         batch_momentum=self.batch_momentum,
+        #         name=f"decoder_feature_transformer_{i}"
+        #     )
+        #     for i in range(self.num_decision_steps)
+        # ]
+        self.shared_layers = LayerList([
+            TabNetFeatureTransformerLayer(
+                dim=feature_transformer_dim,
+                batch_momentum=batch_momentum,
+                name=f"decoder_shared_layer_{i}")
+            for i in range(self.num_shared_layers)
+        ],
+            name="shared_layers")
+        self.decision_dependent_layers = LayerList([
+            TabNetFeatureTransformerLayer(
+                dim=feature_transformer_dim,
+                batch_momentum=batch_momentum,
+                name=f"decoder_decision_dependent_layer_{i}")
+            for i in range(self.num_decision_steps * self.num_decision_dependent_layers)
+        ],
+            name="decision_dependent_layers"
+        )
+        self.projection_layers = LayerList([
+            keras.layers.Dense(units=self.data_dim,
+                               name=f"projection_layer_{i}")
             for i in range(self.num_decision_steps)
         ],
             sequential=False,
-            name="encoder_feature_transformers"
-        )
-        self.attentive_transformers = LayerList([
-            TabNetAttentiveTransformer(
-                data_dim=input_dim,
-                batch_momentum=self.batch_momentum,
-                name=f"encoder_attentive_transformer_{i}"
-            )
-            for i in range(self.num_decision_steps - 1)
-        ],
-            sequential=False,
-            name="encoder_attentive_transformers"
-        )
-        self.batch_norm = keras.layers.BatchNormalization(
-            momentum=self.batch_momentum
+            name="projection_layers"
         )
 
     def build(self, input_shape):
         input_shape = tuple(input_shape)
         self._input_shape = input_shape
-        self.batch_norm.build(input_shape)
-        self.feature_transformers.build(input_shape)
-        input_shape = input_shape[:-1] + (
-            self.feature_transformer_dim - self.decision_step_dim,)
-        self.attentive_transformers.build(input_shape)
+        if not self.shared_layers.built:
+            self.shared_layers.build(input_shape)
+        input_shape = self.shared_layers.compute_output_shape(input_shape)
+        self.decision_dependent_layers.build(input_shape)
+        input_shape = self.decision_dependent_layers.compute_output_shape(
+            input_shape
+        )
+        self.projection_layers.build(input_shape)
 
     def call(self, inputs, mask=None):
-        normalized_inputs = self.batch_norm(inputs)
         batch_size = ops.shape(inputs)[0]
-        decision_out_aggregated = ops.zeros(
-            (batch_size, self.decision_step_dim))
-        # During pretraining, we pass mask alongside inputs to the encoder
-        masked_features = normalized_inputs
+        reconstructed_features = ops.zeros(
+            shape=(batch_size, self.data_dim)
+        )
+
+        for i in range(self.num_decision_steps):
+            # feature_out = self.feature_transformers[i](inputs)
+            # reconstructed_features += self.projection_layers[i](feature_out)
+            x = inputs
+            residue = None
+            for layer in self.shared_layers:
+                x = layer(x)
+                if residue is not None:
+                    x += ops.sqrt(0.5) * residue
+                residue = x
+
+            start_idx = i * self.num_decision_steps
+            end_idx = start_idx + self.num_decision_steps
+            for layer in self.decision_dependent_layers[start_idx: end_idx]:
+                x = layer(x)
+                if residue is not None:
+                    x += ops.sqrt(0.5) * residue
+                residue = x
+            reconstructed_features += self.projection_layers[i](x)
+
+        # According to the paper, the decoder’s last FC (dense) layer is
+        # multiplied with S (binary mask indicating which features are
+        # missing) to output the unknown features.
         if mask is not None:
-            mask_values = mask
-        else:
-            mask_values = ops.zeros_like(inputs)
-        aggregated_mask_values = ops.zeros_like(inputs)
-        # Prior scales denote how much a feature has been used previously
-        prior_scales = ops.ones_like(inputs)
-        total_entropy = 0.
+            reconstructed_features *= mask
 
-        for d_step in range(self.num_decision_steps):
-            feat_transformer_out = self.feature_transformers[d_step](
-                masked_features)
-            if d_step > 0 or self.num_decision_steps == 1:
-                decision_out = ops.relu(
-                    feat_transformer_out[:, :self.decision_step_dim])
-                decision_out_aggregated += decision_out
-
-                # Aggregated masks are used for the visualization of the
-                # feature importance attributes.
-                scale = ops.sum(
-                    decision_out, axis=-1, keepdims=True) / (
-                                self.num_decision_steps - 1)
-                aggregated_mask_values += mask_values / scale
-
-            the_other_output_half = feat_transformer_out[:, self.decision_step_dim:]
-
-            if d_step < self.num_decision_steps - 1:
-                mask = self.attentive_transformers[d_step](
-                    the_other_output_half,
-                    prior_scales)
-                # Relaxation factor controls the amount of reuse of
-                # features between different decision blocks and updated
-                # with the values of coefficients.
-                prior_scales = prior_scales * (self.relaxation_factor -
-                                               mask)
-
-                # Entropy is used to penalize the amount of sparsity in
-                # feature selection.
-                total_entropy = total_entropy + ops.mean(
-                    ops.sum(-mask * ops.log(mask + self.epsilon), axis=-1)
-                ) / self.num_decision_steps - 1
-
-                masked_features = mask * normalized_inputs
-
-        self.add_loss(total_entropy)
-
-        return decision_out_aggregated
-
-    def compute_output_shape(self, input_shape):
-        return input_shape[:-1] + (self.decision_step_dim,)
+        return reconstructed_features
 
     def get_config(self):
         config = super().get_config()
         config.update({
-            'input_dim': self.input_dim,
+            'data_dim': self.data_dim,
             'feature_transformer_dim': self.feature_transformer_dim,
             'decision_step_dim': self.decision_step_dim,
             'num_decision_steps': self.num_decision_steps,
@@ -205,7 +180,6 @@ class TabNetEncoderBackbone(Backbone):
             'relaxation_factor': self.relaxation_factor,
             'batch_momentum': self.batch_momentum,
             'epsilon': self.epsilon,
-            'reset_shared_layers': self.reset_shared_layers,
         })
         return config
 
