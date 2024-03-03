@@ -28,7 +28,6 @@ class TabNetPretrainer(BaseTabNetPretrainer):
 
     def train_step(self, data):
         # Sample mask
-        # Sample mask
         mask = random.binomial(
             shape=ops.shape(data),
             counts=1,
@@ -67,5 +66,5 @@ class TabNetPretrainer(BaseTabNetPretrainer):
             else:
                 metric.update_state(data, reconstructed)
 
-        logs = {m.name: m.result for m in self.metrics}
+        logs = {m.name: m.result() for m in self.metrics}
         return logs
