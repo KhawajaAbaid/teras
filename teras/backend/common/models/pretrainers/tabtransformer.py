@@ -8,17 +8,17 @@ class BaseTabTransformerMLMPretrainer(keras.Model):
     def __init__(self,
                  model: keras.Model,
                  data_dim: int,
-                 k: float = 0.3,
+                 missing_rate: float = 0.3,
                  mask_seed: int = 1337,
                  **kwargs):
         super().__init__(**kwargs)
         self.model = model
         self.data_dim = data_dim
-        if k < 0. or k > 1.0:
+        if missing_rate < 0. or missing_rate >= 1.0:
             raise ValueError(
-                f"`k` must be in range [0, 1]. Received {k}"
+                f"`k` must be in range [0, 1). Received {missing_rate}"
             )
-        self.k = k
+        self.missing_rate = missing_rate
         self.mask_seed = mask_seed
         self._numpy_rng = np.random.default_rng(self.mask_seed)
 
@@ -51,14 +51,14 @@ class BaseTabTransformerMLMPretrainer(keras.Model):
                 "Expected `input_shape` to have a rank of 2. "
                 f"Received, {input_shape} with rank {len(input_shape)}")
         batch_size, num_features = input_shape
-        num_features_to_replace = self.k * num_features
+        num_features_to_miss = self.missing_rate * num_features
         mask = np.zeros(input_shape)
         features_idx = np.arange(num_features)
 
         for i in range(batch_size):
             features_idx_to_replace = self._numpy_rng.choice(
                 features_idx,
-                num_features_to_replace,
+                num_features_to_miss,
                 replace=False)
             mask[i, features_idx_to_replace] = 1.
         mask = backend.convert_to_tensor(mask, dtype="int32")
@@ -70,7 +70,7 @@ class BaseTabTransformerMLMPretrainer(keras.Model):
             "trainable": self.trainable,
             "model": keras.layers.serialize(self.model),
             "data_dim": self.data_dim,
-            "k": self.k,
+            "missing_rate": self.missing_rate,
             "mask_seed": self.mask_seed
         }
         return config
@@ -95,21 +95,23 @@ class BaseTabTransformerRTDPretrainer(keras.Model):
     def __init__(self,
                  model: keras.Model,
                  data_dim: int,
-                 k: float = 0.3,
+                 replace_rate: float = 0.3,
                  mask_seed: int = 1337,
+                 shuffle_seed: int = 1999,
                  **kwargs):
         super().__init__(**kwargs)
         self.model = model
         # here `k` represents replace rate instead of missing rate like
         # in the MLM version of the pretrainer
-        if k < 0. or k > 1.0:
+        if replace_rate < 0. or replace_rate >= 1.0:
             raise ValueError(
-                f"`k` must be in range [0, 1]. Received {k}"
+                f"`k` must be in range [0, 1). Received {replace_rate}"
             )
-        self.k = k
+        self.replace_rate = replace_rate
         self.mask_seed = mask_seed
         self._numpy_rng = np.random.default_rng(self.mask_seed)
-        self._seed_for_shuffling = random.SeedGenerator(1337)
+        self.shuffle_seed = shuffle_seed
+        self._seed_for_shuffling = random.SeedGenerator(self.shuffle_seed)
 
         # binary predictors, one for each feature, which predict if the
         # value of the features is replaced or not
@@ -153,7 +155,7 @@ class BaseTabTransformerRTDPretrainer(keras.Model):
                 "Expected `input_shape` to have a rank of 2. "
                 f"Received, {input_shape} with rank {len(input_shape)}")
         batch_size, num_features = input_shape
-        num_features_to_replace = self.k * num_features
+        num_features_to_replace = self.replace_rate * num_features
         mask = np.zeros(input_shape)
         features_idx = np.arange(num_features)
 
@@ -172,8 +174,9 @@ class BaseTabTransformerRTDPretrainer(keras.Model):
             "trainable": self.trainable,
             "model": keras.layers.serialize(self.model),
             "data_dim": self.data_dim,
-            "k": self.k,
-            "mask_seed": self.mask_seed
+            "replace_rate": self.replace_rate,
+            "mask_seed": self.mask_seed,
+            "shuffle_seed": self.shuffle_seed
         }
         return config
 
