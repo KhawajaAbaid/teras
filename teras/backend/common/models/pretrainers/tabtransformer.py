@@ -32,9 +32,11 @@ class BaseTabTransformerMLMPretrainer(keras.Model):
         self.model.build(input_shape)
 
     def compile(self,
-                loss=keras.losses.BinaryCrossentropy(),
+                loss=keras.losses.CategoricalCrossentropy(
+                    from_logits=True),
+                optimizer=keras.optimizers.Adam(5e-3),
                 **kwargs):
-        super().compile(loss=loss, **kwargs)
+        super().compile(loss=loss, optimizer=optimizer, **kwargs)
 
     def call(self, inputs, mask, **kwargs):
         x = inputs * mask
