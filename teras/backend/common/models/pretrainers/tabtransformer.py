@@ -122,6 +122,13 @@ class BaseTabTransformerRTDPretrainer(keras.Model):
     def build(self, input_shape):
         self.model.build(input_shape)
 
+    def compile(self,
+                loss=keras.losses.BinaryCrossentropy(
+                    from_logits=True),
+                optimizer=keras.optimizers.Adam(5e-3),
+                **kwargs):
+        super().compile(loss=loss, optimizer=optimizer, **kwargs)
+
     def call(self, inputs, mask, **kwargs):
         # Since in RTD, for a sample, we randomly replace k% of its
         # features values using random values of those features.
