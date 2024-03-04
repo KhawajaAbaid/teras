@@ -14,3 +14,7 @@
 
 
 from teras.backend.tensorflow.models.pretrainers.tabnet import TabNetPretrainer
+from teras.backend.tensorflow.models.pretrainers.tabtransformer import (
+    TabTransformerMLMPretrainer,
+    TabTransformerRTDPretrainer
+)
