@@ -14,3 +14,7 @@
 
 
 from teras.backend.torch.models.pretrainers.tabnet import TabNetPretrainer
+from teras.backend.torch.models.pretrainers.tabtransformer import (
+    TabTransformerMLMPretrainer,
+    TabTransformerRTDPretrainer
+)
