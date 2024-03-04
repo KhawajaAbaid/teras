@@ -27,6 +27,7 @@ class BaseTabNetPretrainer(keras.Model):
             name="reconstruction_loss"
         )
         self._mask_seed_generator = random.SeedGenerator(seed=1337)
+        self._pretrained = False
 
     def build(self, input_shape):
         self.encoder.build(input_shape)
@@ -54,6 +55,7 @@ class BaseTabNetPretrainer(keras.Model):
         x = self.encoder(x, mask=(1 - mask))
         # Reconstructed features
         x = self.decoder(x, mask=mask)
+        self._pretrained = True
         return x
 
     def get_config(self):
@@ -72,3 +74,23 @@ class BaseTabNetPretrainer(keras.Model):
         encoder = keras.layers.deserialize(config.pop("encoder"))
         decoder = keras.layers.deserialize(config.pop("decoder"))
         return cls(encoder=encoder, decoder=decoder, **config)
+
+    @property
+    def pretrained_encoder(self):
+        if not self._pretrained:
+            raise AssertionError(
+                "The `fit` method of the `TabNetPretrainer` has not yet "
+                "been called. Please train the `TabNetPretrainer` before "
+                "accessing the `pretrained_encoder` attribute."
+            )
+        return self.encoder
+
+    @property
+    def pretrained_decoder(self):
+        if not self._pretrained:
+            raise AssertionError(
+                "The `fit` method of the `TabNetPretrainer` has not yet "
+                "been called. Please train the `TabNetPretrainer` before "
+                "accessing the `pretrained_decoder` attribute."
+            )
+        return self.encoder
