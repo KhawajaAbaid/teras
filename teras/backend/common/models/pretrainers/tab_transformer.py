@@ -101,6 +101,7 @@ class BaseTabTransformerRTDPretrainer(keras.Model):
                  **kwargs):
         super().__init__(**kwargs)
         self.model = model
+        self.data_dim = data_dim
         # here `k` represents replace rate instead of missing rate like
         # in the MLM version of the pretrainer
         if replace_rate < 0. or replace_rate >= 1.0:
