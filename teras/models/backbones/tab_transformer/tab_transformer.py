@@ -126,6 +126,12 @@ class TabTransformerBackbone(Backbone):
         self.feedforward_dropout = feedforward_dropout
         self.layer_norm_epsilon = layer_norm_epsilon
 
+    def compute_output_shape(self, input_shape):
+        cards = np.array(self.cardinalities)
+        continuous_dim = sum(cards == 0)
+        categorical_dim = sum(cards != 0) * self.embedding_dim
+        return input_shape[:1] + (continuous_dim + categorical_dim,)
+
     def get_config(self):
         config = super().get_config()
         config.update({
