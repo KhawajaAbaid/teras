@@ -15,19 +15,19 @@ class TabTransformerMLMPretrainer(BaseTabTransformerMLMPretrainer):
         model: keras.Model, instance of `TabTransformerBackbone` model to
             pretrain.
         data_dim: int, number of features in the dataset
-        k: float, percentage of features to make missing.
+        missing_rate: float, percentage of features to make missing.
             Defaults to 0.3 (or 30%)
         mask_seed: int, seed for generating mask. Defaults to 1337
     """
     def __init__(self,
                  model: keras.Model,
                  data_dim: int,
-                 k: float = 0.3,
+                 missing_rate: float = 0.3,
                  mask_seed: int = 1337,
                  **kwargs):
         super().__init__(model=model,
                          data_dim=data_dim,
-                         k=k,
+                         missing_rate=missing_rate,
                          mask_seed=mask_seed,
                          **kwargs)
 
@@ -59,19 +59,19 @@ class TabTransformerRTDPretrainer(BaseTabTransformerRTDPretrainer):
         model: keras.Model, instance of `TabTransformerBackbone` model to
             pretrain.
         data_dim: int, number of features in the dataset
-        k: float, percentage of features to replace.
+        replace_rate: float, percentage of features to replace.
             Defaults to 0.3 (or 30%)
         mask_seed: int, seed for generating mask. Defaults to 1337
     """
     def __init__(self,
                  model: keras.Model,
                  data_dim: int,
-                 k: float = 0.3,
+                 replace_rate: float = 0.3,
                  mask_seed: int = 1337,
                  **kwargs):
         super().__init__(model=model,
                          data_dim=data_dim,
-                         k=k,
+                         replace_rate=replace_rate,
                          mask_seed=mask_seed,
                          **kwargs)
 
