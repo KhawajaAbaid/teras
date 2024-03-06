@@ -51,7 +51,7 @@ class TabTransformerRTDPretrainer(backend.models.TabTransformerRTDPretrainer):
         model: keras.Model, instance of `TabTransformerBackbone` to
             pretrain
         data_dim: int, dimensionality of the input dataset
-        missing_rate: float, fraction of original features to make missing.
+        replace_rate: float, fraction of original features to replace.
             Must be in the range [0, 1).
             Defaults to 0.3 (or 30%)
         mask_seed: int, seed for generating mask.
@@ -62,14 +62,14 @@ class TabTransformerRTDPretrainer(backend.models.TabTransformerRTDPretrainer):
     def __init__(self,
                  model: keras.Model,
                  data_dim: int,
-                 missing_rate: float = 0.3,
+                 replace_rate: float = 0.3,
                  mask_seed: int = 1337,
                  shuffle_seed: int = 1999,
                  **kwargs):
         super().__init__(
             model=model,
             data_dim=data_dim,
-            missing_rate=missing_rate,
+            replace_rate=replace_rate,
             mask_seed=mask_seed,
             shuffle_seed=shuffle_seed,
             **kwargs)
