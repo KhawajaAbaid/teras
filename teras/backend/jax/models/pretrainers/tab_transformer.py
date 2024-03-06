@@ -1,6 +1,6 @@
 import jax
 import keras
-from teras.backend.common.models.pretrainers.tabtransformer import (
+from teras.backend.common.models.pretrainers.tab_transformer import (
     BaseTabTransformerMLMPretrainer,
     BaseTabTransformerRTDPretrainer
 )
