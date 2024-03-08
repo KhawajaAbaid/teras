@@ -64,7 +64,7 @@ class TabTransformerRTDPretrainer(BaseTabTransformerRTDPretrainer):
         # In mask, 1 indicates that the feature will be missing, while 0
         # indicates the opposite
         y_pred = self(data, mask=(1 - mask))
-        loss = self.compute_loss(y_true=mask,
+        loss = self.compute_loss(y=mask,
                                  y_pred=y_pred)
         # Run backward pass
         loss.backward()
