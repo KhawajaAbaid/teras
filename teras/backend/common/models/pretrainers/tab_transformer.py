@@ -30,6 +30,8 @@ class BaseTabTransformerMLMPretrainer(keras.Model):
 
     def build(self, input_shape):
         self.model.build(input_shape)
+        input_shape = self.model.compute_output_shape(input_shape)
+        self.features_predictor.build(input_shape)
 
     def compile(self,
                 loss=keras.losses.CategoricalCrossentropy(
@@ -38,7 +40,7 @@ class BaseTabTransformerMLMPretrainer(keras.Model):
                 **kwargs):
         super().compile(loss=loss, optimizer=optimizer, **kwargs)
 
-    def call(self, inputs, mask, **kwargs):
+    def call(self, inputs, mask):
         x = inputs * mask
         x = self.model(x)
         x = self.features_predictor(x)
@@ -51,8 +53,10 @@ class BaseTabTransformerMLMPretrainer(keras.Model):
                 "Expected `input_shape` to have a rank of 2. "
                 f"Received, {input_shape} with rank {len(input_shape)}")
         batch_size, num_features = input_shape
-        num_features_to_miss = self.missing_rate * num_features
-        mask = np.zeros(input_shape)
+        num_features_to_miss = int(self.missing_rate * num_features)
+        # mask = np.zeros(input_shape)
+        mask = ops.zeros(input_shape)
+        mask = ops.convert_to_numpy(mask)
         features_idx = np.arange(num_features)
 
         for i in range(batch_size):
@@ -61,7 +65,7 @@ class BaseTabTransformerMLMPretrainer(keras.Model):
                 num_features_to_miss,
                 replace=False)
             mask[i, features_idx_to_replace] = 1.
-        mask = backend.convert_to_tensor(mask, dtype="int32")
+        mask = ops.convert_to_tensor(mask, dtype="int32")
         return mask
 
     def get_config(self):
@@ -124,6 +128,8 @@ class BaseTabTransformerRTDPretrainer(keras.Model):
 
     def build(self, input_shape):
         self.model.build(input_shape)
+        input_shape = self.model.compute_output_shape(input_shape)
+        self.predictors.build(input_shape)
 
     def compile(self,
                 loss=keras.losses.BinaryCrossentropy(
@@ -132,7 +138,7 @@ class BaseTabTransformerRTDPretrainer(keras.Model):
                 **kwargs):
         super().compile(loss=loss, optimizer=optimizer, **kwargs)
 
-    def call(self, inputs, mask, **kwargs):
+    def call(self, inputs, mask):
         # Since in RTD, for a sample, we randomly replace k% of its
         # features values using random values of those features.
         # We can efficiently achieve this by first getting
@@ -156,8 +162,10 @@ class BaseTabTransformerRTDPretrainer(keras.Model):
                 "Expected `input_shape` to have a rank of 2. "
                 f"Received, {input_shape} with rank {len(input_shape)}")
         batch_size, num_features = input_shape
-        num_features_to_replace = self.replace_rate * num_features
+        num_features_to_replace = int(self.replace_rate * num_features)
         mask = np.zeros(input_shape)
+        # mask = ops.zeros(input_shape)
+        # mask = np.asarray(mask)
         features_idx = np.arange(num_features)
 
         for i in range(batch_size):
@@ -166,7 +174,7 @@ class BaseTabTransformerRTDPretrainer(keras.Model):
                 num_features_to_replace,
                 replace=False)
             mask[i, features_idx_to_replace] = 1.
-        mask = backend.convert_to_tensor(mask, dtype="int32")
+        mask = ops.convert_to_tensor(mask, dtype="int32")
         return mask
 
     def get_config(self):
