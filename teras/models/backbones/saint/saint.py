@@ -9,6 +9,43 @@ from teras.api_export import teras_export
 
 @teras_export("teras.model.SAINTBackbone")
 class SAINTBackbone(Backbone):
+    """
+    SAINT Backbone based on the SAINT architecture proposed in the paper,
+    "SAINT: Improved Neural Networks for Tabular Data".
+
+    Reference(s):
+        https://arxiv.org/abs/2106.01342
+
+    Args:
+        input_dim: int, dimensionality of the input dataset. i.e. the
+            number of features in the dataset.
+        cardinalities: list, a list cardinalities of all the features
+            in the dataset in the same order as the features' occurrence.
+            For numerical features, use any value <=0 as indicator at
+            the corresponding index.
+            You can use the `compute_cardinalities` function from
+            `teras.utils` package for this purpose.
+        embedding_dim: int, dimensionality of the embeddings used
+            by the model. It is also referred to as the `d_model` or
+            model dimensionality.
+        num_layers: int, number of `TransformerEncoderLayer`s to use in
+            the encoder.
+        num_heads: int, number of attention heads to use in the
+            `MultiHeadAttention` layer.
+        feedforward_dim: int, hidden dimensionality to use in the
+            `TransformerFeedForward` layer.
+        attention_dropout: float, dropout value to use in the
+            `MultiHeadAttention` layer. Defaults to 0.
+        feedforward_dropout: float, dropout value to use in the
+            `TransformerFeedForward` layer. Defaults to 0.
+        layer_norm_epsilon: float, epsilon value to use in the
+            `LayerNormalization` layer. Defaults to 1e-5.
+        embedd_inputs: bool, whether to use `SAINTEmbedding` layer to
+            create emebddings of inputs. Defaults to `True` as this is
+            what we want. but when pretraining we want to use the
+            `SAINTBackbone` as encoder only which expects embeddings as
+            inputs, so that's when we set this parameter to `False`.
+    """
     def __init__(self,
                  input_dim: int,
                  cardinalities: list,
