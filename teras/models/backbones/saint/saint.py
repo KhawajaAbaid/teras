@@ -19,11 +19,14 @@ class SAINTBackbone(Backbone):
                  attention_dropout: float = 0.,
                  feedforward_dropout: float = 0.,
                  layer_norm_epsilon: float = 1e-5,
+                 embedd_inputs: bool = True,
                  **kwargs):
         inputs = keras.layers.Input((input_dim,), name="inputs")
-        x = SAINTEmbedding(
-            embedding_dim=embedding_dim,
-            cardinalities=cardinalities)(inputs)
+        x = inputs
+        if embedd_inputs:
+            x = SAINTEmbedding(
+                embedding_dim=embedding_dim,
+                cardinalities=cardinalities)(x)
         x = CLSToken(embedding_dim=embedding_dim)(x)
         for i in range(num_layers):
             x = SAINTEncoderLayer(
@@ -46,6 +49,7 @@ class SAINTBackbone(Backbone):
         self.attention_dropout = attention_dropout
         self.feedforward_dropout = feedforward_dropout
         self.layer_norm_epsilon = layer_norm_epsilon
+        self.embedd_inputs = embedd_inputs
 
     def get_config(self):
         config = super().get_config()
@@ -59,5 +63,6 @@ class SAINTBackbone(Backbone):
             "attention_dropout": self.attention_dropout,
             "feedforward_dropout": self.feedforward_dropout,
             "layer_norm_epsilon": self.layer_norm_epsilon,
+            "embedd_inputs": self.embedd_inputs,
         })
         return config
