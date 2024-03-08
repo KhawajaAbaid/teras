@@ -21,6 +21,7 @@ class BaseTabTransformerMLMPretrainer(keras.Model):
         self.missing_rate = missing_rate
         self.mask_seed = mask_seed
         self._numpy_rng = np.random.default_rng(self.mask_seed)
+        self._seed_for_mask = random.SeedGenerator(self.mask_seed)
 
         self.features_predictor = keras.layers.Dense(
             units=data_dim,
@@ -115,6 +116,7 @@ class BaseTabTransformerRTDPretrainer(keras.Model):
         self.replace_rate = replace_rate
         self.mask_seed = mask_seed
         self._numpy_rng = np.random.default_rng(self.mask_seed)
+        self._seed_for_mask = random.SeedGenerator(self.mask_seed)
         self.shuffle_seed = shuffle_seed
         self._seed_for_shuffling = random.SeedGenerator(self.shuffle_seed)
 
