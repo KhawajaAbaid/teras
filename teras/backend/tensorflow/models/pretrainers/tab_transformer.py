@@ -43,7 +43,7 @@ class TabTransformerMLMPretrainer(BaseTabTransformerMLMPretrainer):
                       [[0, self.data_dim - num_features_to_miss]])
         mask = tf.tile(tf.expand_dims(mask, 0), (batch_size, 1))
         mask = tf.map_fn(lambda x: tf.random.shuffle(x,
-                                                     seed=self._seed_for_mask),
+                                                     seed=self.mask_seed),
                          mask,
                          dtype=tf.int32)
         return mask
@@ -105,7 +105,7 @@ class TabTransformerRTDPretrainer(BaseTabTransformerRTDPretrainer):
                       [[0, self.data_dim - num_features_to_replace]])
         mask = tf.tile(tf.expand_dims(mask, 0), (batch_size, 1))
         mask = tf.map_fn(lambda x: tf.random.shuffle(x,
-                                                     seed=self._seed_for_mask),
+                                                     seed=self.mask_seed),
                          mask,
                          dtype=tf.int32)
         return mask
