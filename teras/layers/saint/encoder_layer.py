@@ -7,6 +7,26 @@ from teras.api_export import teras_export
 
 @teras_export("teras.layers.SAINTEncoderLayer")
 class SAINTEncoderLayer(keras.layers.Layer):
+    """
+    SAINTEncoderLayer layer as proposed in the paper,
+    "SAINT: Improved Neural Networks for Tabular Data".
+
+    Reference(s):
+        https://arxiv.org/abs/2106.01342
+
+    Args:
+        embedding_dim: int, dimensionality of the embeddings
+        num_heads: int, number of attention heads to use in the
+            `MultiHeadAttention` layer.
+        feedforward_dim: int, hidden dimensionality to use in the
+            `TransformerFeedForward` layer.
+        attention_dropout: float, dropout value to use in the
+            `MultiHeadAttention` layer. Defaults to 0.
+        feedforward_dropout: float, dropout value to use in the
+            `TransformerFeedForward` layer. Defaults to 0.
+        layer_norm_epsilon: float, epsilon value to use in the
+            `LayerNormalization` layer. Defaults to 1e-5.
+    """
     def __init__(self,
                  embedding_dim: int,
                  num_heads: int = 8,

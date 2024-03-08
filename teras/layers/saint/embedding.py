@@ -5,6 +5,26 @@ from teras.api_export import teras_export
 
 @teras_export("teras.layers.SAINTEmbedding")
 class SAINTEmbedding(keras.layers.Layer):
+    """
+    SAINTEmbedding layer as proposed in the paper,
+    "SAINT: Improved Neural Networks for Tabular Data".
+
+    Reference(s):
+        https://arxiv.org/abs/2106.01342
+
+    Args:
+        embedding_dim: int, dimensionality of the embeddings
+        cardinalities: list, a list cardinalities of all the features
+            in the dataset in the same order as the features' occurrence.
+            For numerical features, use any value <=0 as indicator at
+            the corresponding index.
+            You can use the `compute_cardinalities` function from
+            `teras.utils` package for this purpose.
+
+    Shapes:
+        Input Shape: (batch_size, input_dim)
+        Output Shape: (batch_size, input_dim, embedding_dim)
+    """
     def __init__(self,
                  embedding_dim: int,
                  cardinalities: list,
