@@ -1,6 +1,6 @@
 import tensorflow as torch
 import keras
-from teras.backend.common.models.pretrainers.tabtransformer import (
+from teras.backend.common.models.pretrainers.tab_transformer import (
     BaseTabTransformerMLMPretrainer,
     BaseTabTransformerRTDPretrainer
 )
@@ -22,10 +22,15 @@ class TabTransformerMLMPretrainer(BaseTabTransformerMLMPretrainer):
 
     def train_step(self, data):
         mask = self._create_mask(ops.shape(data))
+
+        # Call torch.nn.Module.zero_grad() to clear the leftover gradients
+        # for the weights from the previous train step.
+        self.zero_grad()
+
         # In mask, 1 indicates that the feature will be missing, while 0
         # indicates the opposite
-        y_pred = self(data, mask=(1 - mask))
-        loss = self.compute_loss(y_true=data * mask,
+        y_pred = self(data, (1 - mask))
+        loss = self.compute_loss(y=data * mask,
                                  y_pred=y_pred)
         # Run backwards pass
         loss.backward()
@@ -59,7 +64,7 @@ class TabTransformerRTDPretrainer(BaseTabTransformerRTDPretrainer):
         # In mask, 1 indicates that the feature will be missing, while 0
         # indicates the opposite
         y_pred = self(data, mask=(1 - mask))
-        loss = self.compute_loss(y_true=mask,
+        loss = self.compute_loss(y=mask,
                                  y_pred=y_pred)
         # Run backward pass
         loss.backward()

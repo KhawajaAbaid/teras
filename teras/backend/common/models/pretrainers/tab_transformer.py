@@ -21,6 +21,7 @@ class BaseTabTransformerMLMPretrainer(keras.Model):
         self.missing_rate = missing_rate
         self.mask_seed = mask_seed
         self._numpy_rng = np.random.default_rng(self.mask_seed)
+        self._seed_for_mask = random.SeedGenerator(self.mask_seed)
 
         self.features_predictor = keras.layers.Dense(
             units=data_dim,
@@ -30,6 +31,8 @@ class BaseTabTransformerMLMPretrainer(keras.Model):
 
     def build(self, input_shape):
         self.model.build(input_shape)
+        input_shape = self.model.compute_output_shape(input_shape)
+        self.features_predictor.build(input_shape)
 
     def compile(self,
                 loss=keras.losses.CategoricalCrossentropy(
@@ -51,8 +54,10 @@ class BaseTabTransformerMLMPretrainer(keras.Model):
                 "Expected `input_shape` to have a rank of 2. "
                 f"Received, {input_shape} with rank {len(input_shape)}")
         batch_size, num_features = input_shape
-        num_features_to_miss = self.missing_rate * num_features
-        mask = np.zeros(input_shape)
+        num_features_to_miss = int(self.missing_rate * num_features)
+        # mask = np.zeros(input_shape)
+        mask = ops.zeros(input_shape)
+        mask = ops.convert_to_numpy(mask)
         features_idx = np.arange(num_features)
 
         for i in range(batch_size):
@@ -61,7 +66,7 @@ class BaseTabTransformerMLMPretrainer(keras.Model):
                 num_features_to_miss,
                 replace=False)
             mask[i, features_idx_to_replace] = 1.
-        mask = backend.convert_to_tensor(mask, dtype="int32")
+        mask = ops.convert_to_tensor(mask, dtype="int32")
         return mask
 
     def get_config(self):
@@ -101,6 +106,7 @@ class BaseTabTransformerRTDPretrainer(keras.Model):
                  **kwargs):
         super().__init__(**kwargs)
         self.model = model
+        self.data_dim = data_dim
         # here `k` represents replace rate instead of missing rate like
         # in the MLM version of the pretrainer
         if replace_rate < 0. or replace_rate >= 1.0:
@@ -110,6 +116,7 @@ class BaseTabTransformerRTDPretrainer(keras.Model):
         self.replace_rate = replace_rate
         self.mask_seed = mask_seed
         self._numpy_rng = np.random.default_rng(self.mask_seed)
+        self._seed_for_mask = random.SeedGenerator(self.mask_seed)
         self.shuffle_seed = shuffle_seed
         self._seed_for_shuffling = random.SeedGenerator(self.shuffle_seed)
 
@@ -123,6 +130,8 @@ class BaseTabTransformerRTDPretrainer(keras.Model):
 
     def build(self, input_shape):
         self.model.build(input_shape)
+        input_shape = self.model.compute_output_shape(input_shape)
+        self.predictors.build(input_shape)
 
     def compile(self,
                 loss=keras.losses.BinaryCrossentropy(
@@ -155,8 +164,10 @@ class BaseTabTransformerRTDPretrainer(keras.Model):
                 "Expected `input_shape` to have a rank of 2. "
                 f"Received, {input_shape} with rank {len(input_shape)}")
         batch_size, num_features = input_shape
-        num_features_to_replace = self.replace_rate * num_features
+        num_features_to_replace = int(self.replace_rate * num_features)
         mask = np.zeros(input_shape)
+        # mask = ops.zeros(input_shape)
+        # mask = np.asarray(mask)
         features_idx = np.arange(num_features)
 
         for i in range(batch_size):
@@ -165,7 +176,7 @@ class BaseTabTransformerRTDPretrainer(keras.Model):
                 num_features_to_replace,
                 replace=False)
             mask[i, features_idx_to_replace] = 1.
-        mask = backend.convert_to_tensor(mask, dtype="int32")
+        mask = ops.convert_to_tensor(mask, dtype="int32")
         return mask
 
     def get_config(self):

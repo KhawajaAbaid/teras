@@ -14,7 +14,7 @@
 
 
 from teras.backend.jax.models.pretrainers.tabnet import TabNetPretrainer
-from teras.backend.jax.models.pretrainers.tabtransformer import (
+from teras.backend.jax.models.pretrainers.tab_transformer import (
     TabTransformerMLMPretrainer,
     TabTransformerRTDPretrainer
 )
