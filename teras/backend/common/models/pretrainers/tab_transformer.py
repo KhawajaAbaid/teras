@@ -41,7 +41,7 @@ class BaseTabTransformerMLMPretrainer(keras.Model):
                 **kwargs):
         super().compile(loss=loss, optimizer=optimizer, **kwargs)
 
-    def call(self, inputs, mask):
+    def call(self, inputs, mask, **kwargs):
         x = inputs * mask
         x = self.model(x)
         x = self.features_predictor(x)
@@ -140,7 +140,7 @@ class BaseTabTransformerRTDPretrainer(keras.Model):
                 **kwargs):
         super().compile(loss=loss, optimizer=optimizer, **kwargs)
 
-    def call(self, inputs, mask):
+    def call(self, inputs, mask, **kwargs):
         # Since in RTD, for a sample, we randomly replace k% of its
         # features values using random values of those features.
         # We can efficiently achieve this by first getting
