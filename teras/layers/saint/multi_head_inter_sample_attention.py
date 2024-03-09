@@ -19,6 +19,10 @@ class SAINTMultiHeadInterSampleAttention(keras.layers.Layer):
             dimensions for your key dimensionality
         value_dim: int, same value as key_dim is used by the paper.
         dropout: float, dropout value to use. Defaults to 0.
+
+    Shapes:
+        Input Shape: (batch_size, num_features, embedding_dim)
+        Output Shape: (batch_size, num_features, embedding_dim)
     """
     def __init__(self,
                  num_heads: int,
@@ -38,6 +42,17 @@ class SAINTMultiHeadInterSampleAttention(keras.layers.Layer):
             value_dim=self.value_dim,
             dropout=self.dropout,
         )
+
+    def build(self, input_shape):
+        if len(input_shape) != 3:
+            raise ValueError(
+                "Inputs must have the shape of rank 3"
+                "(`batch_size`, `num_features`, embedding_dim`) but "
+                f"received shape {input_shape} with rank "
+                f"{len(input_shape)}."
+            )
+        input_shape = (1, input_shape[0], input_shape[1] * input_shape[2])
+        self.multi_head_attention.build(input_shape)
 
     def call(self, inputs):
         batch_size, num_features, embedding_dim = ops.shape(inputs)
