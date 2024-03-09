@@ -52,7 +52,7 @@ class SAINTMultiHeadInterSampleAttention(keras.layers.Layer):
                 f"{len(input_shape)}."
             )
         input_shape = (1, input_shape[0], input_shape[1] * input_shape[2])
-        self.multi_head_attention.build(input_shape)
+        self.multi_head_attention.build(input_shape, input_shape)
 
     def call(self, inputs):
         batch_size, num_features, embedding_dim = ops.shape(inputs)
