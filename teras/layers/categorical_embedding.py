@@ -14,7 +14,7 @@ class CategoricalEmbedding(keras.layers.Layer):
         cardinalities: list or ndarray, a list or 1d-array of
             cardinalities of all the features in the dataset in the
             same order as the features' occurrence.
-            For numerical features, use any value <=0 as indicator at
+            For numerical features, use 0 as indicator at
             the corresponding index of the array.
             You can use the `compute_cardinalities` function from
             `teras.utils` package for this purpose.
