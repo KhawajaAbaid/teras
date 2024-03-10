@@ -34,7 +34,8 @@ class SAINTPretrainer(BaseSAINTPretrainer):
                                            self.temperature,
                                            self.lambda_c)
             d_loss = self.denoising_loss(data,
-                                         reconstructed)
+                                         reconstructed,
+                                         self.cardinalities)
             loss = c_loss + self.lambda_ * d_loss
         gradients = tape.gradient(loss, self.trainable_variables)
         self.optimizer.apply(gradients,
