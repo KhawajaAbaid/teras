@@ -62,6 +62,7 @@ class BaseSAINTPretrainer(keras.Model):
 
         self.reconstruction_head = SAINTReconstructionHead(
             cardinalities=self.cardinalities,
+            embedding_dim=self.embedding_dim,
             name="reconstruction_head"
         )
 
