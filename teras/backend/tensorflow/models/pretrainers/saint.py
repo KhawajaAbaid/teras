@@ -28,7 +28,7 @@ class SAINTPretrainer(BaseSAINTPretrainer):
 
     def train_step(self, data):
         with tf.GradientTape() as tape:
-            (z_real, z_mixed), reconstructed = self.model(data)
+            (z_real, z_mixed), reconstructed = self(data)
             c_loss = self.contrastive_loss(z_real,
                                            z_mixed,
                                            self.temperature,

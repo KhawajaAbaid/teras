@@ -33,6 +33,10 @@ class CutMix(keras.layers.Layer):
         self.mask_seed = mask_seed
         self.shuffle_seed = shuffle_seed
 
+    def build(self, input_shape):
+        # there's nothing to build lol
+        pass
+
     def call(self, inputs):
         # Generate mask for CutMix mixing
         mask_cutmix = random.binomial(ops.shape(inputs),

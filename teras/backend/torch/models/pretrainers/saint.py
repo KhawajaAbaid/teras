@@ -31,7 +31,7 @@ class SAINTPretrainer(BaseSAINTPretrainer):
         self.zero_grad()
 
         # Run the forward pass, just like that?
-        (z_real, z_mixed), reconstructed = self.model(data)
+        (z_real, z_mixed), reconstructed = self(data)
 
         # Compute losses, not too bad!
         c_loss = self.contrastive_loss(z_real,

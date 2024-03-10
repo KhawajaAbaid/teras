@@ -34,6 +34,10 @@ class MixUp(keras.layers.Layer):
         self.lambda_seed = lambda_seed
         self.shuffle_seed = shuffle_seed
 
+    def build(self, input_shape):
+        # there's nothing to build lol
+        pass
+
     def call(self, inputs):
         # Sample lambda_
         lambda_ = ops.squeeze(random.beta(shape=(1,),
