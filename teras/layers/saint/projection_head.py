@@ -21,7 +21,7 @@ class SAINTProjectionHead(keras.layers.Layer):
             `hidden_dim = 6 * embedding_dim * number_of_features // 5`
         output_dim: int, Dimensionality of the output layer.
             In the official implementation, it is computed as follows,
-            `output_dim = embedding_dim * number_of_features // 5`
+            `output_dim = embedding_dim * number_of_features // 2`
         hidden_activation: Activation function to use in the hidden layer.
             Defaults to "relu".
     """
