@@ -65,6 +65,15 @@ class BaseSAINTPretrainer(keras.Model):
             name="denoising_loss"
         )
 
+    def build(self, input_shape):
+        self.embedding.build(input_shape)
+        input_shape = self.embedding.compute_output_shape(input_shape)
+        self.model.build(input_shape)
+        input_shape = self.model.compute_output_shape(input_shape)
+        self.projection_head_original.build(input_shape)
+        self.projection_head_mixed.build(input_shape)
+        self.reconstruction_head.build(input_shape)
+
     def compile(self,
                 contrastive_loss=None,
                 denoising_loss=None,
