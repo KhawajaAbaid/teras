@@ -18,6 +18,7 @@ class BaseSAINTPretrainer(keras.Model):
                  mixup_alpha: float = 1.,
                  temperature: float = 0.7,
                  lambda_: float = 10.,
+                 lambda_c: float = 0.5,
                  seed: int = 1337,
                  **kwargs):
         super().__init__(**kwargs)
@@ -28,6 +29,7 @@ class BaseSAINTPretrainer(keras.Model):
         self.mixup_alpha = mixup_alpha
         self.temperature = temperature
         self.lambda_ = lambda_
+        self.lambda_c = lambda_c
         self.seed = seed
 
         self.cutmix = CutMix(probability=self.cutmix_probability,
@@ -152,6 +154,7 @@ class BaseSAINTPretrainer(keras.Model):
             "mixup_alpha": self.mixup_alpha,
             "temperature": self.temperature,
             "lambda_": self.lambda_,
+            "lambda_c": self.lambda_c,
             "seed": self.seed
         }
         return config
