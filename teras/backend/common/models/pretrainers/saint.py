@@ -5,6 +5,8 @@ from teras.layers.mixup import MixUp
 from teras.layers.saint.embedding import SAINTEmbedding
 from teras.layers.saint.projection_head import SAINTProjectionHead
 from teras.layers.saint.reconstruction_head import SAINTReconstructionHead
+from teras.losses.saint import (saint_constrastive_loss,
+                                saint_denoising_loss)
 
 
 class BaseSAINTPretrainer(keras.Model):
@@ -75,8 +77,8 @@ class BaseSAINTPretrainer(keras.Model):
         self.reconstruction_head.build(input_shape)
 
     def compile(self,
-                contrastive_loss=None,
-                denoising_loss=None,
+                contrastive_loss=saint_constrastive_loss,
+                denoising_loss=saint_denoising_loss,
                 **kwargs):
         super().compile(**kwargs)
         self.contrastive_loss = contrastive_loss
