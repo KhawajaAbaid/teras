@@ -97,7 +97,7 @@ class TabNetPretrainer(BaseTabNetPretrainer):
             else:
                 this_metric_variables = metric.stateless_update_state(
                     this_metric_variables,
-                    x,
+                    data,
                     reconstructed
                 )
             logs[metric.name] = metric.stateless_result(this_metric_variables)
