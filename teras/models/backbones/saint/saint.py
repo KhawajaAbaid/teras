@@ -103,7 +103,10 @@ class SAINTBackbone(Backbone):
         self.return_cls_token_only = return_cls_token_only
 
     def compute_output_shape(self, input_shape):
-        return input_shape[:1] + (1, self.embedding_dim)
+        if self.return_cls_token_only:
+            return input_shape[:1] + (1, self.embedding_dim)
+        else:
+            return input_shape + (self.embedding_dim,)
 
     def get_config(self):
         config = super().get_config()
