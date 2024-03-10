@@ -16,6 +16,8 @@ class BaseSAINTPretrainer(keras.Model):
                  embedding_dim: int,
                  cutmix_probability: float = 0.3,
                  mixup_alpha: float = 1.,
+                 temperature: float = 0.7,
+                 lambda_: float = 10.,
                  seed: int = 1337,
                  **kwargs):
         super().__init__(**kwargs)
@@ -24,6 +26,8 @@ class BaseSAINTPretrainer(keras.Model):
         self.embedding_dim = embedding_dim
         self.cutmix_probability = cutmix_probability
         self.mixup_alpha = mixup_alpha
+        self.temperature = temperature
+        self.lambda_ = lambda_
         self.seed = seed
 
         self.cutmix = CutMix(probability=self.cutmix_probability,
@@ -146,6 +150,8 @@ class BaseSAINTPretrainer(keras.Model):
             "cardinalities": self.cardinalities,
             "cutmix_probability": self.cutmix_probability,
             "mixup_alpha": self.mixup_alpha,
+            "temperature": self.temperature,
+            "lambda_": self.lambda_,
             "seed": self.seed
         }
         return config
