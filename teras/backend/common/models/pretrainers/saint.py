@@ -82,6 +82,13 @@ class BaseSAINTPretrainer(keras.Model):
         self.contrastive_loss = contrastive_loss
         self.denoising_loss = denoising_loss
 
+    @property
+    def metrics(self):
+        metrics = super().metrics()
+        metrics.extend([self._constrastive_loss_tracker,
+                        self._denoising_loss_tracker])
+        return metrics
+
     def call(self, inputs, **kwargs):
         original = inputs
         # Apply cutmix to raw inputs
