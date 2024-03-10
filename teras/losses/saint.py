@@ -51,7 +51,7 @@ def saint_denoising_loss(real,
         reconstructed: Samples reconstructed by the reconstruction head.
         cardinalities: list, a list cardinalities of all the features
             in the dataset in the same order as the features' occurrence.
-            For numerical features, use any value <=0 as indicator at
+            For numerical features, use the value `0` as indicator at
             the corresponding index.
             You can use the `compute_cardinalities` function from
             `teras.utils` package for this purpose.
