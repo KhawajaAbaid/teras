@@ -49,7 +49,12 @@ def saint_denoising_loss(real,
     Args:
         real: Samples drawn from the original dataset.
         reconstructed: Samples reconstructed by the reconstruction head.
-        cardinalities: list,
+        cardinalities: list, a list cardinalities of all the features
+            in the dataset in the same order as the features' occurrence.
+            For numerical features, use any value <=0 as indicator at
+            the corresponding index.
+            You can use the `compute_cardinalities` function from
+            `teras.utils` package for this purpose.
     """
     if len(cardinalities) != ops.shape(real)[1]:
         raise AssertionError(
