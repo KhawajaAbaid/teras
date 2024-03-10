@@ -18,3 +18,4 @@ from teras.backend.torch.models.pretrainers.tab_transformer import (
     TabTransformerMLMPretrainer,
     TabTransformerRTDPretrainer
 )
+from teras.backend.torch.models.pretrainers.saint import SAINTPretrainer

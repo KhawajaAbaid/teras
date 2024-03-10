@@ -18,3 +18,4 @@ from teras.backend.jax.models.pretrainers.tab_transformer import (
     TabTransformerMLMPretrainer,
     TabTransformerRTDPretrainer
 )
+from teras.backend.jax.models.pretrainers.saint import SAINTPretrainer
