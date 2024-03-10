@@ -88,6 +88,9 @@ class SAINTBackbone(Backbone):
         self.layer_norm_epsilon = layer_norm_epsilon
         self.embedd_inputs = embedd_inputs
 
+    def compute_output_shape(self, input_shape):
+        return input_shape[:1] + (1, self.embedding_dim)
+
     def get_config(self):
         config = super().get_config()
         config.update({
