@@ -5,9 +5,8 @@ from keras import ops, random
 
 class SAINTProjectionHeadTest(TestCase):
     def setUp(self):
-        self.input_shape = (8, 5, 12)
         self.input_batch = random.normal((8, 5, 16))
-        self.embedding_dim = self.input_shape[-1]
+        self.embedding_dim = 16
 
     def test_valid_call(self):
         projection_head = SAINTProjectionHead(
