@@ -40,10 +40,10 @@ class BaseSAINTPretrainer(keras.Model):
         data_dim = len(cardinalities)
         projection_head_hidden_dim = 6 * embedding_dim * data_dim // 5
         projection_head_output_dim = embedding_dim * data_dim // 2
-        self.projection_head_original = SAINTProjectionHead(
+        self.projection_head_real = SAINTProjectionHead(
             hidden_dim=projection_head_hidden_dim,
             output_dim=projection_head_output_dim,
-            name="projection_head_original"
+            name="projection_head_real"
         )
         self.projection_head_mixed = SAINTProjectionHead(
             hidden_dim=projection_head_hidden_dim,
@@ -70,7 +70,7 @@ class BaseSAINTPretrainer(keras.Model):
         input_shape = self.embedding.compute_output_shape(input_shape)
         self.model.build(input_shape)
         input_shape = self.model.compute_output_shape(input_shape)
-        self.projection_head_original.build(input_shape)
+        self.projection_head_real.build(input_shape)
         self.projection_head_mixed.build(input_shape)
         self.reconstruction_head.build(input_shape)
 
@@ -90,31 +90,31 @@ class BaseSAINTPretrainer(keras.Model):
         return metrics
 
     def call(self, inputs, **kwargs):
-        original = inputs
+        real = inputs
         # Apply cutmix to raw inputs
         mixed = self.cutmix(inputs)
 
         # Apply embedding layer to raw inputs as well as cutmixed inputs
-        original = self.embedding(original)
+        real = self.embedding(real)
         mixed = self.embedding(mixed)
 
         # Apply mixup in embedding space
         mixed = self.mixup(mixed)
 
         # Pass these through encoder
-        original = self.model(original)
+        real = self.model(real)
         mixed = self.model(mixed)
 
         # For contrastive loss
-        z_original = self.projection_head_original(original)
-        z_original = self.flatten(z_original)
+        z_real = self.projection_head_real(real)
+        z_real = self.flatten(z_real)
         z_mixed = self.projection_head_mixed(mixed)
         z_mixed = self.flatten(z_mixed)
 
         # For denoising loss
         reconstructed = self.reconstruction_head(mixed)
 
-        return (z_original, z_mixed), reconstructed
+        return (z_real, z_mixed), reconstructed
 
     @property
     def pretrained_embedding_layer(self):
