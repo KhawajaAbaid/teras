@@ -58,6 +58,20 @@ class BaseSAINTPretrainer(keras.Model):
         )
 
         self._pretrained = False
+        self._constrastive_loss_tracker = keras.metrics.Mean(
+            name="constrastive_loss"
+        )
+        self._denoising_loss_tracker = keras.metrics.Mean(
+            name="denoising_loss"
+        )
+
+    def compile(self,
+                contrastive_loss=None,
+                denoising_loss=None,
+                **kwargs):
+        super().compile(**kwargs)
+        self.contrastive_loss = contrastive_loss
+        self.denoising_loss = denoising_loss
 
     def call(self, inputs, **kwargs):
         original = inputs
