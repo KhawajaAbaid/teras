@@ -55,6 +55,9 @@ class MixUp(keras.layers.Layer):
         inputs_mixedup = (lambda_ * inputs) + (1 - lambda_) * random_partners
         return inputs_mixedup
 
+    def compute_output_shape(self, input_shape):
+        return input_shape
+
     def get_config(self):
         config = super().get_config()
         config.update({

@@ -1,6 +1,7 @@
 import keras
 from keras import random, ops
 from teras.api_export import teras_export
+from keras import backend
 
 
 @teras_export("teras.layers.CutMix")
@@ -55,6 +56,9 @@ class CutMix(keras.layers.Layer):
         # Apply cutmix formula
         inputs_cutmixed = (inputs * mask_cutmix) + (random_partners * (1 - mask_cutmix))
         return inputs_cutmixed
+
+    def compute_output_shape(self, input_shape):
+        return input_shape
 
     def get_config(self):
         config = super().get_config()
