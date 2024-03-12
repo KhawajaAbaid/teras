@@ -4,29 +4,23 @@ from teras.losses.tabnet import tabnet_reconstruction_loss
 
 
 class BaseTabNetPretrainer(keras.Model):
-    """
-    Base pretrainer model class for tabnet.
-
-    Args:
-        encoder: keras.Model, an instance of `TabNetEncoder`
-        decoder: keras.Model, an instance of `TabNetDecoder`
-        missing_feature_probability: float, probability of missing features
-    """
     def __init__(self,
                  encoder: keras.Model,
                  decoder: keras.Model,
                  missing_feature_probability: float = 0.3,
+                 mask_seed: int = 1337,
                  **kwargs):
         super().__init__(**kwargs)
         self.encoder = encoder
         self.decoder = decoder
         self.missing_feature_probability = missing_feature_probability
+        self.mask_seed = mask_seed
 
         self._reconstruction_loss_fn = None
         self._reconstruction_loss_tracker = keras.metrics.Mean(
             name="reconstruction_loss"
         )
-        self._mask_seed_generator = random.SeedGenerator(seed=1337)
+        self._mask_seed_generator = random.SeedGenerator(seed=self.mask_seed)
         self._pretrained = False
 
     def build(self, input_shape):

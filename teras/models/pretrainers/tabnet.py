@@ -17,14 +17,17 @@ class TabNetPretrainer(backend.models.TabNetPretrainer):
         encoder: keras.Model, instance of `TabNetEncoder` to pretrain
         decoder: keras.Model, instance of `TabNetDecoder`
         missing_feature_probability: float, probability of missing features
+        mask_seed: int, seed for generating mask. Defaults to 1337
     """
     def __init__(self,
                  encoder: keras.Model,
                  decoder: keras.Model,
                  missing_feature_probability: float = 0.3,
+                 mask_seed: int = 1337,
                  **kwargs):
         super().__init__(
             encoder=encoder,
             decoder=decoder,
             missing_feature_probability=missing_feature_probability,
+            mask_seed=mask_seed,
             **kwargs)
