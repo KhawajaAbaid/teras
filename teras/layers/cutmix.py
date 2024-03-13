@@ -1,6 +1,7 @@
 import keras
 from keras import random, ops
 from teras.api_export import teras_export
+from keras import backend
 
 
 @teras_export("teras.layers.CutMix")
@@ -31,23 +32,33 @@ class CutMix(keras.layers.Layer):
         super().__init__(**kwargs)
         self.probability = probability
         self.mask_seed = mask_seed
+        self._mask_seed_gen = random.SeedGenerator(self.mask_seed)
         self.shuffle_seed = shuffle_seed
+        self._shuffle_seed_gen = random.SeedGenerator(self.shuffle_seed)
+
+    def build(self, input_shape):
+        # there's nothing to build lol
+        pass
 
     def call(self, inputs):
         # Generate mask for CutMix mixing
         mask_cutmix = random.binomial(ops.shape(inputs),
                                       counts=1,
-                                      probabilities=self.probability)
+                                      probabilities=self.probability,
+                                      seed=self._mask_seed_gen)
 
         # For each data sample select a partner to mix it with at random.
         # To efficiently achieve this, we can just shuffle the data
         random_partners = random.shuffle(inputs,
                                          axis=0,
-                                         seed=self.shuffle_seed)
+                                         seed=self._shuffle_seed_gen)
 
         # Apply cutmix formula
         inputs_cutmixed = (inputs * mask_cutmix) + (random_partners * (1 - mask_cutmix))
         return inputs_cutmixed
+
+    def compute_output_shape(self, input_shape):
+        return input_shape
 
     def get_config(self):
         config = super().get_config()

@@ -1,4 +1,4 @@
-import tensorflow as torch
+import torch
 import keras
 from teras.backend.common.models.pretrainers.tab_transformer import (
     BaseTabTransformerMLMPretrainer,
@@ -37,10 +37,11 @@ class TabTransformerMLMPretrainer(BaseTabTransformerMLMPretrainer):
         # Get grads
         gradients = [v.value.grad for v in self.trainable_variables]
         # Optimize
-        self.optimizer.apply(
-            gradients,
-            self.trainable_variables
-        )
+        with torch.no_grad():
+            self.optimizer.apply(
+                gradients,
+                self.trainable_variables
+            )
 
         logs = {m.name: m.result() for m in self.metrics}
         return logs

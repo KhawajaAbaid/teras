@@ -5,16 +5,6 @@ from teras.backend.common.models.pretrainers.tabnet import BaseTabNetPretrainer
 
 
 class TabNetPretrainer(BaseTabNetPretrainer):
-    """
-    TabNetPretrainer for pretraining `TabNetEncoder` as proposed by
-    Arik et al. in the paper,
-    "TabNet: Attentive Interpretable Tabular Learning"
-
-    Args:
-        encoder: keras.Model, instance of `TabNetEncoder` to pretrain
-        decoder: keras.Model, instance of `TabNetDecoder`
-        missing_feature_probability: float, probability of missing features
-    """
     def __init__(self,
                  encoder: keras.Model,
                  decoder: keras.Model,
@@ -41,9 +31,9 @@ class TabNetPretrainer(BaseTabNetPretrainer):
         reconstructed = self(data, mask)
 
         # Compute loss
-        loss = self._reconstruction_loss_fn(
-            real=data,
-            reconstructed=reconstructed,
+        loss = self.compute_loss(
+            x=data,
+            x_reconstructed=reconstructed,
             mask=mask
         )
 

@@ -53,6 +53,18 @@ class LayerList(keras.layers.Layer):
                     input_shape = layer.compute_output_shape(input_shape)
             self.built = True
 
+    def call(self, inputs):
+        if self.sequential:
+            x = inputs
+            for layer in self.layers:
+                x = layer(x)
+            return x
+        else:
+            raise NotImplemented(
+                "`LayerList` doesn't provide a `call` method for "
+                "non-sequential list of layers."
+            )
+
     def get_config(self):
         config = super().get_config()
         serialized_layers = [keras.layers.serialize(layer)

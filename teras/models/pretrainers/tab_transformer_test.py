@@ -72,10 +72,7 @@ class TabTransformerMLMPretrainerTest(TestCase):
         #     optimizer=(keras.optimizers.Adam()))
         pretrainer.compile()
         pretrainer.build(ops.shape(self.input_batch))
-        if pretrainer.built:
-            pretrainer.fit(self.input_batch)
-        else:
-            raise ValueError("Unable to build..........")
+        pretrainer.fit(self.input_batch)
 
 
 class TabTransformerRTDPretrainerTest(TestCase):
@@ -139,7 +136,4 @@ class TabTransformerRTDPretrainerTest(TestCase):
         )
         pretrainer.compile(optimizer=keras.optimizers.Adam())
         pretrainer.build(ops.shape(self.input_batch))
-        if pretrainer.built:
-            pretrainer.fit(self.input_batch)
-        else:
-            raise ValueError("Unable to build..........")
+        pretrainer.fit(self.input_batch)

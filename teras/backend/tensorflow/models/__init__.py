@@ -18,3 +18,5 @@ from teras.backend.tensorflow.models.pretrainers.tab_transformer import (
     TabTransformerMLMPretrainer,
     TabTransformerRTDPretrainer
 )
+from teras.backend.tensorflow.models.pretrainers.saint import SAINTPretrainer
+

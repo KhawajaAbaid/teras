@@ -5,16 +5,6 @@ from teras.backend.common.models.pretrainers.tabnet import BaseTabNetPretrainer
 
 
 class TabNetPretrainer(BaseTabNetPretrainer):
-    """
-    TabNetPretrainer for pretraining `TabNetEncoder` as proposed by
-    Arik et al. in the paper,
-    "TabNet: Attentive Interpretable Tabular Learning"
-
-    Args:
-        encoder: keras.Model, instance of `TabNetEncoder` to pretrain
-        decoder: keras.Model, instance of `TabNetDecoder`
-        missing_feature_probability: float, probability of missing features
-    """
     def __init__(self,
                  encoder: keras.Model,
                  decoder: keras.Model,
@@ -38,11 +28,9 @@ class TabNetPretrainer(BaseTabNetPretrainer):
         )
         with tf.GradientTape() as tape:
             reconstructed = self(data, mask, training=True)
-            loss = self._reconstruction_loss_fn(
-                real=data,
-                reconstructed=reconstructed,
-                mask=mask
-            )
+            loss = self.compute_loss(x=data,
+                                     x_reconstructed=reconstructed,
+                                     mask=mask)
         gradients = tape.gradient(loss, self.trainable_variables)
         self.optimizer.apply(
             grads=gradients,
@@ -50,8 +38,7 @@ class TabNetPretrainer(BaseTabNetPretrainer):
         )
 
         for metric in self.metrics:
-            if (metric.name == "reconstruction_loss" or
-                    metric.name == "loss"):
+            if metric.name == "loss":
                 metric.update_state(loss)
             else:
                 metric.update_state(data, reconstructed)

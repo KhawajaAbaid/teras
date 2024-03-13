@@ -1,32 +1,23 @@
 import keras
-from keras import random
-from teras.losses.tabnet import tabnet_reconstruction_loss
+from keras import random, ops
+from keras.backend import floatx
 
 
 class BaseTabNetPretrainer(keras.Model):
-    """
-    Base pretrainer model class for tabnet.
-
-    Args:
-        encoder: keras.Model, an instance of `TabNetEncoder`
-        decoder: keras.Model, an instance of `TabNetDecoder`
-        missing_feature_probability: float, probability of missing features
-    """
     def __init__(self,
                  encoder: keras.Model,
                  decoder: keras.Model,
                  missing_feature_probability: float = 0.3,
+                 mask_seed: int = 1337,
                  **kwargs):
         super().__init__(**kwargs)
         self.encoder = encoder
         self.decoder = decoder
         self.missing_feature_probability = missing_feature_probability
+        self.mask_seed = mask_seed
 
-        self._reconstruction_loss_fn = None
-        self._reconstruction_loss_tracker = keras.metrics.Mean(
-            name="reconstruction_loss"
-        )
-        self._mask_seed_generator = random.SeedGenerator(seed=1337)
+        self.loss_tracker = keras.metrics.Mean(name="loss")
+        self._mask_seed_generator = random.SeedGenerator(seed=self.mask_seed)
         self._pretrained = False
 
     def build(self, input_shape):
@@ -34,20 +25,21 @@ class BaseTabNetPretrainer(keras.Model):
         input_shape = self.encoder.compute_output_shape(input_shape)
         self.decoder.build(input_shape)
 
-    def compile(self,
-                loss=None,
-                optimizer=None,
-                reconstruction_loss=tabnet_reconstruction_loss,
-                **kwargs
-                ):
-        super().compile(loss=loss, optimizer=optimizer, **kwargs)
-        self._reconstruction_loss_fn = reconstruction_loss
+    def compute_loss(self, x, x_reconstructed, mask):
+        nominator_part = (x_reconstructed - x) * mask
+        real_samples_population_std = ops.std(ops.cast(x, dtype=floatx()))
+        # divide
+        x = nominator_part / real_samples_population_std
+        # Calculate L2 norm
+        loss = ops.sqrt(ops.sum(ops.square(x)))
+        return loss
+
+    def reset_metrics(self):
+        self.loss_tracker.reset_state()
 
     @property
     def metrics(self):
-        _metrics = super().metrics
-        _metrics.append(self._reconstruction_loss_tracker)
-        return _metrics
+        return [self.loss_tracker]
 
     def call(self, inputs, mask, **kwargs):
         x = inputs * (1 - mask)

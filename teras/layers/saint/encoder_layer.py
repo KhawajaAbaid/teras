@@ -74,6 +74,13 @@ class SAINTEncoderLayer(keras.layers.Layer):
             epsilon=self.layer_norm_epsilon,
         )
 
+    def build(self, input_shape):
+        self.self_attention_block.build(input_shape)
+        self.inter_sample_attention.build(input_shape)
+        self.isab_feed_forward.build(input_shape)
+        self.isab_norm_1.build(input_shape)
+        self.isab_norm_2.build(input_shape)
+
     def call(self, inputs):
         # ====== Self Attention Block ========
         x = self.self_attention_block(inputs)

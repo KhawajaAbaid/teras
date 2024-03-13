@@ -45,6 +45,8 @@ class SAINTBackbone(Backbone):
             what we want. but when pretraining we want to use the
             `SAINTBackbone` as encoder only which expects embeddings as
             inputs, so that's when we set this parameter to `False`.
+        return_cls_token_only: bool, whether to return only embeddings
+            for the `CLS` token. Defaults to `True`.
     """
     def __init__(self,
                  input_dim: int,
@@ -57,8 +59,16 @@ class SAINTBackbone(Backbone):
                  feedforward_dropout: float = 0.,
                  layer_norm_epsilon: float = 1e-5,
                  embedd_inputs: bool = True,
+                 return_cls_token_only: bool = True,
                  **kwargs):
-        inputs = keras.layers.Input((input_dim,), name="inputs")
+        if embedd_inputs:
+            inputs = keras.layers.Input((input_dim,), name="inputs")
+        else:
+            # Embeddings will be computed by an external embedding layer,
+            # so in that case, the model should expect inputs with dims
+            # (input_dim, embedding_dim)
+            inputs = keras.layers.Input((input_dim, embedding_dim),
+                                        name="inputs")
         x = inputs
         if embedd_inputs:
             x = SAINTEmbedding(
@@ -74,7 +84,10 @@ class SAINTBackbone(Backbone):
                 feedforward_dropout=feedforward_dropout,
                 layer_norm_epsilon=layer_norm_epsilon,
                 name=f"saint_encoder_layer_{i}")(x)
-        outputs = CLSTokenExtraction()(x)
+        if return_cls_token_only:
+            outputs = CLSTokenExtraction()(x)
+        else:
+            outputs = x
         super().__init__(inputs=inputs, outputs=outputs, **kwargs)
 
         self.input_dim = input_dim
@@ -87,6 +100,13 @@ class SAINTBackbone(Backbone):
         self.feedforward_dropout = feedforward_dropout
         self.layer_norm_epsilon = layer_norm_epsilon
         self.embedd_inputs = embedd_inputs
+        self.return_cls_token_only = return_cls_token_only
+
+    def compute_output_shape(self, input_shape):
+        if self.return_cls_token_only:
+            return input_shape[:1] + (1, self.embedding_dim)
+        else:
+            return input_shape + (self.embedding_dim,)
 
     def get_config(self):
         config = super().get_config()
@@ -101,5 +121,6 @@ class SAINTBackbone(Backbone):
             "feedforward_dropout": self.feedforward_dropout,
             "layer_norm_epsilon": self.layer_norm_epsilon,
             "embedd_inputs": self.embedd_inputs,
+            "return_cls_token_only": self.return_cls_token_only,
         })
         return config
