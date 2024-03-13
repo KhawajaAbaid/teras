@@ -34,14 +34,6 @@ class SAINTPretrainer(BaseSAINTPretrainer):
         (z_real, z_mixed), reconstructed = self(data)
 
         # Compute losses, not too bad!
-        # c_loss = self.contrastive_loss(z_real,
-        #                                z_mixed,
-        #                                self.temperature,
-        #                                self.lambda_c)
-        # d_loss = self.denoising_loss(data,
-        #                              reconstructed,
-        #                              self.cardinalities)
-        # loss = c_loss + self.lambda_ * d_loss
         loss, c_loss, d_loss = self.compute_loss(
             x=data, x_reconstructed=reconstructed, z=z_real,
             z_augmented=z_mixed, cardinalities=self.cardinalities,
