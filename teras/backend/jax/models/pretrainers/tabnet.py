@@ -29,9 +29,9 @@ class TabNetPretrainer(BaseTabNetPretrainer):
             mask=mask,
             training=training,
         )
-        loss = self._reconstruction_loss_fn(real=x,
-                                            reconstructed=reconstructed,
-                                            mask=mask)
+        loss = self.compute_loss(x=x,
+                                 x_reconstructed=reconstructed,
+                                 mask=mask)
         return loss, (reconstructed, non_trainable_variables)
 
     def train_step(self, state, data):
@@ -40,17 +40,17 @@ class TabNetPretrainer(BaseTabNetPretrainer):
          optimizer_variables,
          metrics_variables
          ) = state
-        # Grad fn
-        grad_fn = jax.value_and_grad(self.compute_loss_and_updates,
-                                     has_aux=True)
 
         # Sample mask
         mask = random.binomial(
             shape=ops.shape(data),
             counts=1,
             probabilities=self.missing_feature_probability,
-            seed=self._mask_seed_generator
+            seed=1337
         )
+        # Grad fn
+        grad_fn = jax.value_and_grad(self.compute_loss_and_updates,
+                                     has_aux=True)
 
         # Compute gradients
         (loss, (reconstructed, non_trainable_variables)), grads = grad_fn(
@@ -66,9 +66,9 @@ class TabNetPretrainer(BaseTabNetPretrainer):
             trainable_variables,
             optimizer_variables
         ) = self.optimizer.stateless_apply(
-            optimizer_variables=optimizer_variables,
-            grads=grads,
-            trainable_variables=trainable_variables,
+            optimizer_variables,
+            grads,
+            trainable_variables
         )
 
         # Update metrics
@@ -76,10 +76,9 @@ class TabNetPretrainer(BaseTabNetPretrainer):
         new_metric_variables = []
         for metric in self.metrics:
             this_metric_variables = metrics_variables[
-                len(new_metric_variables): len(new_metric_variables) + len(metric.variables)
-            ]
-            if (metric.name == "loss" or
-                    metric.name == "reconstruction_loss"):
+                                    len(new_metric_variables): len(new_metric_variables) + len(metric.variables)
+                                    ]
+            if metric.name == "loss":
                 this_metric_variables = metric.stateless_update_state(
                     this_metric_variables,
                     loss
