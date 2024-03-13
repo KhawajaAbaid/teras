@@ -31,9 +31,9 @@ class TabNetPretrainer(BaseTabNetPretrainer):
         reconstructed = self(data, mask)
 
         # Compute loss
-        loss = self._reconstruction_loss_fn(
-            real=data,
-            reconstructed=reconstructed,
+        loss = self.compute_loss(
+            x=data,
+            x_reconstructed=reconstructed,
             mask=mask
         )
 

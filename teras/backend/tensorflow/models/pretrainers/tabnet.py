@@ -28,11 +28,9 @@ class TabNetPretrainer(BaseTabNetPretrainer):
         )
         with tf.GradientTape() as tape:
             reconstructed = self(data, mask, training=True)
-            loss = self._reconstruction_loss_fn(
-                real=data,
-                reconstructed=reconstructed,
-                mask=mask
-            )
+            loss = self.compute_loss(x=data,
+                                     x_reconstructed=reconstructed,
+                                     mask=mask)
         gradients = tape.gradient(loss, self.trainable_variables)
         self.optimizer.apply(
             grads=gradients,
@@ -40,8 +38,7 @@ class TabNetPretrainer(BaseTabNetPretrainer):
         )
 
         for metric in self.metrics:
-            if (metric.name == "reconstruction_loss" or
-                    metric.name == "loss"):
+            if metric.name == "loss":
                 metric.update_state(loss)
             else:
                 metric.update_state(data, reconstructed)
