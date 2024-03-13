@@ -30,6 +30,10 @@ class SAINTPretrainer(BaseSAINTPretrainer):
                                  trainable_variables,
                                  non_trainable_variables,
                                  x,
+                                 cardinalities,
+                                 temperature,
+                                 lambda_,
+                                 lambda_c,
                                  training=False):
         (
             ((z_real, z_mixed), reconstructed),
@@ -38,14 +42,11 @@ class SAINTPretrainer(BaseSAINTPretrainer):
                                 non_trainable_variables,
                                 x,
                                 training=training)
-        c_loss = self.contrastive_loss(z_real,
-                                       z_mixed,
-                                       self.temperature,
-                                       self.lambda_c)
-        d_loss = self.denoising_loss(x,
-                                     reconstructed,
-                                     self.cardinalities)
-        loss = c_loss + self.lambda_ * d_loss
+        loss, c_loss, d_loss = self.compute_loss(
+            x=x, x_reconstructed=reconstructed, z=z_real, z_augmented=z_mixed,
+            cardinalities=cardinalities, temperature=temperature,
+            lambda_c=lambda_c, lambda_=lambda_,
+        )
         return loss, (c_loss, d_loss, reconstructed,
                       non_trainable_variables)
 
@@ -67,6 +68,10 @@ class SAINTPretrainer(BaseSAINTPretrainer):
         ) = grad_fn(trainable_variables,
                     non_trainable_variables,
                     data,
+                    self.cardinalities,
+                    self.temperature,
+                    self.lambda_,
+                    self.lambda_c,
                     training=True)
         (
             trainable_variables,
@@ -74,15 +79,16 @@ class SAINTPretrainer(BaseSAINTPretrainer):
         ) = self.optimizer.stateless_apply(
             optimizer_variables,
             gradients,
-            self.trainable_variables)
+            trainable_variables
+        )
 
         # Update metrics
         logs = {}
         new_metric_variables = []
         for metric in self.metrics:
             this_metric_variables = metrics_variables[
-                len(new_metric_variables): len(new_metric_variables) + len(metric.variables)
-            ]
+                                    len(new_metric_variables): len(new_metric_variables) + len(metric.variables)
+                                    ]
             if metric.name == "constrastive_loss":
                 this_metric_variables = metric.stateless_update_state(
                     this_metric_variables,
