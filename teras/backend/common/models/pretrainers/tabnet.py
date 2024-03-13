@@ -32,7 +32,6 @@ class BaseTabNetPretrainer(keras.Model):
         x = nominator_part / real_samples_population_std
         # Calculate L2 norm
         loss = ops.sqrt(ops.sum(ops.square(x)))
-        self.loss_tracker.update_state(loss)
         return loss
 
     def reset_metrics(self):
