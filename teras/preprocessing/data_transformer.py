@@ -2,7 +2,7 @@ from abc import abstractmethod
 import pandas as pd
 
 
-class BaseDataTransformer:
+class DataTransformer:
     """
     Base `DataTransformer` class.
     It provides the common methods and attributes.
