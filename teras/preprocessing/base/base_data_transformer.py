@@ -46,6 +46,7 @@ class BaseDataTransformer:
     def save(self, filename):
         raise NotImplementedError
 
+    @classmethod
     @abstractmethod
-    def load(self, filename):
+    def load(cls, filename):
         raise NotImplementedError
