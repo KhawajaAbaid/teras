@@ -14,7 +14,7 @@ class DataTransformer:
         self._fitted = False
 
     @abstractmethod
-    def fit(self, x, **kwargs):
+    def fit(self, x):
         raise NotImplementedError
 
     @abstractmethod
