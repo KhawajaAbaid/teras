@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import OrdinalEncoder
-from teras.preprocessing.data_transformer import DataTransformer
+from teras.preprocessing.data_transformers.data_transformer import DataTransformer
 from teras.utils.types import FeaturesNamesType
 import json
 
