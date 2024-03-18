@@ -20,10 +20,10 @@ class GAINGeneratorTest(TestCase):
 
     def test_gan_generator_save_and_load(self):
         generator = GAINGenerator(data_dim=7)
+        outputs_original = generator(self.latent_inputs)
         save_path = os.path.join(self.get_temp_dir(), "gain_generator.keras")
         generator.save(save_path)
         reloaded_model = keras.models.load_model(save_path)
-        outputs_original = generator(self.latent_inputs)
         outputs_reloaded = reloaded_model(self.latent_inputs)
         self.assertAllClose(ops.convert_to_numpy(outputs_original),
                             ops.convert_to_numpy(outputs_reloaded))

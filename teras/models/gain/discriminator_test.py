@@ -20,11 +20,11 @@ class GAINDiscriminatorTest(TestCase):
 
     def test_save_and_load(self):
         discriminator = GAINDiscriminator(data_dim=7)
+        outputs_original = discriminator(self.latent_inputs)
         save_path = os.path.join(self.get_temp_dir(),
                                  "gain_discriminator.keras")
         discriminator.save(save_path)
         reloaded_model = keras.models.load_model(save_path)
-        outputs_original = discriminator(self.latent_inputs)
         outputs_reloaded = reloaded_model(self.latent_inputs)
         self.assertAllClose(ops.convert_to_numpy(outputs_original),
                             ops.convert_to_numpy(outputs_reloaded))
