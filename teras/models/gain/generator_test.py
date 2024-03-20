@@ -9,16 +9,16 @@ class GAINGeneratorTest(TestCase):
     def setUp(self):
         self.latent_inputs = random.normal((8, 16))
 
-    def test_gan_generator_valid_call(self):
+    def test_valid_call(self):
         generator = GAINGenerator(data_dim=7)
         outputs = generator(self.latent_inputs)
 
-    def test_gan_generator_output_shape(self):
+    def test_valid_output_shape(self):
         generator = GAINGenerator(data_dim=7)
         outputs = generator(self.latent_inputs)
         assert ops.shape(outputs) == (8, 7)
 
-    def test_gan_generator_save_and_load(self):
+    def test_save_and_load(self):
         generator = GAINGenerator(data_dim=7)
         outputs_original = generator(self.latent_inputs)
         save_path = os.path.join(self.get_temp_dir(), "gain_generator.keras")
