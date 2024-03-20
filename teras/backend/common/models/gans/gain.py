@@ -2,7 +2,7 @@ import keras
 from keras import random, ops
 
 
-class GAIN(keras.Model):
+class BaseGAIN(keras.Model):
     """
     Base class for GAIN.
     GAIN is a missing data imputation model based on GANs. This is an
@@ -78,8 +78,8 @@ class GAIN(keras.Model):
     @property
     def metrics(self):
         metrics = [self.loss_tracker,
-                   self.constrastive_loss_tracker,
-                   self.denoising_loss_tracker,
+                   self.generator_loss_tracker,
+                   self.discriminator_loss_tracker,
                    ]
         return metrics
 
