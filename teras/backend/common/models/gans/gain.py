@@ -5,6 +5,8 @@ from keras import random, ops
 class BaseGAIN(keras.Model):
     """
     Base class for GAIN.
+
+    # TODO remove the rest of the docstring and move to the wrapper class
     GAIN is a missing data imputation model based on GANs. This is an
     implementation of the GAIN architecture proposed by Jinsung Yoon et al.
     in the paper,
@@ -86,6 +88,16 @@ class BaseGAIN(keras.Model):
     def compute_loss(self):
         # TODO
         raise NotImplementedError
+
+    def compute_generator_loss(self, x, x_generated, mask, mask_pred, alpha):
+        cross_entropy_loss = keras.losses.CategoricalCrossentropy()(
+            mask, mask_pred
+        )
+        mse_loss = keras.losses.MeanSquaredError()(
+            y_true=(mask * x),
+            y_pred=(mask * x_generated))
+        loss = cross_entropy_loss + alpha * mse_loss
+        return loss
 
     def call(self):
         # TODO
