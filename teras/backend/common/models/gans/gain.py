@@ -184,8 +184,17 @@ class BaseGAIN(keras.Model):
 
     def get_config(self):
         config = super().get_config()
-        new_config = {'generator': keras.layers.serialize(self.generator),
-                      'discriminator': keras.layers.serialize(self.discriminator)
-                      }
-        config.update(new_config)
+        config.update({
+            'generator': keras.layers.serialize(self.generator),
+            'discriminator': keras.layers.serialize(self.discriminator),
+            'hint_rate': self.hint_rate,
+            'alpha': self.alpha,
+        })
         return config
+
+    @classmethod
+    def from_config(cls, config):
+        generator = keras.layers.deserialize(config.pop("generator"))
+        discriminator = keras.layers.deserialize(config.pop("discriminator"))
+        return cls(generator=generator, discriminator=discriminator,
+                   **config)
