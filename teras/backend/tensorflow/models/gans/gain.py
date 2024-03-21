@@ -22,7 +22,7 @@ class GAIN(BaseGAIN):
         # data is a tuple of x_generator and x_discriminator batches
         # drawn from the dataset. The reason behind generating two separate
         # batches of data at each step is that it's how GAIN's algorithm works
-        x_gen, x_disc = data[0]
+        x_gen, x_disc = data
 
         # =========================
         # Train the discriminator
