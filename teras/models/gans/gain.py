@@ -32,7 +32,6 @@ class GAIN(backend.models.GAIN):
             Hint vectors ensure that generated samples follow the underlying
             data distribution.
             Defaults to 0.9
-
         alpha: float, Hyper parameter for the generator loss computation that
             controls how much weight should be given to the MSE loss.
             Precisely,
