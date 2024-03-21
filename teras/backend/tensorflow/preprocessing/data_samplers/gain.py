@@ -52,7 +52,7 @@ class GAINDataSampler:
                 tf.TensorSpec(shape=(None, self.data_dim), dtype=tf.float32,
                               name="x_discriminator"),
             ),
-            args=[x_transformed]
+            args=(x_transformed,)
         )
         )
         return dataset
