@@ -13,49 +13,48 @@ class GAINDataSampler:
         https://arxiv.org/abs/1806.02920
 
     Args:
-        batch_size: ``int``, default 512,
-            Batch size to use for dataset.
-        shuffle: ``bool``, default True,
-            Whether to shuffle the data.
-        random_seed: ``int``, default None,
-            Random seed to use when shuffling.
+        batch_size: int, Batch size to use for dataset.
+            Defaults to 512
+        shuffle: bool, Whether to shuffle the data.
+            Defaults to True.
+        seed: int, Random seed to use when shuffling.
     """
     def __init__(self,
                  batch_size=512,
                  shuffle=True,
-                 random_seed=None):
+                 seed=None):
         self.batch_size = batch_size
         self.shuffle = shuffle
-        self.random_seed = random_seed
+        self.seed = seed
         self.num_samples = None
         self.data_dim = None
-
-        if self.random_seed:
-            np.random.seed(self.random_seed)
 
     def get_dataset(self, x_transformed):
         """
         Args:
-            x_transformed: ``np.ndarray`` or ``pd.DataFrame``,
-                Transformed dataset.
+            x_transformed: np.ndarray or pd.DataFrame, Dataset transformed by
+                GAINDataTransformer class.
+
         Returns:
              A tensorflow dataset, that generates batches of
             size `batch_size` which is the argument passed during
-            DataSampler instantiation. The dataset instance then can
+            GAINDataSampler instantiation. The dataset instance then can
             be readily passed to the GAIN fit method without requiring
             any further processing.
         """
         self.num_samples, self.data_dim = x_transformed.shape
 
-        dataset = (tf.data.Dataset
-                   .from_generator(self.generator,
-                                   output_signature=(
-                                       tf.TensorSpec(shape=(None, self.data_dim), dtype=tf.float32, name="x_generator"),
-                                       tf.TensorSpec(shape=(None, self.data_dim), dtype=tf.float32, name="x_discriminator"),
-                                   ),
-                                   args=[x_transformed]
-                                   )
-                   )
+        dataset = (tf.data.Dataset.from_generator(
+            self.generator,
+            output_signature=(
+                tf.TensorSpec(shape=(None, self.data_dim), dtype=tf.float32,
+                              name="x_generator"),
+                tf.TensorSpec(shape=(None, self.data_dim), dtype=tf.float32,
+                              name="x_discriminator"),
+            ),
+            args=[x_transformed]
+        )
+        )
         return dataset
 
     def generator(self, x):
@@ -71,9 +70,9 @@ class GAINDataSampler:
         is_n_divisible_by_batch_size = self.num_samples % self.batch_size == 0
         steps_per_epoch += 1 if not is_n_divisible_by_batch_size else 0
 
-        # since we need to draw a batch of data separately for generator and discriminator
-        # so we generate idx separately for generator and discriminator
-        # and shuffle them if necessary
+        # since we need to draw a batch of data separately for generator and
+        # discriminator so we generate idx separately for generator and
+        # discriminator and shuffle them if necessary
         generator_idx = np.arange(self.num_samples)
         discriminator_idx = np.arange(self.num_samples)
         if self.shuffle:
