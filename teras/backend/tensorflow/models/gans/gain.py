@@ -22,7 +22,7 @@ class GAIN(BaseGAIN):
         # data is a tuple of x_generator and x_discriminator batches
         # drawn from the dataset. The reason behind generating two separate
         # batches of data at each step is that it's how GAIN's algorithm works
-        x_gen, x_disc = data
+        x_gen, x_disc = data[0]
 
         # =========================
         # Train the discriminator
@@ -64,11 +64,11 @@ class GAIN(BaseGAIN):
         x_gen = x_gen * mask + (1 - mask) * z
 
         with tf.GradientTape() as tape:
-            generated_samples = self.generator(
+            x_generated = self.generator(
                 ops.concatenate([x_gen, mask], axis=1))
             # Combine generated samples with original/observed data
-            x_hat = (generated_samples * (1 - mask)) + (x_gen * mask)
-            discriminator_pred = self.discriminator(
+            x_hat = (x_generated * (1 - mask)) + (x_gen * mask)
+            mask_pred = self.discriminator(
                 ops.concatenate([x_hat, hint_vectors], axis=1))
             g_loss = self.compute_generator_loss(
                 x=x_gen,
