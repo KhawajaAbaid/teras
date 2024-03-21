@@ -85,9 +85,15 @@ class BaseGAIN(keras.Model):
                    ]
         return metrics
 
-    def compute_loss(self):
-        # TODO
-        raise NotImplementedError
+    def compute_loss(self, **kwargs):
+        raise NotImplementedError(
+            "GAIN doesn't provide an implementation for the `compute_loss` "
+            "method. Please use `compute_discriminator_loss` or "
+            "`compute_generator_loss` for relevant purpose."
+        )
+
+    def compute_discriminator_loss(self, mask, mask_pred):
+        return keras.losses.BinaryCrossentropy()(mask, mask_pred)
 
     def compute_generator_loss(self, x, x_generated, mask, mask_pred, alpha):
         cross_entropy_loss = keras.losses.CategoricalCrossentropy()(
@@ -99,9 +105,12 @@ class BaseGAIN(keras.Model):
         loss = cross_entropy_loss + alpha * mse_loss
         return loss
 
-    def call(self):
-        # TODO
-        raise NotImplementedError
+    def call(self, **kwargs):
+        raise NotImplementedError(
+            "`GAIN` doesn't provide an implementation for the `call` method. "
+            "Please use the call method of `GAIN().generator` or "
+            "`GAIN().discriminator`."
+        )
 
     def get_generator(self):
         return self.generator
@@ -126,8 +135,7 @@ class BaseGAIN(keras.Model):
         # Sample noise
         z = random.uniform(ops.shape(data), minval=0., maxval=0.01)
         x = mask * data + (1 - mask) * z
-        # imputed_data = self.generator(tf.concat([x, mask], axis=1))
-        imputed_data = self(x, mask=mask)
+        imputed_data = self.generator(ops.concatenate([x, mask], axis=1))
         imputed_data = mask * data + (1 - mask) * imputed_data
         return imputed_data
 
@@ -135,6 +143,7 @@ class BaseGAIN(keras.Model):
                batch_size=None, verbose="auto", steps=None, callbacks=None,
                max_queue_size=10, workers=1, use_multiprocessing=False):
         """
+        # TODO move to a separate Imputer task class
         Impute function combines GAIN's `predict` method and
         DataTransformer's `reverse_transform` method to fill
         the missing data and transform into the original format.
