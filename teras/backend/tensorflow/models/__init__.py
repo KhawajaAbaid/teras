@@ -20,3 +20,5 @@ from teras.backend.tensorflow.models.pretrainers.tab_transformer import (
 )
 from teras.backend.tensorflow.models.pretrainers.saint import SAINTPretrainer
 
+# GANs
+from teras.backend.tensorflow.models.gans.gain import GAIN
