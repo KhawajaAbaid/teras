@@ -46,7 +46,7 @@ class GAIN(BaseGAIN):
         with tf.GradientTape() as tape:
             mask_pred = self.discriminator(
                 ops.concatenate([x_hat_disc, hint_vectors], axis=1))
-            d_loss = keras.losses.BinaryCrossentropy()(mask, mask_pred)
+            d_loss = self.compute_discriminator_loss(mask, mask_pred)
         gradients = tape.gradient(d_loss, self.discriminator.trainable_weights)
         self.discriminator_optimizer.apply(gradients,
                                            self.discriminator.trainable_weights)
