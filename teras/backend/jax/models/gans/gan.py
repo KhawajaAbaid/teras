@@ -66,7 +66,7 @@ class JAXGAN:
         return self.discriminator
 
     @abstractmethod
-    def train_step(self, state, data):
+    def train_step(self, generator_state, discriminator_state, data):
         raise NotImplementedError
 
     def fit(self, x, epochs: int = 1, verbose: bool = True):
@@ -90,13 +90,16 @@ class JAXGAN:
                 f"But received {type(x)}")
 
         # Create initial state
-        state = (
-            self.generator.trainable_variables +
+        generator_state = (
+            self.generator.trainable_variables,
+            self.generator.non_trainable_variables,
+            self.generator_optimizer.variables
+        )
+
+        discriminator_state = (
             self.discriminator.trainable_variables,
-            self.generator.non_trainable_variables +
             self.discriminator.non_trainable_variables,
-            self.generator_optimizer.variables +
-            self.discriminator_optimizer.variables,
+            self.discriminator_optimizer.variables
         )
 
         for epoch in range(epochs):
@@ -109,7 +112,9 @@ class JAXGAN:
                         self.build(ops.shape(batch))
                     self._built = True
                 batch = np.asarray(batch)
-                state, logs = self.train_step(state, batch)
+                state, logs = self.train_step(generator_state,
+                                              discriminator_state,
+                                              batch)
 
                 if verbose:
                     epoch_str = f"Epoch {epoch + 1}/{epochs}"
