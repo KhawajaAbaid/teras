@@ -79,8 +79,8 @@ class JAXGAN:
             verbose: Whether to print outputs.
 
         Returns:
-            A dictionary containing the history of training, analogous
-            to the history object returned by Keras's `fit` method.
+            A tuple containing the trained `generator_state` and
+            `discriminator_state`.
         """
         total_batches = 0
         if dataset_type(x) != "not_supported":
@@ -112,29 +112,31 @@ class JAXGAN:
                         self.build(ops.shape(batch))
                     self._built = True
                 batch = np.asarray(batch)
-                state, logs = self.train_step(generator_state,
-                                              discriminator_state,
-                                              batch)
-
+                logs, generator_state, discriminator_state = self.train_step(
+                    generator_state,
+                    discriminator_state,
+                    batch)
                 if verbose:
                     epoch_str = f"Epoch {epoch + 1}/{epochs}"
-                    elapsed_time_str = f"Elapsed {time.time() - epoch_start_time:.2f}s"
-                    if total_batches > 0 and epoch > 0:
-                        batch_str = f"Batch {batch_num + 1}/{total_batches}"
-                    else:
-                        batch_str = f"Batch {batch_num + 1}/?"
-                        total_batches += 1
-                    logs_str = (f"generator_loss: "
-                                f"{logs['generator_loss']:.4f}   "
-                                f"discriminator_loss: "
-                                f"{logs['discriminator']::.4f}   "
-                                )
+                elapsed_time_str = f"Elapsed {time.time() - epoch_start_time:.2f}s"
+                if total_batches > 0 and epoch > 0:
+                    batch_str = f"Batch {batch_num + 1}/{total_batches}"
+                else:
+                    batch_str = f"Batch {batch_num + 1}/?"
+                total_batches += 1
+                logs_str = (f"generator_loss: "
+                            f"{logs['generator_loss']:.4f}   "
+                            f"discriminator_loss: "
+                            f"{logs['discriminator_loss']::.4f}   "
+                            )
 
-                    print(
-                        f"\r{epoch_str:<15} {elapsed_time_str:<15}"
-                        f" {batch_str:<15}"
-                        f" {logs_str}",
-                        end="")
-                print()
+                print(
+                    f"\r{epoch_str:<15} {elapsed_time_str:<15}"
+                    f" {batch_str:<15}"
+                    f" {logs_str}",
+                    end="")
+            print()
 
-        self._trained = True
+            self._trained = True
+
+        return generator_state, discriminator_state
