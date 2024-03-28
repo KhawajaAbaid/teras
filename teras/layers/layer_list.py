@@ -37,7 +37,13 @@ class LayerList(keras.layers.Layer):
         return len(self.layers)
 
     def compute_output_shape(self, input_shape):
-        return self.layers[-1].compute_output_shape(input_shape)
+        if not self.sequential:
+            return self.layers[-1].compute_output_shape(input_shape)
+        else:
+            output_shape = input_shape
+            for layer in self.layers:
+                output_shape = layer.compute_output_shape(output_shape)
+            return output_shape
 
     def build(self, input_shape):
         """
@@ -46,12 +52,10 @@ class LayerList(keras.layers.Layer):
         Args:
             input_shape: i wonder what that means
         """
-        if not self.built:
-            for layer in self.layers:
-                layer.build(input_shape)
-                if self.sequential:
-                    input_shape = layer.compute_output_shape(input_shape)
-            self.built = True
+        for layer in self.layers:
+            layer.build(input_shape)
+            if self.sequential:
+                input_shape = layer.compute_output_shape(input_shape)
 
     def call(self, inputs):
         if self.sequential:
