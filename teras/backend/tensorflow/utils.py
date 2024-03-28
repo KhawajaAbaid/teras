@@ -45,19 +45,17 @@ def dataframe_to_tf_dataset(
     return dataset
 
 
-def create_gain_dataset(x_generator, x_discriminator, seed: int = 1337):
+def create_gain_dataset(x, seed: int = 1337):
     """
     Creates a tensorflow dataset compatible with the `GAIN` architecture.
-    It also shuffles both datasets before creating the tensorflow dataset.
+    The resultant dataset produces a tuple consisting of a batch of data for
+    `generator` and another batch of data for the `discriminator`.
 
     Args:
-        x_generator: Dataset to use for training the `GAINGenerator` model.
-        x_discriminator: Dataset to use for training the `GAINDiscriminator`
-        model.
-        Note that, in most cases, both of these datasets will be the same.
+        x: Dataset to use for training.
         seed: int, seed to use in shuffling. Defaults to 1337.
     """
     return tf.data.Dataset.from_tensor_slices(
-        (tf.random.shuffle(x_generator, seed=seed),
-         tf.random.shuffle(x_discriminator, seed=seed + 99))
+        (x,
+         tf.random.shuffle(x, seed=seed))
          )
