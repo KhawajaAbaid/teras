@@ -19,8 +19,6 @@ class BaseGAIN(keras.Model):
         self.alpha = alpha
 
         # Loss trackers
-        self.loss_tracker = keras.metrics.Mean(
-            name="loss")
         self.generator_loss_tracker = keras.metrics.Mean(
             name="generator_loss")
         self.discriminator_loss_tracker = keras.metrics.Mean(
@@ -43,7 +41,7 @@ class BaseGAIN(keras.Model):
 
     @property
     def metrics(self):
-        metrics = [self.loss_tracker,
+        metrics = [
                    self.generator_loss_tracker,
                    self.discriminator_loss_tracker,
                    ]
