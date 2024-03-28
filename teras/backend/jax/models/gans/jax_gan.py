@@ -83,7 +83,7 @@ class JAXGAN:
             `discriminator_state`.
         """
         total_batches = 0
-        if dataset_type(x) != "not_supported":
+        if dataset_type(x) == "not_supported":
             raise ValueError(
                 "Unsupported type for `x`. "
                 "It should be tensorflow dataset, pytorch dataloader."
