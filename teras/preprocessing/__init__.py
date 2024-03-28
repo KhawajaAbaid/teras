@@ -14,3 +14,4 @@
 
 
 from teras.preprocessing.data_transformers.gain import GAINDataTransformer
+from teras.preprocessing.oenf import PiecewiseLinearEncoding
