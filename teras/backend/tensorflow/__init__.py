@@ -14,3 +14,4 @@
 
 from teras.backend.tensorflow import ops
 from teras.backend.tensorflow import models
+from teras.backend.tensorflow import utils
