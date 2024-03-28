@@ -27,6 +27,28 @@ class GAN:
         self.generator = generator
         self.discriminator = discriminator
 
+        self._trained = False
+
+    @property
+    def trained_generator(self):
+        if not self._trained:
+            raise AssertionError(
+                "The generator has not yet been trained. Please train the "
+                "GAN network using the `fit` method before accessing the "
+                "`trained_generator` attribute."
+            )
+        return self.generator
+
+    @property
+    def trained_discriminator(self):
+        if not self._trained:
+            raise AssertionError(
+                "The discriminator has not yet been trained. Please train the "
+                "GAN network using the `fit` method before accessing the "
+                "`trained_discriminator` attribute."
+            )
+        return self.discriminator
+
     @abstractmethod
     def generator_train_step(self, data):
         raise NotImplementedError

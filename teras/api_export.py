@@ -41,7 +41,7 @@ if namex:
 
 else:
     class teras_export:
-        def __init__(self, path, package="keras_cv"):
+        def __init__(self, path, package="teras"):
             self.package = package
 
         def __call__(self, symbol):

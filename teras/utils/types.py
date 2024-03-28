@@ -1,6 +1,7 @@
 import keras
 from typing import Union, List, Callable, Tuple
 import numpy as np
+import pandas as pd
 
 
 # Taken from TensorFlow Addons - Sorry!
@@ -28,7 +29,7 @@ ActivationType = Union[str,
                 ]
 
 
-UnitsValuesType = Union[List[int], Tuple[int]]
+IntegerSequence = Union[List[int], Tuple[int]]
 
 LayersList = List[keras.layers.Layer]
 
@@ -51,3 +52,8 @@ LayerOrModelType = Union[keras.layers.Layer, keras.Model]
 
 FeaturesNamesType = Union[List[str], Tuple[str]]
 
+OptionalIntOrStr = Union[int, str, None]
+
+ListOrArray = Union[list, np.array]
+
+DataFrameOrNdArray = Union[pd.DataFrame, np.ndarray]

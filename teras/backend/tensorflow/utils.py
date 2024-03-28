@@ -43,3 +43,10 @@ def dataframe_to_tf_dataset(
     dataset = dataset.batch(batch_size)
     dataset = dataset.prefetch(batch_size)
     return dataset
+
+
+def create_gain_dataset(x, seed: int = 1337):
+    return tf.data.Dataset.from_tensor_slices(
+        (x,
+         tf.random.shuffle(x, seed=seed))
+         )
