@@ -12,7 +12,9 @@ class GAIN(JAXGAN):
                  hint_rate: float = 0.9,
                  alpha: float = 100.,
                  **kwargs):
-        super().__init__(**kwargs)
+        super().__init__(generator=generator,
+                         discriminator=discriminator,
+                         **kwargs)
         self.generator = generator
         self.discriminator = discriminator
         self.hint_rate = hint_rate
