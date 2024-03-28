@@ -5,6 +5,8 @@ from keras.backend import floatx
 from teras.backend.jax.models.gans.jax_gan import JAXGAN
 
 
+# TODO: loads of work to do to make it compatible with JAX
+
 class GAIN(JAXGAN):
     def __init__(self,
                  generator: keras.Model,
