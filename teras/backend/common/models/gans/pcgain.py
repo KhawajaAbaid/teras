@@ -11,13 +11,15 @@ class BasePCGAIN(BaseGAIN):
                  generator: keras.Model,
                  discriminator: keras.Model,
                  hint_rate: float = 0.9,
-                 alpha: float = 100.,
+                 alpha: float = 200.,
+                 beta: float = 100.,
                  **kwargs):
         super().__init__(generator=generator,
                          discriminator=discriminator,
                          hint_rate=hint_rate,
                          alpha=alpha,
                          **kwargs)
+        self.beta = beta
 
     def compute_generator_loss(self, x, x_generated, mask, mask_pred,
                                classifier_pred, alpha, beta):
