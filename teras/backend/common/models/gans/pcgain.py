@@ -23,6 +23,14 @@ class BasePCGAIN(BaseGAIN):
         self.classifier = classifier
         self.beta = beta
 
+    def build(self, input_shape):
+        # Inputs received by each generator and discriminator have twice the
+        # dimensions of original inputs
+        input_shape = (input_shape[:-1], input_shape[-1] * 2)
+        self.generator.build(input_shape)
+        self.discriminator.build(input_shape)
+        self.classifier.build(input_shape)
+
     def compute_generator_loss(self, x, x_generated, mask, mask_pred,
                                classifier_pred, alpha, beta):
         cross_entropy_loss = keras.losses.BinaryCrossentropy()(
