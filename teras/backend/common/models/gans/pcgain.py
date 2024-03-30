@@ -10,6 +10,7 @@ class BasePCGAIN(BaseGAIN):
     def __init__(self,
                  generator: keras.Model,
                  discriminator: keras.Model,
+                 classifier: keras.Model,
                  hint_rate: float = 0.9,
                  alpha: float = 200.,
                  beta: float = 100.,
@@ -19,6 +20,7 @@ class BasePCGAIN(BaseGAIN):
                          hint_rate=hint_rate,
                          alpha=alpha,
                          **kwargs)
+        self.classifier = classifier
         self.beta = beta
 
     def compute_generator_loss(self, x, x_generated, mask, mask_pred,
@@ -35,3 +37,19 @@ class BasePCGAIN(BaseGAIN):
         loss = cross_entropy_loss + (alpha * mse_loss) + (beta *
                                                           info_entropy_loss)
         return loss
+
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            'classifier': keras.layers.serialize(self.classifier),
+            'beta': keras.layers.serialize(self.beta),
+        })
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        generator = keras.layers.deserialize(config.pop("generator"))
+        discriminator = keras.layers.deserialize(config.pop("discriminator"))
+        classifier = keras.layers.deserialize(config.pop("classifier"))
+        return cls(generator=generator, discriminator=discriminator,
+                   classifier=classifier, **config)
