@@ -22,3 +22,4 @@ from teras.backend.tensorflow.models.pretrainers.saint import SAINTPretrainer
 
 # GANs
 from teras.backend.tensorflow.models.gans.gain import GAIN
+from teras.backend.tensorflow.models.gans.pcgain import PCGAIN

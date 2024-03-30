@@ -11,15 +11,3 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-
-from teras.backend.torch.models.pretrainers.tabnet import TabNetPretrainer
-from teras.backend.torch.models.pretrainers.tab_transformer import (
-    TabTransformerMLMPretrainer,
-    TabTransformerRTDPretrainer
-)
-from teras.backend.torch.models.pretrainers.saint import SAINTPretrainer
-
-# GANs
-from teras.backend.torch.models.gans.gain import GAIN
-from teras.backend.torch.models.gans.pcgain import PCGAIN

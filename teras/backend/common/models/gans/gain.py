@@ -49,9 +49,10 @@ class BaseGAIN(keras.Model):
 
     def compute_loss(self, **kwargs):
         raise NotImplementedError(
-            "GAIN doesn't provide an implementation for the `compute_loss` "
-            "method. Please use `compute_discriminator_loss` or "
-            "`compute_generator_loss` for relevant purpose."
+            f"`{self.__class__.__name__}` doesn't provide an implementation for"
+            f" the `compute_loss` method. Please use "
+            f"`compute_discriminator_loss` or `compute_generator_loss` for "
+            f"relevant purpose."
         )
 
     def compute_discriminator_loss(self, mask, mask_pred):
@@ -69,9 +70,9 @@ class BaseGAIN(keras.Model):
 
     def call(self, **kwargs):
         raise NotImplementedError(
-            "`GAIN` doesn't provide an implementation for the `call` method. "
-            "Please use the call method of `GAIN().generator` or "
-            "`GAIN().discriminator`."
+            f"`{self.__class__.__name__}` doesn't provide an implementation "
+            f"for the `call` method. Please use the call method of "
+            f"`GAIN().generator` or `GAIN().discriminator`."
         )
 
     def get_generator(self):
