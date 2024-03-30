@@ -19,4 +19,7 @@ from teras.backend.torch.models.pretrainers.tab_transformer import (
     TabTransformerRTDPretrainer
 )
 from teras.backend.torch.models.pretrainers.saint import SAINTPretrainer
+
+# GANs
 from teras.backend.torch.models.gans.gain import GAIN
+from teras.backend.torch.models.gans.pcgain import PCGAIN
