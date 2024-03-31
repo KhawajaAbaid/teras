@@ -187,7 +187,7 @@ class ModeSpecificNormalization:
             # One hot components for all values in the feature.
             # We borrow the beta notation from the paper for clarity and
             # understanding's sake.
-            betas = ops.eye(num_valid_clusters)[selected_clusters_indices]
+            betas = np.eye(num_valid_clusters)[selected_clusters_indices]
 
             # Normalizing
             means = self._metadata[feature_name]['clusters_means']
