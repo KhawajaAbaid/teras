@@ -81,38 +81,28 @@ class ModeSpecificNormalization:
         https://arxiv.org/abs/1907.00503
 
     Args:
-        continuous_features: ``List[str]``
-            List of continuous features names.
+        continuous_features: list, List of continuous features names.
             In the case of ndarray, pass a list of continuous column indices
-
-        max_clusters: ``int``, default 10,
-            Maximum clusters
-
-        std_multiplier: ``int``, default 4,
-            Multiplies the standard deviation in the normalization.
-            Defaults to 4 as proposed in the paper.
-
-        weight_threshold: ``int``, default 0.005,
-            Taken from the official implementation.
+        max_clusters: int, Maximum clusters. Defaults to 10.
+        std_multiplier: int, Multiplies the standard deviation in the
+            normalization. Defaults to 4 as proposed in the paper.
+        weight_threshold: float, Taken from the official implementation.
             The minimum value a component weight can take to be considered
-            a valid component.
-            `weights_` under this value will be ignored.
-
-        covariance_type: ``str``,
-            Parameter for the ``GaussianMixtureModel`` class of sklearn
-
-        weight_concentration_prior_type: ``str``,
-            default "dirichlet_process",
-            Parameter for the ``GaussianMixtureModel`` class of sklearn
-
-        weight_concentration_prior: ``float``, default 0.01,
-            Parameter for the GaussianMixtureModel class of sklearn
+            a valid component. `weights_` under this value will be ignored.
+            Defaults to 0.005
+        covariance_type: str, Parameter for the `GaussianMixtureModel`
+            class of sklearn
+        weight_concentration_prior_type: str, Parameter for the
+            `GaussianMixtureModel` class of sklearn. Defaults to
+            "dirichlet_process".
+        weight_concentration_prior: float, Parameter for the
+        GaussianMixtureModel class of sklearn. Defaults to 0.001.
     """
     def __init__(self,
                  continuous_features: FeaturesNamesType = None,
                  max_clusters: int = 10,
                  std_multiplier: int = 4,
-                 weight_threshold: float = 0.,
+                 weight_threshold: float = 0.005,
                  covariance_type: str = "full",
                  weight_concentration_prior_type: str = "dirichlet_process",
                  weight_concentration_prior: float = 0.001):
@@ -140,11 +130,17 @@ class ModeSpecificNormalization:
         #       a stands for alpha.
         self.metadata = {}
 
-        self.bay_guass_mix = BayesianGaussianMixture(
+        # self.bay_guass_mix = BayesianGaussianMixture(
+        #     n_components=self.max_clusters,
+        #     covariance_type=self.covariance_type,
+        #     weight_concentration_prior_type=self.weight_concentration_prior_type,
+        #     weight_concentration_prior=self.weight_concentration_prior)
+        self.bgm_kwargs = dict(
             n_components=self.max_clusters,
             covariance_type=self.covariance_type,
             weight_concentration_prior_type=self.weight_concentration_prior_type,
-            weight_concentration_prior=self.weight_concentration_prior)
+            weight_concentration_prior=self.weight_concentration_prior,
+        )
 
         self.fitted = False
 
