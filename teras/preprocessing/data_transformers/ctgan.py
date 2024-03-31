@@ -44,7 +44,8 @@ def continuous_feature_transformer(args):
     # Normalize probabilities to sum up to 1 for each row
     clusters_probs /= np.sum(clusters_probs, axis=1, keepdims=True)
     selected_clusters_indices = np.apply_along_axis(
-        np.random.choice,
+        lambda cpa: np.random.choice(np.arange(len(cpa)),
+                                     replace=False, p=cpa),
         axis=1,
         arr=clusters_probs)
     # To create one-hot component, we'll store the selected clusters indices
@@ -233,7 +234,7 @@ class ModeSpecificNormalization:
             stds = self._metadata[feature_name]['clusters_stds']
             if isinstance(x_normalized, pd.DataFrame):
                 normalized_feature = x_normalized[feature_name].values
-                x[feature_name] = normalized_feature * (self.std_multiplier 
+                x[feature_name] = normalized_feature * (self.std_multiplier
                                                         * stds) + means
             else:
                 raise ValueError(
