@@ -27,7 +27,7 @@ class CTGANGenerator(keras.Model):
             data transformation alters the dimensionality of the dataset.
         metadata: dict, `CTGANGenerator` applies different activation functions
             to its outputs depending on the type of features (categorical or
-            numerical). And to determine the feature types and for other
+            continuous). And to determine the feature types and for other
             computations during the activation step, the ``metadata``
             computed during the data transformation step, is required.
             It can be accessed through the `.metadata` property attribute of
@@ -78,7 +78,7 @@ class CTGANGenerator(keras.Model):
         As CTGAN architecture requires specific transformations on the raw
         input data,
         that decompose one feature in several features,
-        and since each type of feature, i.e. numerical or categorical
+        and since each type of feature, i.e. continuous or categorical
         require different activation functions to be applied, the process
         of applying those activations becomes rather tricky as it
         requires knowledge of underlying data transformation and
@@ -101,21 +101,21 @@ class CTGANGenerator(keras.Model):
             Final outputs activated by the relevant activation functions.
         """
         outputs = []
-        numerical_features_relative_indices = (
-            self.metadata)["numerical"]["relative_indices_all"]
+        continuous_features_relative_indices = (
+            self.metadata)["continuous"]["relative_indices_all"]
         features_relative_indices_all = (
             self.metadata)["relative_indices_all"]
         num_valid_clusters_all = (
-            self.metadata)["numerical"]["num_valid_clusters_all"]
+            self.metadata)["continuous"]["num_valid_clusters_all"]
         cont_i = 0
         cat_i = 0
         num_categories_all = (
             self.metadata)["categorical"]["num_categories_all"]
         for i, index in enumerate(features_relative_indices_all):
-            # the first k = num_numerical_features are numerical in the
+            # the first k = num_continuous_features are continuous in the
             # data
-            if i < len(numerical_features_relative_indices):
-                # each numerical features has been transformed into
+            if i < len(continuous_features_relative_indices):
+                # each continuous features has been transformed into
                 # num_valid_clusters + 1 features
                 # where the first feature is alpha while the following
                 # features are beta components
