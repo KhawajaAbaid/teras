@@ -3,6 +3,7 @@ from keras import ops
 from teras.layers.ctgan.generator_layer import CTGANGeneratorLayer
 from teras.layers.activation import GumbelSoftmax
 from teras.utils.types import IntegerSequence
+from teras.layers.layer_list import LayerList
 from teras.api_export import teras_export
 
 
@@ -52,10 +53,14 @@ class CTGANGenerator(keras.Model):
         self.metadata = metadata
         self.hidden_dims = hidden_dims
 
-        self.hidden_block = keras.models.Sequential(
-            name="generator_hidden_block")
+        self.hidden_block = []
         for dim in self.hidden_dims:
-            self.hidden_block.add(CTGANGeneratorLayer(dim))
+            self.hidden_block.append(CTGANGeneratorLayer(dim))
+        self.hidden_block = LayerList(
+            self.hidden_block,
+            sequential=True,
+            name="generator_hidden_block"
+        )
         self.output_layer = keras.layers.Dense(
             self.data_dim,
             name="generator_output_layer")
@@ -63,7 +68,7 @@ class CTGANGenerator(keras.Model):
 
     def build(self, input_shape):
         self.hidden_block.build(input_shape)
-        input_shape = (input_shape[:-1], self.hidden_dims[-1])
+        input_shape = self.hidden_block.compute_output_shape(input_shape)
         self.output_layer.build(input_shape)
 
     def apply_activations_by_feature_type(self, interim_outputs):
