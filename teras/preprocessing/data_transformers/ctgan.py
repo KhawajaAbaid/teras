@@ -138,8 +138,8 @@ class ModeSpecificNormalization:
 
         self._fitted = False
 
-    @assert_fitted
     @property
+    @assert_fitted
     def metadata(self):
         return self._metadata
 
