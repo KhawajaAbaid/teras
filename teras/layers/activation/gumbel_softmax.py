@@ -1,26 +1,26 @@
 import keras
 from teras.activations import gumbel_softmax
+from teras.api_export import teras_export
 
 
-@keras.saving.register_keras_serializable(package="teras.layers.activation")
+@teras_export("teras.layers.GumbelSoftmax")
 class GumbelSoftmax(keras.layers.Layer):
     """
     Implementation of the Gumbel Softmax activation
-    proposed by Eric Jang et al. in the paper
-    Categorical Reparameterization with Gumbel-Softmax
+    proposed by Eric Jang et al. in the paper,
+    "Categorical Reparameterization with Gumbel-Softmax"
 
     Reference(s):
         https://arxiv.org/abs/1611.01144
 
     Args:
-        temperature: ``float``, default 0.2,
-            Controls the sharpness or smoothness of the resulting probability distribution.
-            A higher temperature value leads to a smoother and more uniform probability distribution.
-            Conversely, a lower temperature value makes the distribution concentrated around
-            the category with the highest probability.
-
-        hard: ``bool``, default False,
-            Whether to return soft probabilities or hard one hot vectors.
+        temperature: float, Controls the sharpness or smoothness of the
+            resulting probability distribution. A higher temperature value
+            leads to a smoother and more uniform probability distribution.
+            Conversely, a lower temperature value makes the distribution
+            concentrated around the category with the highest probability.
+        hard: bool, Whether to return soft probabilities or hard one hot
+        vectors. Defaults to False.
     """
     def __init__(self,
                  temperature: float = 0.2,
@@ -30,7 +30,7 @@ class GumbelSoftmax(keras.layers.Layer):
         self.temperature = temperature
         self.hard = hard
 
-    def call(self, logits: keras.KerasTensor):
+    def call(self, logits):
         return gumbel_softmax(logits,
                               temperature=self.temperature,
                               hard=self.hard)
