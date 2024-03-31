@@ -3,7 +3,7 @@ from keras import random
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.mixture import BayesianGaussianMixture
 import pandas as pd
-from teras.preprocessing.base import BaseDataTransformer
+from teras.preprocessing.data_transformers.data_transformer import DataTransformer
 from teras.utils.types import FeaturesNamesType
 import concurrent.futures
 import numpy as np
@@ -248,7 +248,7 @@ class ModeSpecificNormalization:
         return x
 
 
-class CTGANDataTransformer(BaseDataTransformer):
+class CTGANDataTransformer(DataTransformer):
     """
     Data Transformation class based on the data transformation
     in the official CTGAN paper and implementation.
