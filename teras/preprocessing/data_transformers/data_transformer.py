@@ -40,6 +40,7 @@ class DataTransformer:
     def fit_transform(self,
                       x: pd.DataFrame):
         self.fit(x)
+        self._fitted = True
         return self.transform(x)
 
     @abstractmethod
