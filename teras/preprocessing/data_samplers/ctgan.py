@@ -2,14 +2,14 @@ from keras import ops
 from keras import random
 from teras.utils.types import FeaturesNamesType
 import numpy as np
-
-
-# Sample/Select a cluster for each value based on the given clusters
-# probabilities array for that value
-def random_choice(probs_array):
-    probs_array[np.isnan(probs_array)] = 1e-10
-    probs_array /= np.sum(probs_array)
-    return np.random.choice(np.arange(len(probs_array)), p=probs_array)
+try:
+    import tensorflow as tf
+except:
+    raise ImportError(
+        "You need tensorflow to use CTGANDataSampler. "
+        "Install it using `pip install tensorflow`"
+    )
+import tensorflow as tf
 
 
 class CTGANDataSampler:
@@ -221,10 +221,8 @@ class CTGANDataSampler:
             sample_idx = []
             for feat_id, val_id in zip(shuffled_features_idx,
                                        shuffled_values_idx):
-                # TODO FIX
-                s_id = tf_random_choice(
-                    self.row_idx_by_categories[ops.squeeze(feat_id)][ops.squeeze(val_id)],
-                    n_samples=1)
+                s_id = np.random.choice(
+                    self.row_idx_by_categories[ops.squeeze(feat_id)][ops.squeeze(val_id)])
                 sample_idx.append(ops.squeeze(s_id))
 
             # we also return shuffled_idx because it will be required to shuffle
