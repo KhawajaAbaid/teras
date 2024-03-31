@@ -9,7 +9,6 @@ import concurrent.futures
 import numpy as np
 
 
-# TODO: implement a backend agnostic random choice function
 # Sample/Select a cluster for each value based on the given clusters
 # probabilities array for that value
 def random_choice(probs_array):
@@ -18,7 +17,7 @@ def random_choice(probs_array):
     return np.random.choice(np.arange(len(probs_array)), p=probs_array)
 
 
-def numerical_feature_transformer(args):
+def continuous_feature_transformer(args):
     x, feature_name, weight_threshold, bgm_kwargs = args
     print("processing feature: ", feature_name)
     if isinstance(x, pd.DataFrame):
@@ -42,7 +41,7 @@ def numerical_feature_transformer(args):
     # https://github.com/sdv-dev/CTGAN
     valid_clusters_indicator = bay_guass_mix.weights_ > weight_threshold
     # Compute probability of coming from each cluster for each value in the
-    # given (numerical) feature.
+    # given (continuous) feature.
     clusters_probs = bay_guass_mix.predict_proba(feature)
     # Filter out the "invalid" clusters
     clusters_probs = clusters_probs[:, valid_clusters_indicator]
@@ -82,9 +81,9 @@ class ModeSpecificNormalization:
         https://arxiv.org/abs/1907.00503
 
     Args:
-        numerical_features: ``List[str]``
-            List of numerical features names.
-            In the case of ndarray, pass a list of numerical column indices
+        continuous_features: ``List[str]``
+            List of continuous features names.
+            In the case of ndarray, pass a list of continuous column indices
 
         max_clusters: ``int``, default 10,
             Maximum clusters
@@ -110,14 +109,14 @@ class ModeSpecificNormalization:
             Parameter for the GaussianMixtureModel class of sklearn
     """
     def __init__(self,
-                 numerical_features: FeaturesNamesType = None,
+                 continuous_features: FeaturesNamesType = None,
                  max_clusters: int = 10,
                  std_multiplier: int = 4,
                  weight_threshold: float = 0.,
                  covariance_type: str = "full",
                  weight_concentration_prior_type: str = "dirichlet_process",
                  weight_concentration_prior: float = 0.001):
-        self.numerical_features = numerical_features
+        self.continuous_features = continuous_features
         self.max_clusters = max_clusters
         self.std_multiplier = std_multiplier
         self.weight_threshold = weight_threshold
@@ -131,7 +130,7 @@ class ModeSpecificNormalization:
         # 1. `Clusters indices` will be used in the transform method
         #       to create the one hot vector B(i,j) where B stands for
         #       Beta, for each value c(i,j) where c(i,j) is the jth
-        #       value in the ith numerical feature as proposed in the
+        #       value in the ith continuous feature as proposed in the
         #       paper in the steps to apply mode specific normalization
         #       method on page 3-4.
         # 2. `Number of valid clusters` will be used in the transform
@@ -160,9 +159,9 @@ class ModeSpecificNormalization:
 
         feat_args = [(x, feature_name, self.weight_threshold,
                       self.bgm_kwargs)
-                     for feature_name in self.numerical_features]
+                     for feature_name in self.continuous_features]
         with concurrent.futures.ProcessPoolExecutor() as executor:
-            results = executor.map(numerical_feature_transformer,
+            results = executor.map(continuous_feature_transformer,
                                    feat_args)
             for r in results:
                 _name = r["name"]
@@ -180,11 +179,11 @@ class ModeSpecificNormalization:
         Args:
             x: A pandas DataFrame
         Returns:
-            A numpy ndarray of transformed numerical data
+            A numpy ndarray of transformed continuous data
         """
-        # Contain the normalized numerical features
+        # Contain the normalized continuous features
         x_cont_normalized = []
-        for feature_name in self.numerical_features:
+        for feature_name in self.continuous_features:
             selected_clusters_indices = self.metadata[feature_name][
                 'selected_clusters_indices']
             num_valid_clusters = self.metadata[feature_name][
@@ -233,7 +232,7 @@ class ModeSpecificNormalization:
             effectively reversing the transformation
         """
         x = x_normalized.copy()
-        for feature_name in self.numerical_features:
+        for feature_name in self.continuous_features:
             means = self.features_clusters_means[feature_name]
             stds = self.features_clusters_stds[feature_name]
             if isinstance(x_normalized, pd.DataFrame):
@@ -262,8 +261,8 @@ class CTGANDataTransformer(BaseDataTransformer):
         categorical_features: ``List[str]``,
             List of categorical features names in the dataset.
 
-        numerical_features: ``List[str]``,
-            List of numerical features names in the dataset.
+        continuous_features: ``List[str]``,
+            List of continuous features names in the dataset.
 
         max_clusters: ``int``, default 10,
             Maximum Number of clusters to use in ``ModeSpecificNormalization``
@@ -286,7 +285,7 @@ class CTGANDataTransformer(BaseDataTransformer):
             Parameter for the ``GaussianMixtureModel`` class of sklearn.
     """
     def __init__(self,
-                 numerical_features: FeaturesNamesType = None,
+                 continuous_features: FeaturesNamesType = None,
                  categorical_features: FeaturesNamesType = None,
                  max_clusters: int = 10,
                  std_multiplier: int = 4,
@@ -295,7 +294,7 @@ class CTGANDataTransformer(BaseDataTransformer):
                  weight_concentration_prior_type: str = "dirichlet_process",
                  weight_concentration_prior: float = 0.001
                  ):
-        self.numerical_features = numerical_features if numerical_features else []
+        self.continuous_features = continuous_features if continuous_features else []
         self.categorical_features = categorical_features if categorical_features else []
         self.max_clusters = max_clusters
         self.std_multiplier = std_multiplier
@@ -305,12 +304,12 @@ class CTGANDataTransformer(BaseDataTransformer):
         self.weight_concentration_prior = weight_concentration_prior
 
         self.num_categorical_features = len(categorical_features)
-        self.num_numerical_features = len(numerical_features)
+        self.num_continuous_features = len(continuous_features)
 
         self.mode_specific_normalizer = None
-        if self.num_numerical_features > 0:
+        if self.num_continuous_features > 0:
             self.mode_specific_normalizer = ModeSpecificNormalization(
-                numerical_features=self.numerical_features,
+                continuous_features=self.continuous_features,
                 max_clusters=self.max_clusters,
                 std_multiplier=self.std_multiplier,
                 weight_threshold=self.weight_threshold,
@@ -321,30 +320,34 @@ class CTGANDataTransformer(BaseDataTransformer):
         self.one_hot_enc = OneHotEncoder()
         self.metadata = dict()
         self.metadata["categorical"] = dict()
-        self.metadata["numerical"] = dict()
+        self.metadata["continuous"] = dict()
 
-    def transform_numerical_data(self, x):
+    def transform_continuous_data(self, x):
         return self.mode_specific_normalizer.fit_transform(x)
 
     def transform_categorical_data(self, x):
         # To speedup computation of conditional vector down the road,
         # we assign a relative index to each feature. For instance,
-        # Given three categorical columns Gender(2 categories), City (4 categories) and EconomicClass (5 categories)
+        # Given three categorical columns Gender(2 categories),
+        # City (4 categories) and EconomicClass (5 categories)
         # Relative indexes will be calculated as below:
         #   gender_relative_index: 0
         #   city_relative_index: gender_relative_index + num_categories_in_gender => 0 + 2 = 2
         #   economic_class_relative_index: city_relative_index + num_categories_in_city => 2 + 4 = 6
 
         categorical_metadata = dict()
-        # NOTE: The purpose of using these lists is that, this way we'll later be able to access
-        # metadata for multiple features at once using their indices rather than names
-        # which would've been required in case of a dict and would have been less efficient
+        # NOTE: The purpose of using these lists is that, this way we'll later
+        # be able to access metadata for multiple features at once using
+        # their indices rather than names which would've been required in
+        # case of a dict and would have been less efficient?
         relative_indices_all = []
         num_categories_all = []
-        # For every feature we'll compute the probabilities over the range of values based on their freqs
-        # and then append that probabilities array to the following mother array
+        # For every feature we'll compute the probabilities over the range of
+        # values based on their freqs and then append that probabilities
+        # array to the following mother array
         categories_probs_all = []
-        # A nested list where each element corresponds to the list of categories in the feature
+        # A nested list where each element corresponds to the list of
+        # categories in the feature
         categories_all = []
         feature_relative_index = 0
         for feature_name in self.categorical_features:
@@ -355,10 +358,12 @@ class CTGANDataTransformer(BaseDataTransformer):
 
             log_freqs = x[feature_name].value_counts().apply(ops.log)
             categories_probs_dict = log_freqs.to_dict()
-            # To overcome the floating point precision issue which causes probabilities to not sum up to 1
-            # and resultantly causes error in ops.random.choice method,
-            # we round the probabilities to 7 decimal points
-            probs = ops.around(ops.array(list(categories_probs_dict.values())), 7)
+            # To overcome the floating point precision issue which causes
+            # probabilities to not sum up to 1 and resultantly causes error
+            # in ops.random.choice method, we round the probabilities to 7
+            # decimal points
+            probs = ops.round(ops.array(list(categories_probs_dict.values())),
+                              decimals=7)
             # Normalizing so all probs sum up to 1
             probs = probs / ops.sum(probs)
             categories, categories_probs = list(categories_probs_dict.keys()), probs
@@ -366,7 +371,8 @@ class CTGANDataTransformer(BaseDataTransformer):
             categories_all.append(categories)
         categorical_metadata["total_num_categories"] = sum(num_categories_all)
         categorical_metadata["num_categories_all"] = num_categories_all
-        categorical_metadata["relative_indices_all"] = ops.array(relative_indices_all)
+        categorical_metadata["relative_indices_all"] = ops.array(
+            relative_indices_all)
         categorical_metadata["categories_probs_all"] = categories_probs_all
         categorical_metadata["categories_all"] = categories_all
 
@@ -379,34 +385,39 @@ class CTGANDataTransformer(BaseDataTransformer):
         # we've got nothing to fit in this case
         pass
 
-    def transform(self, x, **kwargs):
+    def transform(self, x):
         total_transformed_features = 0
-        x_numerical, x_categorical = None, None
-        if self.num_numerical_features > 0:
-            x_numerical = self.transform_numerical_data(x[self.numerical_features])
-            self.metadata["numerical"] = self.mode_specific_normalizer.metadata
-            total_transformed_features += (self.metadata["numerical"]["relative_indices_all"][-1] +
-                                           self.metadata["numerical"]["num_valid_clusters_all"][-1])
+        x_continuous, x_categorical = None, None
+        if self.num_continuous_features > 0:
+            x_continuous = self.transform_continuous_data(
+                x[self.continuous_features])
+            self.metadata["continuous"] = self.mode_specific_normalizer.metadata
+            total_transformed_features += (
+                    self.metadata["continuous"]["relative_indices_all"][-1] +
+                    self.metadata["continuous"]["num_valid_clusters_all"][-1])
         if self.num_categorical_features > 0:
-            x_categorical = self.transform_categorical_data(x[self.categorical_features])
-            total_transformed_features += (self.metadata["categorical"]["relative_indices_all"][-1] +
-                                           self.metadata["categorical"]["num_categories_all"][-1] + 1)
+            x_categorical = self.transform_categorical_data(
+                x[self.categorical_features])
+            total_transformed_features += (
+                    self.metadata["categorical"]["relative_indices_all"][-1] +
+                    self.metadata["categorical"]["num_categories_all"][-1] + 1)
 
-        # since we concatenate the categorical features AFTER the numerical alphas and betas
-        # so we'll create an overall relative indices array where we offset the relative indices
-        # of the categorical features by the total number of numerical features components
+        # since we concatenate the categorical features AFTER the continuous
+        # alphas and betas so we'll create an overall relative indices array
+        # where we offset the relative indices of the categorical features by
+        # the total number of continuous features components
         relative_indices_all = []
         offset = 0
-        if x_numerical is not None:
-            cont_relative_indices = self.metadata["numerical"]["relative_indices_all"]
+        if x_continuous is not None:
+            cont_relative_indices = self.metadata["continuous"]["relative_indices_all"]
             relative_indices_all.extend(cont_relative_indices)
-            offset = cont_relative_indices[-1] + self.metadata["numerical"]["num_valid_clusters_all"][-1]
+            offset = cont_relative_indices[-1] + self.metadata["continuous"]["num_valid_clusters_all"][-1]
         if x_categorical is not None:
             # +1 since the categorical relative indices start at 0
             relative_indices_all.extend(self.metadata["categorical"]["relative_indices_all"] + 1 + offset)
         self.metadata["relative_indices_all"] = relative_indices_all
         self.metadata["total_transformed_features"] = total_transformed_features
-        x_transformed = ops.concatenate([x_numerical, x_categorical.toarray()], axis=1)
+        x_transformed = ops.concatenate([x_continuous, x_categorical.toarray()], axis=1)
         return x_transformed
 
     def reverse_transform(self, x_generated):
@@ -419,38 +430,41 @@ class CTGANDataTransformer(BaseDataTransformer):
         Returns:
             Generated data in the original data format.
         """
-        all_features = self.numerical_features + self.categorical_features
-        if self.num_numerical_features > 0:
-            num_valid_clusters_all = self.metadata["numerical"]["num_valid_clusters_all"]
+        all_features = self.continuous_features + self.categorical_features
+        if self.num_continuous_features > 0:
+            num_valid_clusters_all = self.metadata["continuous"]["num_valid_clusters_all"]
         if self.num_categorical_features > 0:
             num_categories_all = self.metadata["categorical"]["num_categories_all"]
         data = {}
         cat_index = 0       # categorical index
-        cont_index = 0      # numerical index
+        cont_index = 0      # continuous index
         for index, feature_name in enumerate(all_features):
-            # the first n features are numerical
-            if index < len(self.numerical_features):
+            # the first n features are continuous
+            if index < len(self.continuous_features):
                 alphas = x_generated[:, index]
                 betas = x_generated[:, index + 1 : index + 1 + num_valid_clusters_all[cont_index]]
-                # Recall that betas represent the one hot encoded form of the cluster number
+                # Recall that betas represent the one hot encoded form of the
+                # cluster number
                 cluster_indices = ops.argmax(betas, axis=1)
-                # List of cluster means for a feature. contains one value per cluster
-                means = self.metadata["numerical"][feature_name]["clusters_means"]
+                # List of cluster means for a feature. contains one value per
+                # cluster
+                means = self.metadata["continuous"][feature_name]["clusters_means"]
 
-                # Since each individual element within the cluster is associated with
-                # one of the cluster's mean. We use the `cluster_indices` to get
-                # a list of size len(x) where each element is a mean for the corresponding
-                # element in the feature
+                # Since each individual element within the cluster is associated
+                # with one of the cluster's mean. We use the
+                # `cluster_indices` to get a list of size len(x) where each
+                # element is a mean for the corresponding element in the feature
                 means = means[cluster_indices]
                 # Do the same for stds
-                stds = self.metadata["numerical"][feature_name]["clusters_stds"]
+                stds = self.metadata["continuous"][feature_name]["clusters_stds"]
                 stds = stds[cluster_indices]
                 feature = alphas * (self.std_multiplier * stds) + means
                 data[feature_name] = feature
                 cont_index += 1
             else:
-                # if the index is greater than or equal to len(numerical_features),
-                # then the column at hand is categorical
+                # if the index is greater than or equal to
+                # len(continuous_features), then the column at hand is
+                # categorical
                 raw_feature_parts = x_generated[:, index: index + num_categories_all[cat_index]]
                 categories = self.one_hot_enc.categories_[cat_index]
                 categories_indices = ops.argmax(raw_feature_parts, axis=1)
@@ -470,41 +484,26 @@ class CTGANDataSampler:
         https://github.com/sdv-dev/CTGAN/
 
     Args:
+        metadata: dict, A dictionary of metadata computed during data
+            transformation. You can access it from the ``.get_metadata()`` of
+            ``CTGANDataTransformer`` instance.
+        categorical_features: list, List of categorical features names.
+            CTGAN requires dataset to have at least one categorical feature,
+            if your dataset doesn't contain any categorical features,
+            consider using some other generative model.
+        continuous_features: list, List of continuous features names
         batch_size: ``int``, default 512,
             Batch size to use for the dataset.
-
-        categorical_features: ``List[str]``,
-            List of categorical features names
-
-        numerical_features: ```List[str]``,
-            List of numerical features names
-
-        metadata: ``dict``,
-            A dictionary of metadata computed during data transformation.
-            You can access it from the ``.get_metadata()`` of ``CTGANDataTransformer`` instance.
     """
     def __init__(self,
-                 batch_size=512,
-                 categorical_features=None,
-                 numerical_features=None,
-                 metadata=None):
-        if categorical_features is None:
-            raise ValueError("`categorical_features` must not be None. "
-                             "CTGAN requires dataset to have atleast one categorical feature, "
-                             "if your dataset doesn't contain any categorical features, "
-                             "then you should use some other generative model. ")
-
-        if metadata is None:
-            raise ValueError("`metadata` must not be None. "
-                             "DataSampler requires meta data computed in the transformation step "
-                             "to sample data. "
-                             "Use DataTransformer's `get_metadata` method to "
-                             "access meta data and pass it as argument to DataSampler.")
-
+                 metadata,
+                 categorical_features,
+                 continuous_features=None,
+                 batch_size=512):
+        self.metadata = metadata
         self.batch_size = batch_size
         self.categorical_features = categorical_features
-        self.numerical_features = numerical_features
-        self.metadata = metadata
+        self.continuous_features = continuous_features
 
         self.num_samples = None
         self.data_dim = None
@@ -522,16 +521,18 @@ class CTGANDataSampler:
                 for later sampling.
         Returns:
             Returns a tensorflow dataset that utilizes the sample_data method
-            to create batches of data. This way user can just pass the dataset object to the fit
-            method of the model and each batch generated will satisfy all out requirements of sampling
+            to create batches of data. This way user can just pass the dataset
+            object to the fit method of the model and each batch generated
+            will satisfy all out requirements of sampling
         """
         self.num_samples, self.data_dim = x_transformed.shape
         # adapting the approach from the official implementation
         # to sample evenly across the categories to combat imbalance
-        row_idx_raw = [x_original.groupby(feature).groups for feature in self.categorical_features]
-        self.row_idx_by_categories = [[values.to_list()
-                                       for values in feat.values()]
-                                      for feat in row_idx_raw]
+        row_idx_raw = [x_original.groupby(feature).groups
+                       for feature in self.categorical_features]
+        self.row_idx_by_categories = [
+            [values.to_list() for values in feat.values()]
+            for feat in row_idx_raw]
 
         total_num_categories = self.metadata["categorical"]["total_num_categories"]
 
@@ -552,19 +553,24 @@ class CTGANDataSampler:
     def sample_cond_vectors_for_training(self,
                                          random_features_idx=None,
                                          random_values_idx=None):
-        # 1. Create Nd zero-filled mask vectors mi = [mi(k)] where k=1...|Di| and for i = 1,...,Nd,
-        # so the ith mask vector corresponds to the ith column,
-        # and each component is associated to the category of that column.
+        # 1. Create Nd zero-filled mask vectors mi = [mi(k)] where k=1...|Di|
+        # and for i = 1,...,Nd, so the ith mask vector corresponds to the ith
+        # column, and each component is associated to the category of that
+        # column.
         masks = ops.zeros([self.batch_size, len(self.categorical_features)])
-        cond_vectors = ops.zeros([self.batch_size, self.metadata["categorical"]["total_num_categories"]])
-        # 2. Randomly select a discrete column Di out of all the Nd discrete columns, with equal probability.
+        cond_vectors = ops.zeros(
+            [self.batch_size, self.metadata["categorical"]["total_num_categories"]])
+        # 2. Randomly select a discrete column Di out of all the Nd discrete
+        # columns, with equal probability.
         # >>> We select them in generator method
 
-        random_features_relative_indices = ops.take(self.metadata["categorical"]["relative_indices_all"],
-                                                    indices=random_features_idx)
+        random_features_relative_indices = ops.take(
+            self.metadata["categorical"]["relative_indices_all"],
+            indices=random_features_idx)
 
-        # 3. Construct a PMF across the range of values of the column selected in 2, Di* , such that the
-        # probability mass of each value is the logarithm of its frequency in that column.
+        # 3. Construct a PMF across the range of values of the column selected
+        # in 2, Di* , such that the probability mass of each value is the
+        # logarithm of its frequency in that column.
         # >>> Moved to the generator method, which calls this method
         # and passes the value of `random_features_idx`
 
@@ -575,17 +581,20 @@ class CTGANDataSampler:
         # Offset this index by relative index of the feature that it belongs to.
         # because the final cond vector is the concatenation of all features and
         # is just one vector that has the length equal to total_num_categories
-        random_values_idx_offsetted = random_values_idx + ops.cast(random_features_relative_indices,
-                                                                   dtype="int32")
-        # Indices are required by the tensor_scatter_nd_update method to be of type int32 and NOT int64
-        # random_values_idx_offsetted = tf.cast(random_values_idx_offsetted, dtype=tf.int32)
+        random_values_idx_offsetted = random_values_idx + ops.cast(
+            random_features_relative_indices, dtype="int32")
+        # Indices are required by the tensor_scatter_nd_update method to be of
+        # type int32 and NOT int64 random_values_idx_offsetted = tf.cast(
+        # random_values_idx_offsetted, dtype=tf.int32)
         # indices_cond = list(zip(tf.range(batch_size), random_values_idx_offsetted))
         indices_cond = ops.stack([ops.arange(self.batch_size), random_values_idx_offsetted], axis=1)
         ones = ops.ones(self.batch_size)
         cond_vectors = ops.scatter_update(cond_vectors, indices_cond, ones)
         # indices_mask = list(zip(tf.range(batch_size), tf.cast(random_features_idx, dtype=tf.int32)))
-        indices_mask = ops.stack([ops.arange(self.batch_size), random_features_idx], axis=1)
-        masks = ops.scatter_update(masks, indices_mask, ops.ones(self.batch_size))
+        indices_mask = ops.stack([ops.arange(self.batch_size),
+                                  random_features_idx], axis=1)
+        masks = ops.scatter_update(masks, indices_mask,
+                                   ops.ones(self.batch_size))
         return cond_vectors, masks
 
     def sample_cond_vectors_for_generation(self, batch_size):
@@ -595,30 +604,38 @@ class CTGANDataSampler:
         probability as proposed in the paper.
         """
         num_categories_all = self.metadata["categorical"]["num_categories_all"]
-        cond_vectors = ops.zeros((batch_size, self.metadata["categorical"]["total_num_categories"]))
-        random_features_idx = ops.cast(random.uniform(shape=(batch_size,),
-                                                      minval=0,
-                                                      maxval=len(self.categorical_features)),
-                                       dtype="int32")
+        cond_vectors = ops.zeros(
+            (batch_size, self.metadata["categorical"]["total_num_categories"]))
+        random_features_idx = ops.cast(
+            random.uniform(shape=(batch_size,),
+                           minval=0,
+                           maxval=len(self.categorical_features)),
+            dtype="int32")
 
-        # For each randomly picked feature, we get it's corresponding num_categories
+        # For each randomly picked feature, we get it's corresponding
+        # num_categories
         random_num_categories_all = ops.take(num_categories_all,
                                              indices=random_features_idx)
-        # Then we select one category index from a feature using a range of 0 — num_categories
-        random_values_idx = [ops.squeeze(ops.cast(random.uniform(shape=(1,),
-                                                                 minval=0,
-                                                                 maxval=num_categories),
-                                                  dtype="int32"))
-                             for num_categories in random_num_categories_all]
+        # Then we select one category index from a feature using a range of
+        # 0 — num_categories
+        random_values_idx = [ops.squeeze(ops.cast(
+            random.uniform(shape=(1,),
+                           minval=0,
+                           maxval=num_categories),
+            dtype="int32"))
+            for num_categories in random_num_categories_all]
         random_values_idx = ops.stack(random_values_idx)
         # Offset this index by relative index of the feature that it belongs to.
         # because the final cond vector is the concatenation of all features and
         # is just one vector that has the length equal to total_num_categories
-        random_features_relative_indices = ops.take(self.metadata["categorical"]["relative_indices_all"],
-                                                    indices=random_features_idx)
-        random_values_idx_offsetted =  random_values_idx + ops.cast(random_features_relative_indices, dtype="int32")
+        random_features_relative_indices = ops.take(
+            self.metadata["categorical"]["relative_indices_all"],
+            indices=random_features_idx)
+        random_values_idx_offsetted = random_values_idx + ops.cast(
+            random_features_relative_indices, dtype="int32")
         # random_values_idx_offsetted = tf.cast(random_values_idx_offsetted, dtype=tf.int32)
-        indices_cond = list(zip(ops.arange(batch_size), random_values_idx_offsetted))
+        indices_cond = list(zip(ops.arange(batch_size),
+                                random_values_idx_offsetted))
         ones = ops.ones(batch_size)
         cond_vectors = ops.scatter_update(cond_vectors, indices_cond, ones)
         return cond_vectors
@@ -629,50 +646,62 @@ class CTGANDataSampler:
         Returns:
             A batch of data
         """
-        # This random_feature_indices variable is required during the sample_cond vector method
-        # but since we're using sample_data function to create out tensorflow dataset, this
-        # gets called first to generate a batch, so keep in mind that this is where this
-        # variable gets its values. We could alternatively just return these indices
-        # and pass them as argument to the sample cond_vec but for now let's just work with it.
+        # This random_feature_indices variable is required during the
+        # sample_cond vector method but since we're using sample_data
+        # function to create out tensorflow dataset, this gets called first
+        # to generate a batch, so keep in mind that this is where this
+        # variable gets its values. We could alternatively just return these
+        # indices and pass them as argument to the sample cond_vec but for
+        # now let's just work with it.
         num_steps_per_epoch = self.num_samples // self.batch_size
         for _ in range(num_steps_per_epoch):
-            random_features_idx = ops.cast(random.uniform([self.batch_size],
-                                                          minval=0,
-                                                          maxval=len(self.categorical_features)),
-                                           dtype="int32")
-            # NOTE: We've precomputed the probabilities in the DataTransformer class for each feature already
-            # to speed things up.
+            random_features_idx = ops.cast(
+                random.uniform([self.batch_size],
+                               minval=0,
+                               maxval=len(self.categorical_features)),
+                dtype="int32")
+            # NOTE: We've precomputed the probabilities in the DataTransformer
+            # class for each feature already to speed things up.
             random_features_categories_probs = ops.take(
                 self.metadata["categorical"]["categories_probs_all"],
                 indices=random_features_idx)
-            random_values_idx = [tf_random_choice(ops.arange(len(feature_probs)),
-                                                  n_samples=1,
-                                                  p=feature_probs)
-                                 for feature_probs in random_features_categories_probs]
-            random_values_idx = ops.cast(ops.squeeze(random_values_idx), dtype="int32")
-            # the official implementation uses actual indices during the sample_cond_vector method
-            # but uses the shuffled version in sampling data, so we're gonna do just that.
+            random_values_idx = [
+                random_choice(feature_probs)
+                for feature_probs in random_features_categories_probs]
+            random_values_idx = ops.cast(ops.squeeze(random_values_idx),
+                                         dtype="int32")
+            # the official implementation uses actual indices during the
+            # sample_cond_vector method ut uses the shuffled version in
+            # sampling data, so we're gonna do just that.
             shuffled_idx = random.shuffle(ops.arange(self.batch_size))
             # features_idx = random_features_idx
             # values_idx = random_values_idx
-            shuffled_features_idx = ops.take(random_features_idx, indices=shuffled_idx)
-            shuffled_values_idx = ops.take(random_values_idx, indices=shuffled_idx)
+            shuffled_features_idx = ops.take(random_features_idx,
+                                             indices=shuffled_idx)
+            shuffled_values_idx = ops.take(random_values_idx,
+                                           indices=shuffled_idx)
             sample_idx = []
-            for feat_id, val_id in zip(shuffled_features_idx, shuffled_values_idx):
-                s_id = tf_random_choice(self.row_idx_by_categories[ops.squeeze(feat_id)][ops.squeeze(val_id)],
-                                        n_samples=1)
+            for feat_id, val_id in zip(shuffled_features_idx,
+                                       shuffled_values_idx):
+                # TODO FIX
+                s_id = tf_random_choice(
+                    self.row_idx_by_categories[ops.squeeze(feat_id)][ops.squeeze(val_id)],
+                    n_samples=1)
                 sample_idx.append(ops.squeeze(s_id))
 
-            # we also return shuffled_idx because it will be required to shuffle the conditional vector
-            # in the training loop as we want to keep the shuffling consistent as the batch of
-            # transformed data and cond vector must have one to one feature correspondence.
-            # yield x_transformed[sample_idx], shuffled_idx, random_features_idx, random_values_idx
+            # we also return shuffled_idx because it will be required to shuffle
+            # the conditional vector in the training loop as we want to keep
+            # the shuffling consistent as the batch of transformed data and
+            # cond vector must have one to one feature correspondence.
+            # yield x_transformed[sample_idx], shuffled_idx,
+            # random_features_idx, random_values_idx
 
             # `cond_vectors` will be first concatenated with the noise
             # vector `z` to create generator input and then will be concatenated
             # with the generated samples to serve as input for discriminator
-            cond_vectors, mask = self.sample_cond_vectors_for_training(random_features_idx=random_features_idx,
-                                                                       random_values_idx=random_values_idx)
+            cond_vectors, mask = self.sample_cond_vectors_for_training(
+                random_features_idx=random_features_idx,
+                random_values_idx=random_values_idx)
             # `cond_vectors_real` will be concatenated with the real_samples
             # and passed to the discriminator
             cond_vectors_real = ops.take(cond_vectors, indices=shuffled_idx)
