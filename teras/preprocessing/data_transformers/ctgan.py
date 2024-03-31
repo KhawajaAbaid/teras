@@ -319,18 +319,18 @@ class CTGANDataTransformer(DataTransformer):
         if not isinstance(x, pd.DataFrame):
             raise ValueError(
                 f"`x` must be a pandas dataframe. Received {type(x)}")
-        self._fit_continuous(x)
-        self._fit_categorical(x)
+        self._fit_continuous(x[self.continuous_features])
+        self._fit_categorical(x[self.categorical_features])
         self._fitted = True
 
-    def _fit_continuous(self, x):
-        self.mode_specific_normalizer.fit(x)
+    def _fit_continuous(self, x_cont):
+        self.mode_specific_normalizer.fit(x_cont)
         self._metadata["continuous"] = self.mode_specific_normalizer.metadata
 
-    def _transform_continuous(self, x):
-        return self.mode_specific_normalizer.transform(x)
+    def _transform_continuous(self, x_cont):
+        return self.mode_specific_normalizer.transform(x_cont)
 
-    def _fit_categorical(self, x):
+    def _fit_categorical(self, x_cat):
         # To speedup computation of conditional vector down the road,
         # we assign a relative index to each feature. For instance,
         # Given three categorical columns Gender(2 categories),
@@ -356,12 +356,12 @@ class CTGANDataTransformer(DataTransformer):
         categories_all = []
         feature_relative_index = 0
         for feature_name in self.categorical_features:
-            num_categories = x[feature_name].nunique()
+            num_categories = x_cat[feature_name].nunique()
             num_categories_all.append(num_categories)
             relative_indices_all.append(feature_relative_index)
             feature_relative_index += num_categories
 
-            log_freqs = x[feature_name].value_counts().apply(ops.log)
+            log_freqs = x_cat[feature_name].value_counts().apply(ops.log)
             categories_probs_dict = log_freqs.to_dict()
             # To overcome the floating point precision issue which causes
             # probabilities to not sum up to 1 and resultantly causes error
@@ -382,7 +382,7 @@ class CTGANDataTransformer(DataTransformer):
         categorical_metadata["categories_all"] = categories_all
 
         self._metadata["categorical"] = categorical_metadata
-        self._one_hot_enc.fit(x)
+        self._one_hot_enc.fit(x_cat)
 
     def _transform_categorical(self, x_cat):
         return self._one_hot_enc.transform(x_cat)
