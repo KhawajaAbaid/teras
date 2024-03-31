@@ -33,6 +33,10 @@ class DataTransformer:
             )
         return self._metadata
 
+    @property
+    def metadata(self):
+        return self.get_metadata()
+
     def fit_transform(self,
                       x: pd.DataFrame):
         self.fit(x)
