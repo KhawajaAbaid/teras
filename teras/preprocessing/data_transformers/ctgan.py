@@ -5,16 +5,11 @@ from sklearn.mixture import BayesianGaussianMixture
 import pandas as pd
 from teras.preprocessing.data_transformers.data_transformer import DataTransformer
 from teras.utils.types import FeaturesNamesType
+from teras.utils.decorators import assert_fitted
 import concurrent.futures
 import numpy as np
-
-
-# Sample/Select a cluster for each value based on the given clusters
-# probabilities array for that value
-def random_choice(probs_array):
-    probs_array[np.isnan(probs_array)] = 1e-10
-    probs_array /= np.sum(probs_array)
-    return np.random.choice(np.arange(len(probs_array)), p=probs_array)
+import json
+import pickle
 
 
 def continuous_feature_transformer(args):
@@ -49,7 +44,7 @@ def continuous_feature_transformer(args):
     # Normalize probabilities to sum up to 1 for each row
     clusters_probs /= np.sum(clusters_probs, axis=1, keepdims=True)
     selected_clusters_indices = np.apply_along_axis(
-        random_choice,
+        np.random.choice,
         axis=1,
         arr=clusters_probs)
     # To create one-hot component, we'll store the selected clusters indices
@@ -57,17 +52,15 @@ def continuous_feature_transformer(args):
     num_valid_clusters = sum(valid_clusters_indicator)
     feature_metadata[
         'selected_clusters_indices'] = selected_clusters_indices
-    feature_metadata["num_valid_clusters"] = num_valid_clusters
+    feature_metadata['num_valid_clusters'] = num_valid_clusters
     # Use the selected clusters to normalize the values.
     # To normalize, we need the means and standard deviations
     # Means
-    clusters_means = bay_guass_mix.means_.squeeze()[
+    feature_metadata['clusters_means'] = bay_guass_mix.means_.squeeze()[
         valid_clusters_indicator]
-    feature_metadata['clusters_means'] = clusters_means
     # Standard Deviations
-    clusters_stds = np.sqrt(bay_guass_mix.covariances_).squeeze()[
-        valid_clusters_indicator]
-    feature_metadata['clusters_stds'] = clusters_stds
+    feature_metadata['clusters_stds'] = np.sqrt(
+        bay_guass_mix.covariances_).squeeze()[valid_clusters_indicator]
     return feature_metadata
 
 
@@ -99,7 +92,7 @@ class ModeSpecificNormalization:
         GaussianMixtureModel class of sklearn. Defaults to 0.001.
     """
     def __init__(self,
-                 continuous_features: FeaturesNamesType = None,
+                 continuous_features: FeaturesNamesType,
                  max_clusters: int = 10,
                  std_multiplier: int = 4,
                  weight_threshold: float = 0.005,
@@ -128,21 +121,26 @@ class ModeSpecificNormalization:
         # 3. `means` and `standard deviations` will be used in transform
         #       step to normalize the value c(i,j) to create a(i,j) where
         #       a stands for alpha.
-        self.metadata = {}
+        self._metadata = {}
 
         # self.bay_guass_mix = BayesianGaussianMixture(
         #     n_components=self.max_clusters,
         #     covariance_type=self.covariance_type,
         #     weight_concentration_prior_type=self.weight_concentration_prior_type,
         #     weight_concentration_prior=self.weight_concentration_prior)
-        self.bgm_kwargs = dict(
+        self._bgm_kwargs = dict(
             n_components=self.max_clusters,
             covariance_type=self.covariance_type,
             weight_concentration_prior_type=self.weight_concentration_prior_type,
             weight_concentration_prior=self.weight_concentration_prior,
         )
 
-        self.fitted = False
+        self._fitted = False
+
+    @assert_fitted
+    @property
+    def metadata(self):
+        return self._metadata
 
     def fit(self, x):
         """
@@ -154,7 +152,7 @@ class ModeSpecificNormalization:
         relative_index = 0
 
         feat_args = [(x, feature_name, self.weight_threshold,
-                      self.bgm_kwargs)
+                      self._bgm_kwargs)
                      for feature_name in self.continuous_features]
         with concurrent.futures.ProcessPoolExecutor() as executor:
             results = executor.map(continuous_feature_transformer,
@@ -165,11 +163,12 @@ class ModeSpecificNormalization:
                 relative_index += (1 + r["num_valid_clusters"])
                 num_valid_clusters_all.append(r["num_valid_clusters"])
                 del r["name"]
-                self.metadata[_name] = r
-        self.metadata["relative_indices_all"] = np.array(relative_indices_all)
-        self.metadata["num_valid_clusters_all"] = num_valid_clusters_all
-        self.fitted = True
+                self._metadata[_name] = r
+        self._metadata["relative_indices_all"] = np.array(relative_indices_all)
+        self._metadata["num_valid_clusters_all"] = num_valid_clusters_all
+        self._fitted = True
 
+    @assert_fitted
     def transform(self, x):
         """
         Args:
@@ -180,21 +179,21 @@ class ModeSpecificNormalization:
         # Contain the normalized continuous features
         x_cont_normalized = []
         for feature_name in self.continuous_features:
-            selected_clusters_indices = self.metadata[feature_name][
+            selected_clusters_indices = self._metadata[feature_name][
                 'selected_clusters_indices']
-            num_valid_clusters = self.metadata[feature_name][
+            num_valid_clusters = self._metadata[feature_name][
                 'num_valid_clusters']
-            # One hot components for all values in the feature
-            # we borrow the beta notation from the paper
-            # for clarity and understanding's sake.
+            # One hot components for all values in the feature.
+            # We borrow the beta notation from the paper for clarity and
+            # understanding's sake.
             betas = ops.eye(num_valid_clusters)[selected_clusters_indices]
 
             # Normalizing
-            means = self.metadata[feature_name]['clusters_means']
-            stds = self.metadata[feature_name]['clusters_stds']
+            means = self._metadata[feature_name]['clusters_means']
+            stds = self._metadata[feature_name]['clusters_stds']
             if isinstance(x, pd.DataFrame):
                 feature = x[feature_name].values
-            elif isinstance(x, ops.ndarray):
+            elif isinstance(x, np.ndarray):
                 feature = x[:, feature_name]
             else:
                 raise ValueError(f"`x` must be either a pandas DataFrame "
@@ -219,6 +218,7 @@ class ModeSpecificNormalization:
         self.fit(x)
         return self.transform(x)
 
+    @assert_fitted
     def reverse_transform(self, x_normalized):
         """
         Args:
@@ -229,19 +229,23 @@ class ModeSpecificNormalization:
         """
         x = x_normalized.copy()
         for feature_name in self.continuous_features:
-            means = self.features_clusters_means[feature_name]
-            stds = self.features_clusters_stds[feature_name]
+            means = self._metadata[feature_name]['clusters_means']
+            stds = self._metadata[feature_name]['clusters_stds']
             if isinstance(x_normalized, pd.DataFrame):
                 normalized_feature = x_normalized[feature_name].values
-                x[feature_name] = normalized_feature * (self.std_multiplier * stds) + means
-            elif isinstance(x_normalized, ops.ndarray):
-                # todo delete this part and just stick with pandas dataframe
-                normalized_feature = x_normalized[:, feature_name]
-                x[:, feature_name] = normalized_feature * (self.std_multiplier * stds) + means
+                x[feature_name] = normalized_feature * (self.std_multiplier 
+                                                        * stds) + means
             else:
-                raise ValueError(f"`x_normalized` must be either a pandas DataFrame or numpy ndarray. "
-                                 f"{type(x_normalized)} was given.")
+                raise ValueError(
+                    f"`x_normalized` must be either a pandas DataFrame"
+                    f"Received {type(x_normalized)}")
         return x
+
+    @classmethod
+    def load_from_preset(cls, metadata, **kwargs):
+        c = cls(**kwargs)
+        c._metadata = metadata
+        return c
 
 
 class CTGANDataTransformer(DataTransformer):
@@ -254,31 +258,25 @@ class CTGANDataTransformer(DataTransformer):
         https://github.com/sdv-dev/CTGAN/
 
     Args:
-        categorical_features: ``List[str]``,
-            List of categorical features names in the dataset.
-
-        continuous_features: ``List[str]``,
-            List of continuous features names in the dataset.
-
-        max_clusters: ``int``, default 10,
-            Maximum Number of clusters to use in ``ModeSpecificNormalization``
-
-        std_multiplier: ``int``, default 4,
-            Multiplies the standard deviation in the normalization.
-
-        weight_threshold: ``float``, default 0.005,
-            The minimum value a component weight can take to be considered a valid component.
-            `weights_` under this value will be ignored.
-            (Taken from the official implementation.)
-
-        covariance_type: ``str``, default "full",
-            Parameter for the ``GaussianMixtureModel`` class of sklearn.
-
-        weight_concentration_prior_type: ``str``, default "dirichlet_process",
-            Parameter for the ``GaussianMixtureModel`` class of sklearn
-
-        weight_concentration_prior: ``float``, default 0.001,
-            Parameter for the ``GaussianMixtureModel`` class of sklearn.
+        categorical_features: list, List of categorical features names in the
+            dataset.
+        continuous_features: list, List of continuous features names in the
+            dataset.
+        max_clusters: int, Maximum Number of clusters to use in
+            `ModeSpecificNormalization`. Defaults to 10.
+        std_multiplier: int, Multiplies the standard deviation in the
+            normalization. Defaults to 4.
+        weight_threshold: float, The minimum value a component weight can 
+            take to be considered a valid component. `weights_` under this 
+            value will be ignored. (Taken from the official implementation.)
+            Defaults to 0.005.
+        covariance_type: str, Parameter for the `GaussianMixtureModel` 
+            class of sklearn. Defaults to "full".
+        weight_concentration_prior_type: str, Parameter for the 
+            `GaussianMixtureModel` class of sklearn. Defaults to 
+            "dirichlet_process"
+        weight_concentration_prior: float, Parameter for the 
+            `GaussianMixtureModel` class of sklearn. Defaults to 0.001.
     """
     def __init__(self,
                  continuous_features: FeaturesNamesType = None,
@@ -290,6 +288,7 @@ class CTGANDataTransformer(DataTransformer):
                  weight_concentration_prior_type: str = "dirichlet_process",
                  weight_concentration_prior: float = 0.001
                  ):
+        super().__init__()
         self.continuous_features = continuous_features if continuous_features else []
         self.categorical_features = categorical_features if categorical_features else []
         self.max_clusters = max_clusters
@@ -299,11 +298,11 @@ class CTGANDataTransformer(DataTransformer):
         self.weight_concentration_prior_type = weight_concentration_prior_type
         self.weight_concentration_prior = weight_concentration_prior
 
-        self.num_categorical_features = len(categorical_features)
-        self.num_continuous_features = len(continuous_features)
+        self._num_categorical_features = len(categorical_features)
+        self._num_continuous_features = len(continuous_features)
 
         self.mode_specific_normalizer = None
-        if self.num_continuous_features > 0:
+        if self._num_continuous_features > 0:
             self.mode_specific_normalizer = ModeSpecificNormalization(
                 continuous_features=self.continuous_features,
                 max_clusters=self.max_clusters,
@@ -312,16 +311,25 @@ class CTGANDataTransformer(DataTransformer):
                 covariance_type=self.covariance_type,
                 weight_concentration_prior_type=self.weight_concentration_prior_type,
                 weight_concentration_prior=self.weight_concentration_prior)
-        self.categorical_values_probs = dict()
-        self.one_hot_enc = OneHotEncoder()
-        self.metadata = dict()
-        self.metadata["categorical"] = dict()
-        self.metadata["continuous"] = dict()
+        self._one_hot_enc = OneHotEncoder()
+        self._fitted = False
 
-    def transform_continuous_data(self, x):
-        return self.mode_specific_normalizer.fit_transform(x)
+    def fit(self, x):
+        if not isinstance(x, pd.DataFrame):
+            raise ValueError(
+                f"`x` must be a pandas dataframe. Received {type(x)}")
+        self._fit_continuous(x)
+        self._fit_categorical(x)
+        self._fitted = True
 
-    def transform_categorical_data(self, x):
+    def _fit_continuous(self, x):
+        self.mode_specific_normalizer.fit(x)
+        self._metadata["continuous"] = self.mode_specific_normalizer.metadata
+
+    def _transform_continuous(self, x):
+        return self.mode_specific_normalizer.transform(x)
+
+    def _fit_categorical(self, x):
         # To speedup computation of conditional vector down the road,
         # we assign a relative index to each feature. For instance,
         # Given three categorical columns Gender(2 categories),
@@ -372,31 +380,28 @@ class CTGANDataTransformer(DataTransformer):
         categorical_metadata["categories_probs_all"] = categories_probs_all
         categorical_metadata["categories_all"] = categories_all
 
-        self.metadata["categorical"] = categorical_metadata
+        self._metadata["categorical"] = categorical_metadata
+        self._one_hot_enc.fit(x)
 
-        self.one_hot_enc.fit(x)
-        return self.one_hot_enc.transform(x)
+    def _transform_categorical(self, x_cat):
+        return self._one_hot_enc.transform(x_cat)
 
-    def fit(self, x, **kwargs):
-        # we've got nothing to fit in this case
-        pass
-
+    @assert_fitted
     def transform(self, x):
         total_transformed_features = 0
         x_continuous, x_categorical = None, None
-        if self.num_continuous_features > 0:
-            x_continuous = self.transform_continuous_data(
+        if self._num_continuous_features > 0:
+            x_continuous = self._transform_continuous(
                 x[self.continuous_features])
-            self.metadata["continuous"] = self.mode_specific_normalizer.metadata
             total_transformed_features += (
-                    self.metadata["continuous"]["relative_indices_all"][-1] +
-                    self.metadata["continuous"]["num_valid_clusters_all"][-1])
-        if self.num_categorical_features > 0:
-            x_categorical = self.transform_categorical_data(
+                    self._metadata["continuous"]["relative_indices_all"][-1] +
+                    self._metadata["continuous"]["num_valid_clusters_all"][-1])
+        if self._num_categorical_features > 0:
+            x_categorical = self._transform_categorical(
                 x[self.categorical_features])
             total_transformed_features += (
-                    self.metadata["categorical"]["relative_indices_all"][-1] +
-                    self.metadata["categorical"]["num_categories_all"][-1] + 1)
+                    self._metadata["categorical"]["relative_indices_all"][-1] +
+                    self._metadata["categorical"]["num_categories_all"][-1] + 1)
 
         # since we concatenate the categorical features AFTER the continuous
         # alphas and betas so we'll create an overall relative indices array
@@ -405,14 +410,14 @@ class CTGANDataTransformer(DataTransformer):
         relative_indices_all = []
         offset = 0
         if x_continuous is not None:
-            cont_relative_indices = self.metadata["continuous"]["relative_indices_all"]
+            cont_relative_indices = self._metadata["continuous"]["relative_indices_all"]
             relative_indices_all.extend(cont_relative_indices)
-            offset = cont_relative_indices[-1] + self.metadata["continuous"]["num_valid_clusters_all"][-1]
+            offset = cont_relative_indices[-1] + self._metadata["continuous"]["num_valid_clusters_all"][-1]
         if x_categorical is not None:
             # +1 since the categorical relative indices start at 0
-            relative_indices_all.extend(self.metadata["categorical"]["relative_indices_all"] + 1 + offset)
-        self.metadata["relative_indices_all"] = relative_indices_all
-        self.metadata["total_transformed_features"] = total_transformed_features
+            relative_indices_all.extend(self._metadata["categorical"]["relative_indices_all"] + 1 + offset)
+        self._metadata["relative_indices_all"] = relative_indices_all
+        self._metadata["total_transformed_features"] = total_transformed_features
         x_transformed = ops.concatenate([x_continuous, x_categorical.toarray()], axis=1)
         return x_transformed
 
@@ -427,10 +432,10 @@ class CTGANDataTransformer(DataTransformer):
             Generated data in the original data format.
         """
         all_features = self.continuous_features + self.categorical_features
-        if self.num_continuous_features > 0:
-            num_valid_clusters_all = self.metadata["continuous"]["num_valid_clusters_all"]
-        if self.num_categorical_features > 0:
-            num_categories_all = self.metadata["categorical"]["num_categories_all"]
+        if self._num_continuous_features > 0:
+            num_valid_clusters_all = self._metadata["continuous"]["num_valid_clusters_all"]
+        if self._num_categorical_features > 0:
+            num_categories_all = self._metadata["categorical"]["num_categories_all"]
         data = {}
         cat_index = 0       # categorical index
         cont_index = 0      # continuous index
@@ -444,7 +449,7 @@ class CTGANDataTransformer(DataTransformer):
                 cluster_indices = ops.argmax(betas, axis=1)
                 # List of cluster means for a feature. contains one value per
                 # cluster
-                means = self.metadata["continuous"][feature_name]["clusters_means"]
+                means = self._metadata["continuous"][feature_name]["clusters_means"]
 
                 # Since each individual element within the cluster is associated
                 # with one of the cluster's mean. We use the
@@ -452,7 +457,7 @@ class CTGANDataTransformer(DataTransformer):
                 # element is a mean for the corresponding element in the feature
                 means = means[cluster_indices]
                 # Do the same for stds
-                stds = self.metadata["continuous"][feature_name]["clusters_stds"]
+                stds = self._metadata["continuous"][feature_name]["clusters_stds"]
                 stds = stds[cluster_indices]
                 feature = alphas * (self.std_multiplier * stds) + means
                 data[feature_name] = feature
@@ -462,9 +467,67 @@ class CTGANDataTransformer(DataTransformer):
                 # len(continuous_features), then the column at hand is
                 # categorical
                 raw_feature_parts = x_generated[:, index: index + num_categories_all[cat_index]]
-                categories = self.one_hot_enc.categories_[cat_index]
+                categories = self._one_hot_enc.categories_[cat_index]
                 categories_indices = ops.argmax(raw_feature_parts, axis=1)
                 feature = categories[categories_indices]
                 data[feature_name] = feature
                 cat_index += 1
         return pd.DataFrame(data)
+
+    def save(self, filename):
+        """
+        Saves the fitted state of `CTGANDataTransformer` instance for
+        portability, in the `json` format.
+        It also saves a binary file with same name (excluding the file
+        extension ofcourse.)
+
+        Args:
+            filename: Filename or file path ending in `.json` extension.
+        """
+        args = {
+            "categorical_features": self.categorical_features,
+            "continuous_features": self.continuous_features,
+            "max_clusters": self.max_clusters,
+            "std_multiplier": self.std_multiplier,
+            "weight_threshold": self.weight_threshold,
+            "covariance_type": self.covariance_type,
+            "weight_concentration_prior_type":
+                self.weight_concentration_prior_type,
+            "weight_concentration_prior": self.weight_concentration_prior,
+        }
+        attrs = {
+            "_metadata": self._metadata,
+            "_fitted": self._fitted
+        }
+        state = {
+            "args": args,
+            "attrs": attrs,
+        }
+        with open(filename, "w") as f:
+            json.dump(state, f)
+        encoder_filename = str(filename).replace(".json", "_encoder.pkl")
+        with open(encoder_filename, "wb") as f:
+            pickle.dump(self._one_hot_enc)
+
+    @classmethod
+    def load(cls, filename):
+        """
+        Loads the saved state of `CTGANDataTransformer` from the `json` file.
+        It also loads the pickled `OneHotEncoder` instance.
+
+        Args:
+            filename: Filename or file path ending in `.json` extension.
+
+        Returns:
+            An instance of `CTGANDataTransformer` with state stored in the
+            `filename` json file.
+        """
+        with open(filename, "r") as f:
+            state = json.load(f)
+        c = cls(**state.pop("params"))
+        for name, value in state.pop("attrs"):
+            c.__setattr__(name, value)
+        encoder_filename = str(filename).replace(".json", "_encoder.pkl")
+        with open(encoder_filename, "rb") as f:
+            c._one_hot_enc = pickle.load(f)
+        return c
