@@ -47,6 +47,7 @@ class CTGANGeneratorTest(TestCase):
                                  "ctgan_generator.keras")
         generator.save(save_path)
         reloaded_generator = keras.models.load_model(save_path)
+        self.assertIsInstance(reloaded_generator, CTGANGenerator)
         outputs_reloaded = reloaded_generator(z)
         self.assertAllClose(ops.convert_to_numpy(outputs_original),
                             ops.convert_to_numpy(outputs_reloaded))
