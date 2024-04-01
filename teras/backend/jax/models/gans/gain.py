@@ -4,8 +4,6 @@ from keras import random, ops
 from keras.backend import floatx
 
 from teras.backend.jax.models.gans.jax_gan import JAXGAN
-from teras.models.gain.generator import GAINGenerator
-from teras.models.gain.discriminator import GAINDiscriminator
 
 
 @jax.tree_util.register_pytree_node_class
