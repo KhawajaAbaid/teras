@@ -11,17 +11,3 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-
-from teras.backend.tensorflow.models.pretrainers.tabnet import TabNetPretrainer
-from teras.backend.tensorflow.models.pretrainers.tab_transformer import (
-    TabTransformerMLMPretrainer,
-    TabTransformerRTDPretrainer
-)
-from teras.backend.tensorflow.models.pretrainers.saint import SAINTPretrainer
-from teras.backend.tensorflow.models.ctgan.discriminator import CTGANDiscriminator
-
-# GANs
-from teras.backend.tensorflow.models.gans.gain import GAIN
-from teras.backend.tensorflow.models.gans.pcgain import PCGAIN
-
