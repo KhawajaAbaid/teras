@@ -32,7 +32,8 @@ class CTGANDiscriminatorLayer(keras.layers.Layer):
         self.dropout_rate = dropout_rate
 
         self.dense = keras.layers.Dense(dim)
-        self.leaky_relu = keras.layers.LeakyReLU(alpha=self.leaky_relu_alpha)
+        self.leaky_relu = keras.layers.LeakyReLU(
+            negative_slope=self.leaky_relu_alpha)
         self.dropout = keras.layers.Dropout(rate=self.dropout_rate)
 
     def build(self, input_shape):
