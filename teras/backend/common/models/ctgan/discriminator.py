@@ -45,7 +45,7 @@ class BaseCTGANDiscriminator(keras.Model):
     def call(self, inputs):
         inputs_dim = ops.shape(inputs)[1]
         inputs = ops.reshape(inputs,
-                             shape=(-1, self.packing_degree * inputs_dim))
+                             newshape=(-1, self.packing_degree * inputs_dim))
         outputs = self.hidden_block(inputs)
         outputs = self.output_layer(outputs)
         return outputs
