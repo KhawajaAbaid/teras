@@ -7,19 +7,20 @@ import os
 
 class CTGANDiscriminatorTest(TestCase):
     def setUp(self):
-        self.inputs = ops.ones((8, 5))
+        self.inputs = ops.ones((16, 5))
+        self.packing_degree = 4
 
     def test_valid_call(self):
-        discriminator = CTGANDiscriminator()
+        discriminator = CTGANDiscriminator(packing_degree=self.packing_degree)
         outputs = discriminator(self.inputs)
 
     def test_valid_output_shape(self):
-        discriminator = CTGANDiscriminator()
+        discriminator = CTGANDiscriminator(packing_degree=self.packing_degree)
         outputs = discriminator(self.inputs)
-        self.assertEqual(ops.shape(outputs), (8, 1))
+        self.assertEqual(ops.shape(outputs), (16 // self.packing_degree, 1))
 
     def test_save_and_load(self):
-        discriminator = CTGANDiscriminator()
+        discriminator = CTGANDiscriminator(packing_degree=self.packing_degree)
         outputs_original = discriminator(self.inputs)
         save_path = os.path.join(self.get_temp_dir(),
                                  "ctgan_discriminator.keras")
