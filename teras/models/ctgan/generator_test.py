@@ -44,7 +44,7 @@ class CTGANGeneratorTest(TestCase):
                                    metadata=self.metadata)
         outputs_original = generator(z)
         save_path = os.path.join(self.get_temp_dir(),
-                                 "ft_transformer_classifier.keras")
+                                 "ctgan_generator.keras")
         generator.save(save_path)
         reloaded_generator = keras.models.load_model(save_path)
         outputs_reloaded = reloaded_generator(z)
