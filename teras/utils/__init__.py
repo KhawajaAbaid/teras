@@ -16,5 +16,6 @@
 # General purpose utility functions
 from teras.utils.utils import (inject_missing_values,
                                generate_fake_gemstone_data,
-                               create_gain_dataset
+                               create_gain_dataset,
+                               clean_reloaded_config_data
                                )

@@ -188,3 +188,24 @@ def create_gain_dataset(x, seed: int = 1337):
         seed: int, seed to use in shuffling. Defaults to 1337.
     """
     return backend.utils.create_gain_dataset(x, seed)
+
+
+def clean_reloaded_config_data(x):
+    """
+    Cleans reloaded dictionary/list config data in the `from_config` method.
+
+    Args:
+        x: dict or list to clean.
+    """
+    if not isinstance(x, (dict, list)):
+        return x
+    if isinstance(x, dict):
+        if "config" in x.keys():
+            return x["config"]["value"]
+        for key, value in x.items():
+            x[key] = clean_reloaded_config_data(value)
+        return x
+    if isinstance(x, list):
+        for i, value in enumerate(x):
+            x[i] = clean_reloaded_config_data(value)
+        return x
