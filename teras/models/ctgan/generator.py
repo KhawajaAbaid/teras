@@ -1,9 +1,10 @@
 import keras
-from keras import ops
+from keras import random, ops
 from teras.layers.ctgan.generator_layer import CTGANGeneratorLayer
 from teras.layers.activation import GumbelSoftmax
 from teras.utils.types import IntegerSequence
 from teras.layers.layer_list import LayerList
+from teras.utils.utils import clean_reloaded_config_data
 from teras.api_export import teras_export
 
 
@@ -47,6 +48,7 @@ class CTGANGenerator(keras.Model):
                  data_dim: int,
                  metadata: dict,
                  hidden_dims: IntegerSequence = (256, 256),
+                 seed: int = 1337,
                  **kwargs):
         super().__init__(**kwargs)
         self.data_dim = data_dim
@@ -64,9 +66,13 @@ class CTGANGenerator(keras.Model):
         self.output_layer = keras.layers.Dense(
             self.data_dim,
             name="generator_output_layer")
-        self.gumbel_softmax = GumbelSoftmax()
+        self.seed = seed
+        self._seed_gen = random.SeedGenerator(self.seed)
+        self.gumbel_softmax = GumbelSoftmax(seed=seed)
 
     def build(self, input_shape):
+        input_shape = tuple(input_shape)
+        self._input_shape = input_shape
         self.hidden_block.build(input_shape)
         input_shape = self.hidden_block.compute_output_shape(input_shape)
         self.output_layer.build(input_shape)
@@ -111,7 +117,9 @@ class CTGANGenerator(keras.Model):
         cat_i = 0
         num_categories_all = (
             self.metadata)["categorical"]["num_categories_all"]
+        print("\n\n =>  ", num_categories_all)
         for i, index in enumerate(features_relative_indices_all):
+            print("\n\n index => ", index)
             # the first k = num_continuous_features are continuous in the
             # data
             if i < len(continuous_features_relative_indices):
@@ -147,6 +155,7 @@ class CTGANGenerator(keras.Model):
         return outputs
 
     def compute_output_shape(self, input_shape):
+        input_shape = tuple(input_shape)
         return input_shape[:-1] + (self.data_dim,)
 
     def get_config(self):
@@ -162,5 +171,7 @@ class CTGANGenerator(keras.Model):
     @classmethod
     def from_config(cls, config):
         data_dim = config.pop("data_dim")
+        metadata = clean_reloaded_config_data(config.pop("metadata"))
         return cls(data_dim=data_dim,
+                   metadata=metadata,
                    **config)
