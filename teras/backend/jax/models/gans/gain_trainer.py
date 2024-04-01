@@ -19,6 +19,10 @@ _discriminator_loss_tracker = keras.metrics.Mean(name="discriminator_loss")
 
 
 def metrics():
+    """
+    Returns:
+        List of metrics.
+    """
     return [_generator_loss_tracker,
             _discriminator_loss_tracker]
 
@@ -27,6 +31,15 @@ def setup(generator,
           discriminator,
           generator_optimizer,
           discriminator_optimizer):
+    """
+    Setups relevant variables before using `gain_trainer`.
+
+    Args:
+        generator: keras.Model, instance of `GAINGenerator`
+        discriminator: keras.Model, instance of `GAINDiscrimniator`.
+        generator_optimizer: Optimizer for generator.
+        discriminator_optimizer: Optimizer for discriminator.
+    """
     global _generator
     global _discriminator
     global _generator_optimizer
@@ -39,6 +52,30 @@ def setup(generator,
 
 def gain_trainer(x, hint_rate: float = 0.9, alpha: float = 100.,
                  seed: int = 1337, epochs: int = 1, verbose: bool = True):
+    """
+    Trainer function for GAIN for JAX backend.
+
+    Args:
+        x: Dataset. Create it using `teras.utils.create_gain_dataset` function.
+        hint_rate: float, Hint rate will be used to sample binary vectors for
+            `hint vectors` generation. Must be between 0. and 1.
+            Hint vectors ensure that generated samples follow the underlying
+            data distribution.
+            Defaults to 0.9
+        alpha: float, Hyper parameter for the generator loss computation that
+            controls how much weight should be given to the MSE loss.
+            Precisely,
+            `generator_loss` = `cross_entropy_loss` + `alpha` * `mse_loss`
+            The higher the `alpha`, the more the mse_loss will affect the
+            overall generator loss.
+            Defaults to 100.
+        seed: int, seed for random ops.
+        epochs: int, Number of epochs to train.
+        verbose: bool, whether to print training logs to console.
+
+    Returns:
+        A tuple of trained `generator_state` and `discriminator_state`.
+    """
     global _models_built
     global _optimziers_built
     if _generator is None or _discriminator is None:
