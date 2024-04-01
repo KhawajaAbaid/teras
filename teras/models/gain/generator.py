@@ -78,7 +78,7 @@ class GAINGenerator(keras.Model):
         input_shape = self.hidden_block.compute_output_shape(input_shape)
         self.output_layer.build(input_shape)
 
-    def call(self, inputs):
+    def call(self, inputs, **kwargs):
         # inputs is the concatenation of `mask` and `original data`
         # where `mask` has the same dimensions as data
         # so the inputs received are 2x the dimensions of `original data`

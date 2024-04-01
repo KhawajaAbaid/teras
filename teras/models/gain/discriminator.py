@@ -83,7 +83,7 @@ class GAINDiscriminator(keras.Model):
         input_shape = self.hidden_block.compute_output_shape(input_shape)
         self.output_layer.build(input_shape)
 
-    def call(self, inputs):
+    def call(self, inputs, **kwargs):
         # inputs is the concatenation of `hint` and manipulated
         # Generator output (i.e. generated samples).
         # `hint` has the same dimensions as data
