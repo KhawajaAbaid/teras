@@ -29,18 +29,19 @@ class CTGAN(BaseCTGAN):
         z = random.normal(shape=[batch_size, self.latent_dim],
                           seed=self._seed_gen)
         input_gen = ops.concatenate([z, cond_vectors], axis=1)
-        x_generated = self.generator(input_gen, training=False)
+        x_generated = self.generator(input_gen)
         x_generated = ops.concatenate(
             [x_generated, cond_vectors], axis=1)
         x = ops.concatenate([x, cond_vectors_real],
                             axis=1)
 
         with tf.GradientTape(persistent=True) as tape:
-            y_generated = self.discriminator(x_generated)
-            y_real = self.discriminator(x)
+            y_pred_generated = self.discriminator(x_generated)
+            y_pred_real = self.discriminator(x)
             grad_pen = self.discriminator.gradient_penalty(x,
                                                            x_generated)
-            loss_disc = self.discriminator_loss(y_real, y_generated)
+            loss_disc = self.discriminator_loss(y_pred_real,
+                                                y_pred_generated)
         gradients_pen = tape.gradient(grad_pen,
                                       self.discriminator.trainable_variables)
         gradients_loss = tape.gradient(loss_disc,
@@ -64,8 +65,8 @@ class CTGAN(BaseCTGAN):
             x_generated = self.generator(input_gen)
             x_generated = ops.concatenate(
                 [x_generated, cond_vectors], axis=1)
-            y_generated = self.discriminator(x_generated, training=False)
-            loss_gen = self.generator_loss(x_generated, y_generated,
+            y_pred_generated = self.discriminator(x_generated)
+            loss_gen = self.generator_loss(x_generated, y_pred_generated,
                                            cond_vectors=cond_vectors, mask=mask,
                                            metadata=self.metadata)
         gradients = tape.gradient(loss_gen, self.generator.trainable_variables)
