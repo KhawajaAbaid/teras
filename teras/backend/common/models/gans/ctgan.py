@@ -52,9 +52,14 @@ class BaseCTGAN(keras.Model):
         self.discriminator_loss = discriminator_loss
 
     def build(self, input_shape):
-        # TODO FIX IT
-        self.generator.build(input_shape)
         self.discriminator.build(input_shape)
+        # Generator receives the input of dimensons = latent_dim + |cond_vector|
+        # where, |cond_vector| = total_num_categories
+        batch_size, input_dim = input_shape
+        input_shape = (batch_size,
+                       self.latent_dim +
+                       self.metadata["categorical"]["total_num_categories"])
+        self.generator.build(input_shape)
 
     @property
     def metrics(self):
