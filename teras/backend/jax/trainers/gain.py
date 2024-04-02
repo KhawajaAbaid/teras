@@ -8,55 +8,31 @@ from teras.backend.generic_utils import dataset_type
 
 # If it works, it works.
 
+# Define variables for GAIN
 _generator: keras.Model = None
 _discriminator: keras.Model = None
-_generator_optimizer = keras.optimizers.Adam(name="generator_optimizer")
-_discriminator_optimizer = keras.optimizers.Adam(name="discriminator_optimizer")
+_hint_rate = None
+_alpha = None
+_seed = None
+_generator_optimizer = None
+_discriminator_optimizer = None
 _models_built = False
-_optimziers_built = False
 _generator_loss_tracker = keras.metrics.Mean(name="generator_loss")
 _discriminator_loss_tracker = keras.metrics.Mean(name="discriminator_loss")
 
-
-def metrics():
-    """
-    Returns:
-        List of metrics.
-    """
-    return [_generator_loss_tracker,
-            _discriminator_loss_tracker]
+_initialized: bool = False
+_compiled: bool = False
 
 
-def setup(generator,
-          discriminator,
-          generator_optimizer,
-          discriminator_optimizer):
+def init(generator: keras.Model, discriminator: keras.Model,
+         hint_rate: float = 0.9, alpha: float = 100., seed: int = 1337):
     """
-    Setups relevant variables before using `gain_trainer`.
+    `init` method analogous to `keras.Model.__init__()`.
+
 
     Args:
         generator: keras.Model, instance of `GAINGenerator`
         discriminator: keras.Model, instance of `GAINDiscrimniator`.
-        generator_optimizer: Optimizer for generator.
-        discriminator_optimizer: Optimizer for discriminator.
-    """
-    global _generator
-    global _discriminator
-    global _generator_optimizer
-    global _discriminator_optimizer
-    _generator = generator
-    _discriminator = discriminator
-    _generator_optimizer = generator_optimizer
-    _discriminator_optimizer = discriminator_optimizer
-
-
-def gain_trainer(x, hint_rate: float = 0.9, alpha: float = 100.,
-                 seed: int = 1337, epochs: int = 1, verbose: bool = True):
-    """
-    Trainer function for GAIN for JAX backend.
-
-    Args:
-        x: Dataset. Create it using `teras.utils.create_gain_dataset` function.
         hint_rate: float, Hint rate will be used to sample binary vectors for
             `hint vectors` generation. Must be between 0. and 1.
             Hint vectors ensure that generated samples follow the underlying
@@ -70,6 +46,75 @@ def gain_trainer(x, hint_rate: float = 0.9, alpha: float = 100.,
             overall generator loss.
             Defaults to 100.
         seed: int, seed for random ops.
+    """
+    global _generator
+    global _discriminator
+    global _hint_rate
+    global _alpha
+    global _seed
+    global _initialized
+    _generator = generator
+    _discriminator = discriminator
+    _hint_rate = hint_rate
+    _alpha = alpha
+    _seed = seed
+
+    _initialized = True
+
+
+def compile(generator_optimizer=keras.optimizers.Adam(
+                name="generator_optimizer"),
+            discriminator_optimizer=keras.optimizers.Adam(
+                name="discriminator_optimizer")):
+    """
+    Compile method analogous to `keras.Model.compile()`.
+
+    Args:
+        generator_optimizer: Optimizer for generator.
+        discriminator_optimizer: Optimizer for discriminator.
+    """
+    global _generator_optimizer
+    global _discriminator_optimizer
+    global _compiled
+
+    _generator_optimizer = generator_optimizer
+    _discriminator_optimizer = discriminator_optimizer
+
+    _compiled = True
+
+
+def build(generator_input_shape, discriminator_input_shape):
+    """
+    `build` method analogous to `keras.Model.build()`.
+
+    Args:
+        generator_input_shape: Expected input shape for generator.
+        discriminator_input_shape: Expected input shape for discriminator.
+    """
+    global _models_built
+    global _generator
+    global _discriminator
+    _generator.build(generator_input_shape)
+    _discriminator.build(discriminator_input_shape)
+
+    _models_built = True
+
+
+def metrics():
+    """
+    Returns:
+        List of metrics.
+    """
+    return [_generator_loss_tracker,
+            _discriminator_loss_tracker]
+
+
+def fit(x, epochs: int = 1, verbose: bool = True):
+    """
+    Trainer function for GAIN for JAX backend.
+
+    Args:
+        x: Dataset. Create it using `teras.utils.create_gain_dataset` function.
         epochs: int, Number of epochs to train.
         verbose: bool, whether to print training logs to console.
 
@@ -77,17 +122,25 @@ def gain_trainer(x, hint_rate: float = 0.9, alpha: float = 100.,
         A tuple of trained `generator_state` and `discriminator_state`.
     """
     global _models_built
-    global _optimziers_built
-    if _generator is None or _discriminator is None:
-        raise ValueError("Please call `setup` before using `gain_trainer`")
+    global _initialized
+    global _compiled
+    global _hint_rate
+    global _alpha
+    global _seed
+    if not _initialized:
+        raise RuntimeError(
+            "Trainer not initialized. Please call `Trainer.init` "
+            "method before calling `fit`. "
+        )
+    _optimizers_built = False
     total_batches = 0
     if dataset_type(x) == "not_supported":
         raise ValueError(
             "Unsupported type for `x`. "
             "It should be tensorflow dataset, pytorch dataloader."
             f"But received {type(x)}")
-    aux_args = (hint_rate, alpha)
-    key = jax.random.PRNGKey(seed)
+    aux_args = (_hint_rate, _alpha)
+    key = jax.random.PRNGKey(_seed)
     is_first_iteration = True
     for epoch in range(epochs):
         epoch_start_time = time.time()
@@ -102,12 +155,13 @@ def gain_trainer(x, hint_rate: float = 0.9, alpha: float = 100.,
                     input_shape = (input_shape[:-1], input_shape[-1] * 2)
                     _generator.build(input_shape)
                     _discriminator.build(input_shape)
-                    _built = True
+                    _models_built = True
 
-                if not _optimziers_built:
+                if not _optimizers_built:
                     _generator_optimizer.build(_generator.trainable_variables)
                     _discriminator_optimizer.build(
                         _discriminator.trainable_variables)
+                    _optimizers_built = True
 
                 # Create initial state
                 generator_state = (
