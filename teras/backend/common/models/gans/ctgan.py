@@ -46,13 +46,15 @@ class BaseCTGAN(keras.Model):
         self.discriminator_optimizer = discriminator_optimizer
 
     def build(self, input_shape):
+        batch_size, input_dim = input_shape
+        total_cats = self.metadata["categorical"]["total_num_categories"]
+        # Generator receives the input of dimensons = data_dim + |cond_vector|
+        # where, |cond_vector| = total_num_categories
+        input_shape = (batch_size, input_dim + total_cats)
         self.discriminator.build(input_shape)
         # Generator receives the input of dimensons = latent_dim + |cond_vector|
         # where, |cond_vector| = total_num_categories
-        batch_size, input_dim = input_shape
-        input_shape = (batch_size,
-                       self.latent_dim +
-                       self.metadata["categorical"]["total_num_categories"])
+        input_shape = (batch_size, self.latent_dim + total_cats)
         self.generator.build(input_shape)
 
     @property
