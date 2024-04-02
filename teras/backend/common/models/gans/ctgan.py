@@ -39,15 +39,11 @@ class BaseCTGAN(keras.Model):
                     beta_1=0.5, beta_2=0.9,
                     name="discriminator_optimizer"
                 ),
-                generator_loss=ctgan_generator_loss,
-                discriminator_loss=ctgan_discriminator_loss,
                 **kwargs
                 ):
         super().compile(**kwargs)
         self.generator_optimizer = generator_optimizer
         self.discriminator_optimizer = discriminator_optimizer
-        self.generator_loss = generator_loss
-        self.discriminator_loss = discriminator_loss
 
     def build(self, input_shape):
         self.discriminator.build(input_shape)
