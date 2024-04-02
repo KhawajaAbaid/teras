@@ -3,7 +3,6 @@ import pandas as pd
 import numpy as np
 from warnings import warn
 from teras.utils.types import DataFrameOrNdArray
-from teras import backend
 
 
 def compute_cardinalities(x, categorical_idx):
@@ -175,19 +174,6 @@ def generate_fake_gemstone_data(num_samples: int = 16):
     })
     fake_gem_df = fake_gem_df.astype(np.float32)
     return fake_gem_df
-
-
-def create_gain_dataset(x, seed: int = 1337):
-    """
-    Creates a torch dataloader compatible with the `GAIN` architecture.
-    The resultant dataset produces a tuple consisting of a batch of data for
-    `generator` and another batch of data for the `discriminator`.
-
-    Args:
-        x: Dataset to use for training.
-        seed: int, seed to use in shuffling. Defaults to 1337.
-    """
-    return backend.utils.create_gain_dataset(x, seed)
 
 
 def clean_reloaded_config_data(x):
