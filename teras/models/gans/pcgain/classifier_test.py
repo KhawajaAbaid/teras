@@ -1,6 +1,6 @@
-from teras.models.pcgain.classifier import PCGAINClassifier
+from teras.models.gans.pcgain.classifier import PCGAINClassifier
 import keras
-from keras import random, ops
+from keras import ops
 from keras.src.testing.test_case import TestCase
 import os
 

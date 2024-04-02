@@ -1,6 +1,6 @@
 import keras
 from keras import random, ops
-from teras.models.ctgan.generator import CTGANGenerator
+from teras.models.gans.ctgan.generator import CTGANGenerator
 from keras.src.testing.test_case import TestCase
 from teras.utils import generate_fake_gemstone_data
 from teras.preprocessing.data_transformers.ctgan import CTGANDataTransformer

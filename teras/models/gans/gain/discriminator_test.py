@@ -1,6 +1,6 @@
-from teras.models.gain.discriminator import GAINDiscriminator
+from teras.models.gans.gain.discriminator import GAINDiscriminator
 import keras
-from keras import random, ops
+from keras import ops
 from keras.src.testing.test_case import TestCase
 import os
 

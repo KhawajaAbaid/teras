@@ -1,5 +1,5 @@
 import keras
-from teras.models.gain.generator import GAINGenerator
+from teras.models.gans.gain.generator import GAINGenerator
 from keras import random, ops
 from keras.src.testing.test_case import TestCase
 import os

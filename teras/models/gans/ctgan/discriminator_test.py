@@ -1,6 +1,6 @@
 import keras
 from keras import ops
-from teras.models.ctgan.discriminator import CTGANDiscriminator
+from teras.models.gans.ctgan.discriminator import CTGANDiscriminator
 from keras.src.testing.test_case import TestCase
 import os
 
