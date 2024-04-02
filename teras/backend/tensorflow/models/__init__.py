@@ -19,9 +19,9 @@ from teras.backend.tensorflow.models.pretrainers.tab_transformer import (
     TabTransformerRTDPretrainer
 )
 from teras.backend.tensorflow.models.pretrainers.saint import SAINTPretrainer
-from teras.backend.tensorflow.models.ctgan.discriminator import CTGANDiscriminator
 
 # GANs
 from teras.backend.tensorflow.models.gans.gain import GAIN
 from teras.backend.tensorflow.models.gans.pcgain import PCGAIN
-from teras.backend.tensorflow.models.gans.ctgan import CTGAN
+from teras.backend.tensorflow.models.gans.ctgan.discriminator import CTGANDiscriminator
+from teras.backend.tensorflow.models.gans.ctgan.ctgan import CTGAN

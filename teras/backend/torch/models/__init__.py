@@ -19,9 +19,9 @@ from teras.backend.torch.models.pretrainers.tab_transformer import (
     TabTransformerRTDPretrainer
 )
 from teras.backend.torch.models.pretrainers.saint import SAINTPretrainer
-from teras.backend.torch.models.ctgan.discriminator import CTGANDiscriminator
 
 # GANs
 from teras.backend.torch.models.gans.gain import GAIN
 from teras.backend.torch.models.gans.pcgain import PCGAIN
-from teras.backend.torch.models.gans.ctgan import CTGAN
+from teras.backend.torch.models.gans.ctgan.discriminator import CTGANDiscriminator
+from teras.backend.torch.models.gans.ctgan.ctgan import CTGAN
