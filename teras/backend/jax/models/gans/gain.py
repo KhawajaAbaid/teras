@@ -12,6 +12,11 @@ from teras.backend.jax.models.gans.jax_gan import JAXGAN
 
 @jax.tree_util.register_pytree_node_class
 class GAIN(JAXGAN):
+    raise ImportError(
+        "JAX backend doesn't provide a MODEL implementation for `GAIN`. "
+        "Rather it offers `GAINTrainer` based on functional approach which "
+        "can be accessed through `teras.trainers` package. "
+    )
     def __init__(self,
                  generator: keras.Model,
                  discriminator: keras.Model,
