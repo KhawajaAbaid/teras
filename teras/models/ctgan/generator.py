@@ -117,9 +117,7 @@ class CTGANGenerator(keras.Model):
         cat_i = 0
         num_categories_all = (
             self.metadata)["categorical"]["num_categories_all"]
-        print("\n\n =>  ", num_categories_all)
         for i, index in enumerate(features_relative_indices_all):
-            print("\n\n index => ", index)
             # the first k = num_continuous_features are continuous in the
             # data
             if i < len(continuous_features_relative_indices):
