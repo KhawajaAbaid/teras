@@ -76,14 +76,18 @@ class CTGANDataSampler:
 
         dataset = tf.data.Dataset.from_generator(
             self.generator,
-            output_signature=(tf.TensorSpec(shape=(self.batch_size, tf.shape(x_transformed)[1]),
-                                            name="real_samples"),
-                              tf.TensorSpec(shape=(self.batch_size, total_num_categories),
-                                            dtype=tf.float32, name="cond_vectors_real"),
-                              tf.TensorSpec(shape=(self.batch_size, total_num_categories),
-                                            dtype=tf.float32, name="cond_vectors"),
-                              tf.TensorSpec(shape=(self.batch_size, len(self.categorical_features)),
-                                            dtype=tf.float32, name="mask")),
+            output_signature=(tf.TensorSpec(
+                            shape=(self.batch_size, tf.shape(x_transformed)[1]),
+                            name="real_samples"),
+                              tf.TensorSpec(
+                                  shape=(self.batch_size, total_num_categories),
+                                  dtype=tf.float32, name="cond_vectors_real"),
+                              tf.TensorSpec(
+                                  shape=(self.batch_size, total_num_categories),
+                                  dtype=tf.float32, name="cond_vectors"),
+                              tf.TensorSpec(
+                                  shape=(self.batch_size, len(self.categorical_features)),
+                                  dtype=tf.float32, name="mask")),
             args=[x_transformed]
         )
         return dataset
