@@ -38,7 +38,7 @@ class CTGANDiscriminator(BaseCTGANDiscriminator):
         y_interpolated.backward()
         gradients = interpolated_samples.grad
         gradients = ops.reshape(gradients,
-                                shape=(-1, self.packing_degree * dim))
+                                newshape=(-1, self.packing_degree * dim))
         # Calculating gradient penalty
         gradients_norm = torch.norm(gradients)
 

@@ -35,7 +35,7 @@ class CTGANDiscriminator(BaseCTGANDiscriminator):
             y_interpolated = self(interpolated_samples)
         gradients = tape.gradient(y_interpolated, interpolated_samples)
         gradients = ops.reshape(gradients,
-                                shape=(-1, self.packing_degree * dim))
+                                newshape=(-1, self.packing_degree * dim))
         # Calculating gradient penalty
         gradients_norm = tf.norm(gradients)
 
