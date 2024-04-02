@@ -85,12 +85,12 @@ class BaseCTGAN(keras.Model):
         loss = []
         cross_entropy_loss = keras.losses.SparseCategoricalCrossentropy(
             from_logits=True, reduction=None)
-        numerical_features_relative_indices = metadata["numerical"]["relative_indices_all"]
+        continuous_features_relative_indices = metadata["continuous"]["relative_indices_all"]
         features_relative_indices_all = metadata["relative_indices_all"]
         num_categories_all = metadata["categorical"]["num_categories_all"]
-        # the first k features in the data are numerical which we'll ignore as
+        # the first k features in the data are continuous which we'll ignore as
         # we're only concerned with the categorical features here
-        offset = len(numerical_features_relative_indices)
+        offset = len(continuous_features_relative_indices)
         for i, index in enumerate(features_relative_indices_all[offset:]):
             logits = x_generated[:, index: index + num_categories_all[i]]
             temp_cond_vector = cond_vectors[:, i: i + num_categories_all[i]]
