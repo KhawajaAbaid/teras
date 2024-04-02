@@ -24,3 +24,4 @@ from teras.backend.torch.models.ctgan.discriminator import CTGANDiscriminator
 # GANs
 from teras.backend.torch.models.gans.gain import GAIN
 from teras.backend.torch.models.gans.pcgain import PCGAIN
+from teras.backend.torch.models.gans.ctgan import CTGAN

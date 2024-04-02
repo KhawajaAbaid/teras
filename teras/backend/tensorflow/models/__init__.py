@@ -24,4 +24,4 @@ from teras.backend.tensorflow.models.ctgan.discriminator import CTGANDiscriminat
 # GANs
 from teras.backend.tensorflow.models.gans.gain import GAIN
 from teras.backend.tensorflow.models.gans.pcgain import PCGAIN
-
+from teras.backend.tensorflow.models.gans.ctgan import CTGAN
