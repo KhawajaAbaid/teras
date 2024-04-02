@@ -24,7 +24,7 @@ class DataTransformer:
     def get_metadata(self):
         """
         Returns:
-            named tuple of features metadata.
+            dictionary of features metadata.
         """
         if not self._fitted:
             raise AssertionError(
