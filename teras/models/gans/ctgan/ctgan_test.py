@@ -1,5 +1,5 @@
 import keras
-from teras.models.gans.ctgan import CTGAN
+from teras.models.gans.ctgan.ctgan import CTGAN
 from teras.models.gans.ctgan.generator import CTGANGenerator
 from teras.models.gans.ctgan.discriminator import CTGANDiscriminator
 from teras.preprocessing.data_transformers.ctgan import CTGANDataTransformer
