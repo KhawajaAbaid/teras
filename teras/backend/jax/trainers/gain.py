@@ -129,9 +129,16 @@ def fit(x, epochs: int = 1, verbose: bool = True):
     global _seed
     if not _initialized:
         raise RuntimeError(
-            "Trainer not initialized. Please call `Trainer.init` "
-            "method before calling `fit`. "
+            "Trainer not initialized. Please call `Trainer.init` method "
+            "before calling `fit`. "
         )
+
+    if not _compiled:
+        raise RuntimeError(
+            "Trainer not compiled. Please call `Trainer.compile()` method "
+            "before calling `fit`. "
+        )
+
     _optimizers_built = False
     total_batches = 0
     if dataset_type(x) == "not_supported":
