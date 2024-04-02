@@ -40,8 +40,9 @@ class CTGAN(BaseCTGAN):
             y_pred_real = self.discriminator(x)
             grad_pen = self.discriminator.gradient_penalty(x,
                                                            x_generated)
-            loss_disc = self.discriminator_loss(y_pred_real,
-                                                y_pred_generated)
+            loss_disc = self.compute_disciriminator_loss(
+                y_pred_real,
+                y_pred_generated)
         gradients_pen = tape.gradient(grad_pen,
                                       self.discriminator.trainable_variables)
         gradients_loss = tape.gradient(loss_disc,
@@ -66,9 +67,10 @@ class CTGAN(BaseCTGAN):
             x_generated = ops.concatenate(
                 [x_generated, cond_vectors], axis=1)
             y_pred_generated = self.discriminator(x_generated)
-            loss_gen = self.generator_loss(x_generated, y_pred_generated,
-                                           cond_vectors=cond_vectors, mask=mask,
-                                           metadata=self.metadata)
+            loss_gen = self.compute_generator_loss(
+                x_generated, y_pred_generated,
+                cond_vectors=cond_vectors, mask=mask,
+                metadata=self.metadata)
         gradients = tape.gradient(loss_gen, self.generator.trainable_variables)
         self.generator_optimizer.apply(gradients,
                                        self.generator.trainable_variables)
