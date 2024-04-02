@@ -270,20 +270,11 @@ def generator_compute_loss_and_updates(
 def discriminator_compute_loss_and_updates(
         discriminator_trainable_vars,
         discriminator_non_trainable_vars,
-        generator_trainable_vars,
-        generator_non_trainable_vars,
-        x_disc,
+        x_hat_disc,
         hint_vectors,
         mask,
         training=False
 ):
-    x_generated, _ = _generator.stateless_call(
-        generator_trainable_vars,
-        generator_non_trainable_vars,
-        ops.concatenate([x_disc, mask], axis=1),
-        training=training,
-    )
-    x_hat_disc = (x_generated * (1 - mask)) + (x_disc * mask)
     mask_pred, discriminator_non_trainable_vars = (
         _discriminator.stateless_call(
             discriminator_trainable_vars,
@@ -339,6 +330,14 @@ def train_step(generator_state, discriminator_state, data, aux_args, key):
     # Combine random vectors with original data
     x_disc = x_disc * mask + (1 - mask) * z
 
+    x_generated, _ = _generator.stateless_call(
+        generator_trainable_vars,
+        generator_non_trainable_vars,
+        ops.concatenate([x_disc, mask], axis=1),
+        training=False,
+    )
+    x_hat_disc = (x_generated * (1 - mask)) + (x_disc * mask)
+
     disc_grad_fn = jax.value_and_grad(
         discriminator_compute_loss_and_updates,
         has_aux=True,
@@ -346,9 +345,7 @@ def train_step(generator_state, discriminator_state, data, aux_args, key):
     (d_loss, (discriminator_non_trainable_vars,)), grads = disc_grad_fn(
         discriminator_trainable_vars,
         discriminator_non_trainable_vars,
-        generator_trainable_vars,
-        generator_non_trainable_vars,
-        x_disc,
+        x_hat_disc,
         hint_vectors,
         mask,
         training=True,
