@@ -1,7 +1,7 @@
 import torch
 import keras
 from keras import random, ops
-from teras.backend.common.models.gans.ctgan import BaseCTGAN
+from teras.backend.common.models.gans.ctgan.ctgan import BaseCTGAN
 
 
 class CTGAN(BaseCTGAN):
