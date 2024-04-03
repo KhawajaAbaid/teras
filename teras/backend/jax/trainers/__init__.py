@@ -14,3 +14,4 @@
 
 # Good code? Bad code?
 from teras.backend.jax.trainers import gain as GAINTrainer
+from teras.backend.jax.trainers import ctgan as CTGANTrainer
