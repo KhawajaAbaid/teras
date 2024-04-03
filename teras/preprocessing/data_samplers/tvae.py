@@ -1,4 +1,10 @@
-import tensorflow as tf
+try:
+    import tensorflow as tf
+except:
+    raise ImportError(
+        "You need tensorflow to use `TVAEataSampler`. "
+        "Install it using `pip install tensorflow`"
+    )
 import numpy as np
 from teras.preprocessing.data_samplers.ctgan import CTGANDataSampler as _BaseDataSampler
 from teras.utils.types import FeaturesNamesType
