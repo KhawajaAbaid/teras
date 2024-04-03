@@ -44,10 +44,6 @@ class DataTransformer:
         return self.transform(x)
 
     @abstractmethod
-    def get_config(self):
-        raise NotImplementedError
-
-    @abstractmethod
     def save(self, filename):
         raise NotImplementedError
 
