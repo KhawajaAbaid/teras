@@ -1,6 +1,6 @@
 import tensorflow as tf
 from keras import random, ops
-from teras.backend.common.models.ctgan.discriminator import BaseCTGANDiscriminator
+from teras.backend.common.models.gans.ctgan.discriminator import BaseCTGANDiscriminator
 from teras.utils.types import IntegerSequence
 
 
