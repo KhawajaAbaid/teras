@@ -42,11 +42,12 @@ class TVAEDataTransformer(_BaseDataTransformer):
                  weight_concentration_prior_type: str = "dirichlet_process",
                  weight_concentration_prior: float = 0.001
                  ):
-        super().__init__(continuous_features=continuous_features,
-                         categorical_features=categorical_features,
-                         max_clusters=max_clusters,
-                         std_multiplier=std_multiplier,
-                         weight_threshold=weight_threshold,
-                         covariance_type=covariance_type,
-                         weight_concentration_prior_type=weight_concentration_prior_type,
-                         weight_concentration_prior=weight_concentration_prior)
+        super().__init__(
+            continuous_features=continuous_features,
+            categorical_features=categorical_features,
+            max_clusters=max_clusters,
+            std_multiplier=std_multiplier,
+            weight_threshold=weight_threshold,
+            covariance_type=covariance_type,
+            weight_concentration_prior_type=weight_concentration_prior_type,
+            weight_concentration_prior=weight_concentration_prior)

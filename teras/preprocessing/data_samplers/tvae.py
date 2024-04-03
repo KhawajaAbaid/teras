@@ -21,7 +21,7 @@ class TVAEDataSampler(_BaseDataSampler):
 
     Args:
         metadata: dict, A dictionary of metadata computed during data
-            transformation. You can access it from the ``.get_metadata()`` of
+            transformation. You can access it from the `.get_metadata()` of
             `TVAEDataTransformer` instance.
         categorical_features: list, List of categorical features names.
             CTGAN requires dataset to have at least one categorical feature,
