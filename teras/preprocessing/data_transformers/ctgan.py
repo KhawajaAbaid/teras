@@ -301,8 +301,8 @@ class CTGANDataTransformer(DataTransformer):
 
         self._num_categorical_features = len(categorical_features)
         self._num_continuous_features = len(continuous_features)
-        self.metadata["num_categorical"] = self._num_categorical_features
-        self.metadata["num_continuous"] = self._num_continuous_features
+        self._metadata["num_categorical"] = self._num_categorical_features
+        self._metadata["num_continuous"] = self._num_continuous_features
 
         self.mode_specific_normalizer = None
         if self._num_continuous_features > 0:
