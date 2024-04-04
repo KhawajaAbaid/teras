@@ -23,3 +23,8 @@ from teras.backend.torch.models.pretrainers.saint import SAINTPretrainer
 # GANs
 from teras.backend.torch.models.gans.gain import GAIN
 from teras.backend.torch.models.gans.pcgain import PCGAIN
+from teras.backend.torch.models.gans.ctgan.discriminator import CTGANDiscriminator
+from teras.backend.torch.models.gans.ctgan.ctgan import CTGAN
+
+# Autoencoders
+from teras.backend.torch.models.autoencoders.tvae.tvae import TVAE

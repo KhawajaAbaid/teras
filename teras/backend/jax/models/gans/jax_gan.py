@@ -1,3 +1,4 @@
+import jax.tree_util
 import keras
 from keras import ops
 from abc import abstractmethod
@@ -31,6 +32,7 @@ class JAXGAN:
 
         self._built = False
         self._trained = False
+        self.dtype = keras.backend.floatx()
 
     @abstractmethod
     def build(self, input_shape):
@@ -88,20 +90,7 @@ class JAXGAN:
                 "Unsupported type for `x`. "
                 "It should be tensorflow dataset, pytorch dataloader."
                 f"But received {type(x)}")
-
-        # Create initial state
-        generator_state = (
-            self.generator.trainable_variables,
-            self.generator.non_trainable_variables,
-            self.generator_optimizer.variables
-        )
-
-        discriminator_state = (
-            self.discriminator.trainable_variables,
-            self.discriminator.non_trainable_variables,
-            self.discriminator_optimizer.variables
-        )
-
+        is_first_iteration = True
         for epoch in range(epochs):
             epoch_start_time = time.time()
             for batch_num, batch in enumerate(x):
@@ -111,6 +100,20 @@ class JAXGAN:
                     else:
                         self.build(ops.shape(batch))
                     self._built = True
+                if is_first_iteration:
+                    # Create initial state
+                    generator_state = (
+                        self.generator.trainable_variables,
+                        self.generator.non_trainable_variables,
+                        self.generator_optimizer.variables
+                    )
+
+                    discriminator_state = (
+                        self.discriminator.trainable_variables,
+                        self.discriminator.non_trainable_variables,
+                        self.discriminator_optimizer.variables
+                    )
+                    is_first_iteration = False
                 batch = np.asarray(batch)
                 logs, generator_state, discriminator_state = self.train_step(
                     generator_state,
@@ -140,3 +143,4 @@ class JAXGAN:
             self._trained = True
 
         return generator_state, discriminator_state
+

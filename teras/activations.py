@@ -72,7 +72,8 @@ def sparsemax(logits, axis: int = -1):
 @teras_export("teras.activations.gumbel_softmax")
 def gumbel_softmax(logits,
                    temperature: float = 0.2,
-                   hard: bool = False):
+                   hard: bool = False,
+                   seed: int = None):
     """
     Implementation of the Gumbel Softmax activation function
     proposed by Eric Jang et al. in the paper
@@ -92,10 +93,12 @@ def gumbel_softmax(logits,
             concentrated around the category with the highest probability.
         hard: `bool`, default `False`,
             Whether to return soft probabilities or hard one hot vectors.
+        seed: int, seed to use for random sampling.
     """
     u = random.uniform(ops.shape(logits),
                        minval=0,
-                       maxval=1)
+                       maxval=1,
+                       seed=seed)
     gumbels = -ops.log(-ops.log(u))
     perturbed_logits = (logits + gumbels) / temperature
     probabilities = ops.nn.softmax(perturbed_logits)

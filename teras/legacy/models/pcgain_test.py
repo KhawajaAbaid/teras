@@ -1,5 +1,5 @@
+import keras
 import tensorflow as tf
-from tensorflow import keras
 from teras.legacy.models.pcgain import PCGAINGenerator, PCGAINDiscriminator, \
     PCGAINClassifier, PCGAIN
 from teras.legacy.preprocessing.pcgain import PCGAINDataSampler, \

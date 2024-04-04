@@ -15,3 +15,5 @@
 
 from teras.backend.jax import ops
 from teras.backend.jax import models
+from teras.backend.jax import utils
+from teras.backend.jax import trainers

@@ -23,3 +23,8 @@ from teras.backend.tensorflow.models.pretrainers.saint import SAINTPretrainer
 # GANs
 from teras.backend.tensorflow.models.gans.gain import GAIN
 from teras.backend.tensorflow.models.gans.pcgain import PCGAIN
+from teras.backend.tensorflow.models.gans.ctgan.discriminator import CTGANDiscriminator
+from teras.backend.tensorflow.models.gans.ctgan.ctgan import CTGAN
+
+# Autoencoders
+from teras.backend.tensorflow.models.autoencoders.tvae.tvae import TVAE

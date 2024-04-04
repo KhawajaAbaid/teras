@@ -24,7 +24,7 @@ class DataTransformer:
     def get_metadata(self):
         """
         Returns:
-            named tuple of features metadata.
+            dictionary of features metadata.
         """
         if not self._fitted:
             raise AssertionError(
@@ -33,14 +33,15 @@ class DataTransformer:
             )
         return self._metadata
 
+    @property
+    def metadata(self):
+        return self.get_metadata()
+
     def fit_transform(self,
                       x: pd.DataFrame):
         self.fit(x)
+        self._fitted = True
         return self.transform(x)
-
-    @abstractmethod
-    def get_config(self):
-        raise NotImplementedError
 
     @abstractmethod
     def save(self, filename):

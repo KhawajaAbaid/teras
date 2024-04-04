@@ -1,26 +1,42 @@
+# ===================
+# THIS DOES NOT WORK!
+# PLEASE CLOSE THIS FILE IMMEDIATELY, OR CLOSE YOUR EYES!
+# OR, PROCEED AT YOUR OWN RISK AS THE CODE MIGHT GIVE YOU PTSD.
+# I WON'T TAKE ANY RESPONSIBILITY FOR ANY DAMAGES TO YOUR MENTAL!
+# ===================
+
 import jax
 import keras
 from keras import random, ops
 from keras.backend import floatx
+
 from teras.backend.jax.models.gans.jax_gan import JAXGAN
 
 
-# TODO: loads of work to do to make it compatible with JAX
-
+@jax.tree_util.register_pytree_node_class
 class GAIN(JAXGAN):
+    raise ImportError(
+        "JAX backend doesn't provide a MODEL implementation for `GAIN`. "
+        "Rather it offers `GAINTrainer` based on functional approach which "
+        "can be accessed through `teras.trainers` package. \n"
+        "Alternatively, if you really want to use a model based implementation "
+        "for `CTGAN`, you can use the `tensorflow` or `torch` backend."
+    )
     def __init__(self,
                  generator: keras.Model,
                  discriminator: keras.Model,
                  hint_rate: float = 0.9,
                  alpha: float = 100.,
-                 **kwargs):
+                 seed: int = 1337
+                 ):
         super().__init__(generator=generator,
-                         discriminator=discriminator,
-                         **kwargs)
+                         discriminator=discriminator)
         self.generator = generator
         self.discriminator = discriminator
         self.hint_rate = hint_rate
         self.alpha = alpha
+        self.seed = seed
+        self.dtype = floatx()
 
         # Loss trackers
         self.loss_tracker = keras.metrics.Mean(
@@ -29,6 +45,9 @@ class GAIN(JAXGAN):
             name="generator_loss")
         self.discriminator_loss_tracker = keras.metrics.Mean(
             name="discriminator_loss")
+
+    # def _create_seed_gen(self, seed):
+    #     self._seed_gen = seed
 
     @property
     def metrics(self):
@@ -149,11 +168,13 @@ class GAIN(JAXGAN):
         # replace nans with 0.
         x_disc = ops.where(ops.isnan(x_disc), x1=0., x2=x_disc)
         # Sample noise
-        z = random.uniform(shape=ops.shape(x_disc), minval=0., maxval=0.01)
+        z = random.uniform(shape=ops.shape(x_disc), minval=0., maxval=0.01,
+                           seed=1337)
         # Sample hint vectors
         hint_vectors = random.binomial(shape=ops.shape(x_disc),
                                        counts=1,
-                                       probabilities=self.hint_rate)
+                                       probabilities=self.hint_rate,
+                                       seed=1337)
         hint_vectors = hint_vectors * mask
         # Combine random vectors with original data
         x_disc = x_disc * mask + (1 - mask) * z
@@ -193,10 +214,12 @@ class GAIN(JAXGAN):
         # =====================
         mask = 1. - ops.cast(ops.isnan(x_gen), dtype=floatx())
         x_gen = ops.where(ops.isnan(x_gen), x1=0., x2=x_gen)
-        z = random.uniform(shape=ops.shape(x_gen), minval=0., maxval=0.01)
+        z = random.uniform(shape=ops.shape(x_gen), minval=0., maxval=0.01,
+                           seed=1337)
         hint_vectors = random.binomial(shape=ops.shape(x_gen),
                                        counts=1,
-                                       probabilities=self.hint_rate)
+                                       probabilities=self.hint_rate,
+                                       seed=1337)
         hint_vectors = hint_vectors * mask
         x_gen = x_gen * mask + (1 - mask) * z
 
@@ -236,3 +259,33 @@ class GAIN(JAXGAN):
 
         logs = {m.name: m.result() for m in self.metrics}
         return logs, generator_state, discriminator_state
+
+    def tree_flatten(self):
+        generator_flat, generator_def = jax.tree_util.tree_flatten(
+            self.generator)
+        discriminator_flat, discriminator_def = jax.tree_util.tree_flatten(
+            self.discriminator)
+
+        children = (generator_flat, discriminator_flat,
+                    self.hint_rate, self.alpha, self.seed)
+
+        aux_data = (generator_def, discriminator_def)
+        return children, aux_data
+
+    @classmethod
+    def tree_unflatten(cls, aux_data, children):
+        generator_def, discriminator_def = aux_data
+        generator_flat = children[0]
+        generator = jax.tree_util.tree_unflatten(generator_def,
+                                                 generator_flat)
+        generator = generator
+        discriminator_flat = children[1]
+        discriminator = jax.tree_util.tree_unflatten(discriminator_def,
+                                                     discriminator_flat)
+        discriminator = discriminator
+        hint_rate = children[2]
+        alpha = children[3]
+        seed = children[4]
+        c = cls(generator=generator, discriminator=discriminator,
+                hint_rate=hint_rate, alpha=alpha, seed=seed)
+        return c
