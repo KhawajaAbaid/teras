@@ -61,7 +61,8 @@ class TVAEEncoderTest(TestCase):
 
         # Check that output matches
         reloaded_outputs = reloaded_model(self.data_batch)
-        self.assertAllClose(
-            ops.convert_to_numpy(outputs),
-            ops.convert_to_numpy(reloaded_outputs)
-        )
+        for original, reloaded in zip(outputs, reloaded_outputs):
+            self.assertAllClose(
+                ops.convert_to_numpy(original),
+                ops.convert_to_numpy(reloaded)
+            )
