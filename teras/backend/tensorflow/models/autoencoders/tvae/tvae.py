@@ -34,8 +34,7 @@ class TVAE(BaseTVAE):
         grads = tape.gradient(loss, self.trainable_variables)
         self.optimizer.apply(grads,
                              self.trainable_variables)
-        sigmas = ops.clip(sigmas, x_min=0.01, x_max=1.0)
-        self.decoder.sigmas = sigmas
+        self.decoder.sigmas.assign(ops.clip(sigmas, 0.01, 1.0))
         self.loss_tracker.update_state(loss)
         logs = {m.name: m.result() for m in self.metrics}
         return logs
