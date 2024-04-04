@@ -14,7 +14,6 @@ import pickle
 
 def continuous_feature_transformer(args):
     x, feature_name, weight_threshold, bgm_kwargs = args
-    print("processing feature: ", feature_name)
     if isinstance(x, pd.DataFrame):
         feature = x[feature_name].values.reshape(-1, 1)
     elif isinstance(x, np.ndarray):
