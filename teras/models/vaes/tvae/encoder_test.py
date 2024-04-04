@@ -6,8 +6,6 @@ from teras.utils import generate_fake_gemstone_data
 from teras.preprocessing.data_samplers.tvae import TVAEDataSampler
 from teras.preprocessing.data_transformers.tvae import TVAEDataTransformer
 import os
-import numpy as np
-import pytest
 
 
 class TVAEEncoderTest(TestCase):
