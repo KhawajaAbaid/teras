@@ -47,7 +47,9 @@ class TVAEDecoder(keras.Model):
         )
         self.projection_layer = keras.layers.Dense(self.data_dim,
                                                    name="projection_layer")
-        self.sigmas = ops.ones(shape=(self.data_dim,)) * 0.1
+        self.sigmas = self.add_weight(shape=(self.data_dim,),
+                                      initializer="ones", trainable=False,
+                                      name="sigmas") * 0.1
 
     def build(self, input_shape):
         self.decompression_block.build(input_shape)
