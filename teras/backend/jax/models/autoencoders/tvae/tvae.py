@@ -136,7 +136,7 @@ class TVAE(BaseTVAE):
         sigmas = ops.clip(sigmas, x_min=0.01, x_max=1.0)
         self.decoder.sigmas = sigmas
         # since we only have one metric i.e. loss.
-        metrics_variables = self.loss_tracker.statless_update_state(
+        metrics_variables = self.loss_tracker.stateless_update_state(
             metrics_variables,
             loss)
         state = (
@@ -145,5 +145,5 @@ class TVAE(BaseTVAE):
             optimizer_variables,
             metrics_variables
         )
-        logs = {m.name: m.result() for m in self.metrics}
+        logs = {"loss": self.loss_tracker.stateless_result(metrics_variables)}
         return logs, state
