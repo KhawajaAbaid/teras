@@ -1,7 +1,7 @@
 import jax
 import keras
 from keras import ops
-from teras.backend.common.models.vaes.tvae.tvae import BaseTVAE
+from teras.backend.common.models.autoencoders.tvae.tvae import BaseTVAE
 
 
 class TVAE(BaseTVAE):
