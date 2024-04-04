@@ -62,13 +62,11 @@ class TVAEEncoder(keras.Model):
         h = self.compression_block(inputs)
         mean = self.dense_mean(h)
         log_var = self.dense_log_var(h)
-        std = ops.exp(0.5 * log_var)
-        return mean, log_var, std
+        return mean, log_var
 
     def compute_output_shape(self, input_shape):
         batch_size, dims = input_shape
-        return ((batch_size, self.compression_dims[-1]),
-                (batch_size, self.latent_dim),
+        return ((batch_size, self.latent_dim),
                 (batch_size, self.latent_dim))
 
     def get_config(self):
