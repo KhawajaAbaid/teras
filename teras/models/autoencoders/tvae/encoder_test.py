@@ -1,6 +1,6 @@
 import keras
 from keras import random, ops
-from teras.models.vaes.tvae.encoder import TVAEEncoder
+from teras.models.autoencoders.tvae.encoder import TVAEEncoder
 from keras.src.testing.test_case import TestCase
 from teras.utils import generate_fake_gemstone_data
 from teras.preprocessing.data_samplers.tvae import TVAEDataSampler

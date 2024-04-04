@@ -27,4 +27,4 @@ from teras.backend.tensorflow.models.gans.ctgan.discriminator import CTGANDiscri
 from teras.backend.tensorflow.models.gans.ctgan.ctgan import CTGAN
 
 # Autoencoders
-from teras.backend.tensorflow.models.vaes.tvae.tvae import TVAE
+from teras.backend.tensorflow.models.autoencoders.tvae.tvae import TVAE

@@ -1,6 +1,6 @@
 import keras
 from keras import random, ops
-from teras.models.vaes.tvae.decoder import TVAEDecoder
+from teras.models.autoencoders.tvae.decoder import TVAEDecoder
 from keras.src.testing.test_case import TestCase
 import os
 
