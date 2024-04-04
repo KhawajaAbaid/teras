@@ -63,7 +63,7 @@ class TVAEEncoder(keras.Model):
         mean = self.dense_mean(h)
         log_var = self.dense_log_var(h)
         std = ops.exp(0.5 * log_var)
-        return mean, std, log_var
+        return mean, log_var, std
 
     def compute_output_shape(self, input_shape):
         batch_size, dims = input_shape
