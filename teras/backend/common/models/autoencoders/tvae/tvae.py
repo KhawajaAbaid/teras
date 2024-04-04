@@ -65,12 +65,12 @@ class BaseTVAE(keras.Model):
         cross_entropy = keras.losses.SparseCategoricalCrossentropy(
             from_logits=True,
             reduction="sum")
-        cont_i = 0  # numerical index
+        cont_i = 0  # continuous index
         cat_i = 0  # categorical index
         for i, relative_index in enumerate(self.metadata["relative_indices_all"]):
-            # the first k features are numerical
+            # the first k features are continuous
             if i < self.metadata["num_continuous"]:
-                # each numerical feature is of the form
+                # each continuous feature is of the form
                 # [alpha, beta1, beta2...beta(n)] where n is the number of
                 # clusters
 
@@ -85,7 +85,7 @@ class BaseTVAE(keras.Model):
                 loss.append(loss_temp)
 
                 # calculate betas loss
-                num_clusters = self.metadata["numerical"][
+                num_clusters = self.metadata["continuous"][
                     "num_valid_clusters_all"][cont_i]
                 logits = generated_samples[:, relative_index + 1: relative_index + 1 + num_clusters]
                 labels = ops.argmax(
