@@ -25,6 +25,17 @@ class BaseTVAE(keras.Model):
         self.loss_factor = loss_factor
         self.seed = seed
         self._seed_gen = random.SeedGenerator(self.seed)
+        self.loss_tracker = keras.metrics.Mean(name="loss")
+
+    def build(self, input_shape):
+        self.encoder.build(input_shape)
+        input_shape = input_shape[:-1] + (self.latent_dim,)
+        self.decoder.build(input_shape)
+
+    @property
+    def metrics(self):
+        metrics_ = super().metrics
+        return metrics_.extend([self.loss_tracker])
 
     def compute_loss(self, real_samples=None, generated_samples=None,
                      sigmas=None, mean=None, log_var=None):
@@ -97,14 +108,23 @@ class BaseTVAE(keras.Model):
         return final_loss
 
     def call(self, inputs):
-        mean, log_var, std = self.encoder(inputs)
+        mean, log_var = self.encoder(inputs)
+        std = ops.exp(0.5 * log_var)
         eps = random.uniform(shape=ops.shape(std),
                              minval=0, maxval=1,
                              dtype=std.dtype,
                              seed=self._seed_gen)
         z = (std * eps) + mean
         generated_samples, sigmas = self.decoder(z)
-        return generated_samples, sigmas
+        return generated_samples, sigmas, mean, log_var
+
+    def compute_output_shape(self, input_shape):
+        batch_size, _ = input_shape
+        return ((batch_size, self.data_dim),
+                (batch_size, self.latent_dim),
+                (self.data_dim,),
+                (batch_size, self.latent_dim),
+                (batch_size, self.latent_dim))
 
     def get_config(self):
         config = super().get_config()
