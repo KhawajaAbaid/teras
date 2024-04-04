@@ -38,8 +38,7 @@ class BaseTVAE(keras.Model):
 
     @property
     def metrics(self):
-        metrics_ = super().metrics
-        return metrics_.extend([self.loss_tracker])
+        return [self.loss_tracker]
 
     def compute_loss(self, real_samples=None, generated_samples=None,
                      sigmas=None, mean=None, log_var=None):
