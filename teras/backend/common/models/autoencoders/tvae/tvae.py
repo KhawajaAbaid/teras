@@ -28,9 +28,13 @@ class BaseTVAE(keras.Model):
         self.loss_tracker = keras.metrics.Mean(name="loss")
 
     def build(self, input_shape):
-        self.encoder.build(input_shape)
+        input_shape = tuple(input_shape)
+        self._input_shape = input_shape
+        if not self.encoder.built:
+            self.encoder.build(input_shape)
         input_shape = input_shape[:-1] + (self.latent_dim,)
-        self.decoder.build(input_shape)
+        if not self.decoder.built:
+            self.decoder.build(input_shape)
 
     @property
     def metrics(self):
@@ -148,3 +152,10 @@ class BaseTVAE(keras.Model):
                    decoder=decoder,
                    metadata=metadata,
                    **config)
+
+    def get_build_config(self):
+        build_config = dict(input_shape=self._input_shape)
+        return build_config
+
+    def build_from_config(self, build_config):
+        self.build(build_config["input_shape"])
