@@ -130,7 +130,6 @@ class BasePCGAIN(BaseGAIN):
         imputed_data = mask * data + (1 - mask) * imputed_data
         return imputed_data
 
-
     def get_config(self):
         config = super().get_config()
         config.update({
