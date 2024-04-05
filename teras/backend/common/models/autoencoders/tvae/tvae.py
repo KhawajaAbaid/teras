@@ -40,7 +40,7 @@ class BaseTVAE(keras.Model):
     def get_encoder(self):
         return self.encoder
 
-    def trained_decoder(self):
+    def get_decoder(self):
         return self.decoder
 
     @property
