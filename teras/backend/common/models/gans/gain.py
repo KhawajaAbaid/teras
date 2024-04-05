@@ -76,6 +76,65 @@ class BaseGAIN(keras.Model):
             f"`GAIN().generator` or `GAIN().discriminator`."
         )
 
+    def test_step(self, data):
+        x_gen, x_disc = data
+
+        # =========================
+        # Test the discriminator
+        # =========================
+        # Create mask
+        mask = 1. - ops.cast(ops.isnan(x_disc), dtype=floatx())
+        # replace nans with 0.
+        x_disc = ops.where(ops.isnan(x_disc), x1=0., x2=x_disc)
+        # Sample noise
+        z = random.uniform(shape=ops.shape(x_disc), minval=0., maxval=0.01)
+        # Sample hint vectors
+        hint_vectors = random.binomial(shape=ops.shape(x_disc),
+                                       counts=1,
+                                       probabilities=self.hint_rate)
+        hint_vectors *= mask
+        # Combine random vectors with original data
+        x_disc = x_disc * mask + (1 - mask) * z
+        x_generated = self.generator(ops.concatenate([x_disc, mask], axis=1))
+        # Combine generated samples with original data
+        x_hat_disc = (x_generated * (1 - mask)) + (x_disc * mask)
+        mask_pred = self.discriminator(
+            ops.concatenate([x_hat_disc, hint_vectors], axis=1))
+        d_loss = self.compute_discriminator_loss(mask, mask_pred)
+
+        # =====================
+        # Test the generator
+        # =====================
+        mask = 1. - ops.cast(ops.isnan(x_gen), dtype=floatx())
+        x_gen = ops.where(ops.isnan(x_gen), x1=0., x2=x_gen)
+        z = random.uniform(shape=ops.shape(x_gen), minval=0., maxval=0.01)
+        hint_vectors = random.binomial(shape=ops.shape(x_gen),
+                                       counts=1,
+                                       probabilities=self.hint_rate)
+        hint_vectors *= mask
+        x_gen = x_gen * mask + (1 - mask) * z
+
+        x_generated = self.generator(
+            ops.concatenate([x_gen, mask], axis=1))
+        # Combine generated samples with original/observed data
+        x_hat = (x_generated * (1 - mask)) + (x_gen * mask)
+        mask_pred = self.discriminator(
+            ops.concatenate([x_hat, hint_vectors], axis=1))
+        g_loss = self.compute_generator_loss(
+            x=x_gen,
+            x_generated=x_generated,
+            mask=mask,
+            mask_pred=mask_pred,
+            alpha=self.alpha
+        )
+
+        # Update custom tracking metrics
+        self.generator_loss_tracker.update_state(g_loss)
+        self.discriminator_loss_tracker.update_state(d_loss)
+
+        logs = {m.name: m.result() for m in self.metrics}
+        return logs
+
     def get_generator(self):
         return self.generator
 
