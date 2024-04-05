@@ -1,6 +1,6 @@
 import keras
 from keras import ops
-from teras.layers.tabnet import TabNetFeatureTransformer
+from teras.layers.tabnet.feature_transformer import TabNetFeatureTransformer
 
 
 @keras.saving.register_keras_serializable("teras.layers.tabnet")
