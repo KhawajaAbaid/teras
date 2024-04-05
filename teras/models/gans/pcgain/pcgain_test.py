@@ -1,10 +1,11 @@
 import keras
-from teras.models.gans.pcgain import PCGAIN
+from teras.models.gans.pcgain.pcgain import PCGAIN
 from teras.models.gans.gain.generator import GAINGenerator
 from teras.models.gans.gain.discriminator import GAINDiscriminator
 from teras.models.gans.pcgain.classifier import PCGAINClassifier
 from keras.src.testing.test_case import TestCase
-from teras.utils.utils import inject_missing_values, create_gain_dataset
+from teras.utils.utils import inject_missing_values
+from teras.utils.data_utils import create_gain_dataset
 import numpy as np
 
 

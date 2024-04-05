@@ -1,9 +1,10 @@
 import keras
-from teras.models.gans.gain import GAIN
+from teras.models.gans.gain.gain import GAIN
 from teras.models.gans.gain.generator import GAINGenerator
 from teras.models.gans.gain.discriminator import GAINDiscriminator
 from keras.src.testing.test_case import TestCase
-from teras.utils.utils import inject_missing_values, create_gain_dataset
+from teras.utils.utils import inject_missing_values
+from teras.utils.data_utils import create_gain_dataset
 import numpy as np
 
 
