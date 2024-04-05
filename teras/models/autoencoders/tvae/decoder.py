@@ -64,7 +64,6 @@ class TVAEDecoder(keras.Model):
         generated_samples, _ = self(z)
         return generated_samples
 
-
     def compute_output_shape(self, input_shape):
         batch_size, input_dim = input_shape
         return ((batch_size, self.data_dim),
