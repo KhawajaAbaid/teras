@@ -13,5 +13,9 @@
 # limitations under the License.
 
 
+# Data Transformers
 from teras.preprocessing.data_transformers.gain import GAINDataTransformer
-from teras.preprocessing.oenf import PiecewiseLinearEncoding
+from teras.preprocessing.data_transformers.ctgan import CTGANDataTransformer
+
+# Data Samplers
+from teras.preprocessing.data_samplers.ctgan import CTGANDataSampler
