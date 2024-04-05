@@ -147,3 +147,57 @@ class TVAE(BaseTVAE):
         )
         logs = {"loss": self.loss_tracker.stateless_result(metrics_variables)}
         return logs, state
+
+    def test_step(self, state, data):
+        (
+            trainable_variables,
+            non_trainable_variables,
+            metrics_variables,
+        ) = state
+        (loss,
+         (non_trainable_variables, sigmas)
+         ), grads = self.compute_loss_and_updates(
+            trainable_variables,
+            non_trainable_variables,
+            data
+        )
+        # since we only have one metric i.e. loss.
+        metrics_variables = self.loss_tracker.stateless_update_state(
+            metrics_variables,
+            loss)
+        state = (
+            trainable_variables,
+            non_trainable_variables,
+            metrics_variables
+        )
+        logs = {"loss": self.loss_tracker.stateless_result(metrics_variables)}
+        return logs, state
+
+    def predict_step(self, state, z):
+        trainable_variables, non_trainable_variables = state
+        # Since encoder comes hence gets built before decoder, so the parent
+        # model's list of vars contains encoder vars followed by decoder vars.
+        # if you didn't know that, feel free to thank me! jk. happy coding!
+        start_idx = len(self.encoder.trainable_variables)
+        slice_size = len(self.decoder.trainable_variables)
+        decoder_trainable_vars = lax.dynamic_slice_in_dim(
+            trainable_variables,
+            start_index=start_idx,
+            slice_size=slice_size
+        )
+        start_idx = len(self.encoder.non_trainable_variables)
+        slice_size = len(self.decoder.non_trainable_variables)
+        decoder_non_trainable_vars = lax.dynamic_slice_in_dim(
+            non_trainable_variables,
+            start_index=start_idx,
+            slice_size=slice_size
+        )
+        (
+            generated_samples,
+            decoder_non_trainable_vars
+        ) = self.decoder.stateless_call(
+            decoder_trainable_vars,
+            decoder_non_trainable_vars,
+            data
+        )
+        return generated_samples, decoder_non_trainable_vars
