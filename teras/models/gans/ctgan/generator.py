@@ -152,6 +152,10 @@ class CTGANGenerator(keras.Model):
         outputs = self.apply_activations_by_feature_type(interim_outputs)
         return outputs
 
+    def predict_step(self, inputs):
+        generated_samples = self(inputs)
+        return generated_samples
+
     def compute_output_shape(self, input_shape):
         input_shape = tuple(input_shape)
         return input_shape[:-1] + (self.data_dim,)
