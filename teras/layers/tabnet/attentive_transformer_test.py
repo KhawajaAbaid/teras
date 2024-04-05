@@ -12,7 +12,9 @@ class TabNetAttentiveTransformerTest(TestCase):
     def test_valid_output_shape(self):
         layer = TabNetAttentiveTransformer(data_dim=self.data_dim,
                                            batch_momentum=0.99)
-        outputs = layer(self.hidden_representations)
+        prior_scales = random.normal((self.batch_size, self.data_dim))
+        outputs = layer(self.hidden_representations,
+                        prior_scales=prior_scales)
         self.assertEqual(ops.shape(outputs),
                          (self.batch_size, self.data_dim))
 
