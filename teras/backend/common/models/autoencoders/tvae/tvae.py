@@ -1,6 +1,7 @@
 import keras
 from keras import random, ops
 from teras.utils import clean_reloaded_config_data
+from teras.utils.decorators import assert_fitted
 
 
 class BaseTVAE(keras.Model):
@@ -35,6 +36,12 @@ class BaseTVAE(keras.Model):
         input_shape = input_shape[:-1] + (self.latent_dim,)
         if not self.decoder.built:
             self.decoder.build(input_shape)
+
+    def get_encoder(self):
+        return self.encoder
+
+    def trained_decoder(self):
+        return self.decoder
 
     @property
     def metrics(self):
