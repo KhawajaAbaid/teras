@@ -1,7 +1,9 @@
 import keras
 from teras.models.tasks.task import Task
+from teras.api_export import teras_export
 
 
+@teras_export("teras.models.Regressor")
 class Regressor(Task):
     """
     Regressor class that provides a dense prediction head.
