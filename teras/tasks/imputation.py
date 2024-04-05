@@ -1,6 +1,8 @@
 import keras
+from teras.api_export import teras_export
 
 
+@teras_export("teras.tasks.Imputer")
 class Imputer:
     """
     Imputer task class used to impute missing data using the trained `model`

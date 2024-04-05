@@ -2,8 +2,10 @@ import keras
 from keras import random, ops
 from teras.models.gans.ctgan.ctgan import CTGAN
 from teras.models.gans.ctgan.generator import CTGANGenerator
+from teras.api_export import teras_export
 
 
+@teras_export("teras.tasks.Generator")
 class Generator:
     """
     Generator class that provides methods related to data generation.
