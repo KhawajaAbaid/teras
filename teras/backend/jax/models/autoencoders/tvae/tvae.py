@@ -193,11 +193,11 @@ class TVAE(BaseTVAE):
             slice_size=slice_size
         )
         (
-            generated_samples,
+            (generated_samples, sigmas),
             decoder_non_trainable_vars
         ) = self.decoder.stateless_call(
             decoder_trainable_vars,
             decoder_non_trainable_vars,
-            data
+            z
         )
         return generated_samples, decoder_non_trainable_vars
