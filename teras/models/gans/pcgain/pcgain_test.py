@@ -1,4 +1,5 @@
 import keras
+from keras import backend
 from teras.models.gans.pcgain.pcgain import PCGAIN
 from teras.models.gans.gain.generator import GAINGenerator
 from teras.models.gans.gain.discriminator import GAINDiscriminator
@@ -37,6 +38,8 @@ class PCGAINTest(TestCase):
         pcgain.compile(generator_optimizer=keras.optimizers.Adam(),
                        discriminator_optimizer=keras.optimizers.Adam())
         pcgain.build((8, self.data_dim))
+        if backend.backend() == "jax":
+            pcgain.build_optimizers()
         logs = pcgain.fit(self.input_ds)
 
     def test_predict(self):
@@ -50,6 +53,8 @@ class PCGAINTest(TestCase):
         pcgain.compile(generator_optimizer=keras.optimizers.Adam(),
                        discriminator_optimizer=keras.optimizers.Adam())
         pcgain.build((8, self.data_dim))
+        if backend.backend() == "jax":
+            pcgain.build_optimizers()
         logs = pcgain.fit(self.input_ds)
         x_test = self.rng.uniform(0., high=10., size=(8, self.data_dim))
         x_test = inject_missing_values(x_test)
