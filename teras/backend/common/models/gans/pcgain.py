@@ -25,11 +25,7 @@ class BasePCGAIN(BaseGAIN):
         self.beta = beta
 
     def build(self, input_shape):
-        # Inputs received by each generator and discriminator have twice the
-        # dimensions of original inputs
-        input_shape_2x = (input_shape[:-1], input_shape[-1] * 2)
-        self.generator.build(input_shape_2x)
-        self.discriminator.build(input_shape_2x)
+        super().build(input_shape)
         # we want to build classifier last so its variables are at the end of
         # lists for both trainable and non-trainable variables lists
         self.classifier.build(input_shape)
