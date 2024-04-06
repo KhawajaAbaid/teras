@@ -83,6 +83,34 @@ class JAXGAN(Model):
         ]
         return metrics
 
+    def _parse_variables(self, trainable_variables, non_trainable_variables,
+                         optimizer_variables=None):
+        """
+        Decomposes overall gan model variables into generator and
+        discriminator's variables.
+        """
+        # Get generator state
+        generator_state = []
+        # Since generator comes and gets built before discriminator
+        generator_state.append(trainable_variables[
+                               :len(self.generator.trainable_variables)])
+        generator_state.append(non_trainable_variables[
+                               :len(self.generator.non_trainable_variables)])
+        if optimizer_variables is not None:
+            generator_state.append(optimizer_variables[
+                                   :len(self.generator_optimizer.variables)])
+
+        # Get discriminator state
+        discriminator_state = []
+        discriminator_state.append(trainable_variables[
+                                   len(self.generator.trainable_variables):])
+        discriminator_state.append(non_trainable_variables[
+                                   len(self.generator.non_trainable_variables):])
+        if optimizer_variables is not None:
+            discriminator_state.append(optimizer_variables[
+                                       len(self.generator_optimizer.variables):])
+        return tuple(generator_state), tuple(discriminator_state)
+
     def compute_loss(self, **kwargs):
         raise NotImplementedError(
             f"`{self.__class__.__name__}` doesn't provide an implementation for"
