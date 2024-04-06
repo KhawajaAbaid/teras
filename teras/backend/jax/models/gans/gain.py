@@ -1,81 +1,28 @@
-# ===================
-# THIS DOES NOT WORK!
-# PLEASE CLOSE THIS FILE IMMEDIATELY, OR CLOSE YOUR EYES!
-# OR, PROCEED AT YOUR OWN RISK AS THE CODE MIGHT GIVE YOU PTSD.
-# I WON'T TAKE ANY RESPONSIBILITY FOR ANY DAMAGES TO YOUR MENTAL!
-# ===================
-
 import jax
 import keras
 from keras import random, ops
 from keras.backend import floatx
+from teras.backend.jax.models.gans.jaxgan import JAXGAN
+from teras.backend.common.models.gans.gain import BaseGAIN
 
-from teras.backend.jax.models.gans.jax_gan import JAXGAN
 
-
-@jax.tree_util.register_pytree_node_class
-class GAIN(JAXGAN):
-    raise ImportError(
-        "JAX backend doesn't provide a MODEL implementation for `GAIN`. "
-        "Rather it offers `GAINTrainer` based on functional approach which "
-        "can be accessed through `teras.trainers` package. \n"
-        "Alternatively, if you really want to use a model based implementation "
-        "for `CTGAN`, you can use the `tensorflow` or `torch` backend."
-    )
+class GAIN(JAXGAN, BaseGAIN):
     def __init__(self,
                  generator: keras.Model,
                  discriminator: keras.Model,
                  hint_rate: float = 0.9,
                  alpha: float = 100.,
-                 seed: int = 1337
+                 **kwargs
                  ):
-        super().__init__(generator=generator,
-                         discriminator=discriminator)
-        self.generator = generator
-        self.discriminator = discriminator
-        self.hint_rate = hint_rate
-        self.alpha = alpha
-        self.seed = seed
-        self.dtype = floatx()
-
-        # Loss trackers
-        self.loss_tracker = keras.metrics.Mean(
-            name="loss")
-        self.generator_loss_tracker = keras.metrics.Mean(
-            name="generator_loss")
-        self.discriminator_loss_tracker = keras.metrics.Mean(
-            name="discriminator_loss")
-
-    # def _create_seed_gen(self, seed):
-    #     self._seed_gen = seed
-
-    @property
-    def metrics(self):
-        _metrics = [self.loss_tracker,
-                    self.generator_loss_tracker,
-                    self.discriminator_loss_tracker,
-                    ]
-        return _metrics
-
-    def build(self, input_shape):
-        # Inputs received by each generator and discriminator have twice the
-        # dimensions of original inputs
-        input_shape = (input_shape[:-1], input_shape[-1] * 2)
-        self.generator.build(input_shape)
-        self.discriminator.build(input_shape)
-
-    def compute_discriminator_loss(self, mask, mask_pred):
-        return keras.losses.BinaryCrossentropy()(mask, mask_pred)
-
-    def compute_generator_loss(self, x, x_generated, mask, mask_pred, alpha):
-        cross_entropy_loss = keras.losses.CategoricalCrossentropy()(
-            mask, mask_pred
-        )
-        mse_loss = keras.losses.MeanSquaredError()(
-            y_true=(mask * x),
-            y_pred=(mask * x_generated))
-        loss = cross_entropy_loss + alpha * mse_loss
-        return loss
+        JAXGAN.__init__(self,
+                        generator=generator,
+                        discriminator=discriminator)
+        BaseGAIN.__init__(self,
+                          generator=generator,
+                          discriminator=discriminator,
+                          hint_rate=hint_rate,
+                          alpha=alpha,
+                          **kwargs)
 
     def generator_compute_loss_and_updates(
             self,
@@ -141,19 +88,60 @@ class GAIN(JAXGAN):
         loss = self.compute_discriminator_loss(mask, mask_pred)
         return loss, (discriminator_non_trainable_vars,)
 
-    @jax.jit
-    def train_step(self, generator_state, discriminator_state, data):
+    def train_step(self, state, data):
         (
-            generator_trainable_vars,
-            generator_non_trainable_vars,
-            generator_optimizer_vars,
-        ) = generator_state
+            trainable_variables,
+            non_trainable_variables,
+            optimizer_variables,
+            metrics_variables
+        ) = state
+        # Get generator state
+        # Since generator comes and gets built before discriminator
+        generator_trainable_vars = trainable_variables[
+                                   :len(self.generator.trainable_variables)]
+        # generator_trainable_vars = jax.lax.dynamic_slice_in_dim(
+        #     trainable_variables,
+        #     start_index=0,
+        #     slice_size=len(self.generator.trainable_variables)
+        # )
+        generator_non_trainable_vars = non_trainable_variables[
+                                       :len(self.generator.non_trainable_variables)]
+        # generator_non_trainable_vars = jax.lax.dynamic_slice_in_dim(
+        #     non_trainable_variables,
+        #     start_index=0,
+        #     slice_size=len(self.generator.non_trainable_variables)
+        # )
+        generator_optimizer_vars = optimizer_variables[
+                                   :len(self.generator_optimizer.variables)]
+        # generator_optimizer_vars = jax.lax.dynamic_slice_in_dim(
+        #     optimizer_variables,
+        #     start_index=0,
+        #     slice_size=len(self.generator_optimizer.variables)
+        # )
 
-        (
-            discriminator_trainable_vars,
-            discriminator_non_trainable_vars,
-            discriminator_optimizer_vars,
-        ) = discriminator_state
+        # Get discriminator state
+        discriminator_trainable_vars = trainable_variables[
+            len(self.generator.trainable_variables):]
+        # discriminator_trainable_vars = jax.lax.dynamic_slice_in_dim(
+        #     trainable_variables,
+        #     start_index=len(self.generator.trainable_variables),
+        #     slice_size=len(self.discriminator.trainable_variables)
+        # )
+        discriminator_non_trainable_vars = non_trainable_variables[
+            len(self.generator.non_trainable_variables):]
+        # discriminator_non_trainable_vars = jax.lax.dynamic_slice_in_dim(
+        #     non_trainable_variables,
+        #     start_index=len(self.generator.non_trainable_variables),
+        #     slice_size=len(self.discriminator.non_trainable_variables)
+        # )
+        discriminator_optimizer_vars = optimizer_variables[
+            len(self.generator_optimizer.variables):
+        ]
+        # discriminator_optimizer_vars = jax.lax.dynamic_slice_in_dim(
+        #     optimizer_variables,
+        #     start_index=len(self.generator_optimizer.variables),
+        #     slice_size=len(self.discriminator_optimizer.variables)
+        # )
 
         # data is a tuple of x_generator and x_discriminator batches
         # drawn from the dataset. The reason behind generating two separate
@@ -203,12 +191,6 @@ class GAIN(JAXGAN):
             discriminator_trainable_vars
         )
 
-        discriminator_state = (
-            discriminator_trainable_vars,
-            discriminator_non_trainable_vars,
-            discriminator_optimizer_vars
-        )
-
         # =====================
         # Train the generator
         # =====================
@@ -241,51 +223,38 @@ class GAIN(JAXGAN):
         (
             generator_trainable_vars,
             generator_optimizer_vars
-        ) = self.discriminator_optimizer.stateless_apply(
+        ) = self.generator_optimizer.stateless_apply(
             generator_optimizer_vars,
             grads,
-            generator_optimizer_vars
+            generator_trainable_vars
         )
 
-        generator_state = (
-            generator_trainable_vars,
-            generator_non_trainable_vars,
-            generator_optimizer_vars
+        # Update metrics
+        logs = {}
+        new_metric_variables = []
+        for metric in self.metrics:
+            this_metric_variables = metrics_variables[
+                                    len(new_metric_variables): len(new_metric_variables) + len(metric.variables)
+                                    ]
+            if metric.name == "generator_loss":
+                this_metric_variables = metric.stateless_update_state(
+                    this_metric_variables,
+                    g_loss
+                )
+            elif metric.name == "discriminator_loss":
+                this_metric_variables = metric.stateless_update_state(
+                    this_metric_variables,
+                    d_loss
+                )
+            else:
+                continue
+            logs[metric.name] = metric.stateless_result(this_metric_variables)
+            new_metric_variables += this_metric_variables
+
+        state = (
+            generator_trainable_vars + discriminator_trainable_vars,
+            generator_non_trainable_vars + discriminator_non_trainable_vars,
+            generator_optimizer_vars + discriminator_optimizer_vars,
+            new_metric_variables
         )
-
-        # Update custom tracking metrics
-        self.generator_loss_tracker.update_state(g_loss)
-        self.discriminator_loss_tracker.update_state(d_loss)
-
-        logs = {m.name: m.result() for m in self.metrics}
-        return logs, generator_state, discriminator_state
-
-    def tree_flatten(self):
-        generator_flat, generator_def = jax.tree_util.tree_flatten(
-            self.generator)
-        discriminator_flat, discriminator_def = jax.tree_util.tree_flatten(
-            self.discriminator)
-
-        children = (generator_flat, discriminator_flat,
-                    self.hint_rate, self.alpha, self.seed)
-
-        aux_data = (generator_def, discriminator_def)
-        return children, aux_data
-
-    @classmethod
-    def tree_unflatten(cls, aux_data, children):
-        generator_def, discriminator_def = aux_data
-        generator_flat = children[0]
-        generator = jax.tree_util.tree_unflatten(generator_def,
-                                                 generator_flat)
-        generator = generator
-        discriminator_flat = children[1]
-        discriminator = jax.tree_util.tree_unflatten(discriminator_def,
-                                                     discriminator_flat)
-        discriminator = discriminator
-        hint_rate = children[2]
-        alpha = children[3]
-        seed = children[4]
-        c = cls(generator=generator, discriminator=discriminator,
-                hint_rate=hint_rate, alpha=alpha, seed=seed)
-        return c
+        return logs, state
