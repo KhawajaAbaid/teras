@@ -10,6 +10,7 @@ class PCGAIN(JAXGAN, BasePCGAIN):
     def __init__(self,
                  generator: keras.Model,
                  discriminator: keras.Model,
+                 classifier: keras.Model,
                  hint_rate: float = 0.9,
                  alpha: float = 200.,
                  beta: float = 100.,
@@ -21,6 +22,7 @@ class PCGAIN(JAXGAN, BasePCGAIN):
         BasePCGAIN.__init__(self,
                             generator=generator,
                             discriminator=discriminator,
+                            classifier=classifier,
                             hint_rate=hint_rate,
                             alpha=alpha,
                             beta=beta,
@@ -60,41 +62,33 @@ class PCGAIN(JAXGAN, BasePCGAIN):
             )
         )
         loss = self.compute_generator_loss(
-                x=x_gen,
-                x_generated=x_generated,
-                mask=mask,
-                mask_pred=mask_pred,
-                classifier_pred=classifier_pred,
-                alpha=self.alpha,
-                beta=self.beta,
-            )
+            x=x_gen,
+            x_generated=x_generated,
+            mask=mask,
+            mask_pred=mask_pred,
+            classifier_pred=classifier_pred,
+            alpha=self.alpha,
+            beta=self.beta,
+        )
         return loss, (generator_non_trainable_vars,)
 
     def discriminator_compute_loss_and_updates(
             self,
             discriminator_trainable_vars,
             discriminator_non_trainable_vars,
-            generator_trainable_vars,
-            generator_non_trainable_vars,
-            x_disc,
+            x_hat_disc,
             hint_vectors,
             mask,
             training=False
     ):
-        x_generated, _ = self.generator.stateless_call(
-            generator_trainable_vars,
-            generator_non_trainable_vars,
-            ops.concatenate([x_disc, mask], axis=1),
+        (
+            mask_pred,
+            discriminator_non_trainable_vars
+        ) = self.discriminator.stateless_call(
+            discriminator_trainable_vars,
+            discriminator_non_trainable_vars,
+            ops.concatenate([x_hat_disc, hint_vectors], axis=1),
             training=training,
-        )
-        x_hat_disc = (x_generated * (1 - mask)) + (x_disc * mask)
-        mask_pred, discriminator_non_trainable_vars = (
-            self.discriminator.stateless_call(
-                discriminator_trainable_vars,
-                discriminator_non_trainable_vars,
-                ops.concatenate([x_hat_disc, hint_vectors], axis=1),
-                training=training,
-            )
         )
         loss = self.compute_discriminator_loss(mask, mask_pred)
         return loss, (discriminator_non_trainable_vars,)
@@ -106,32 +100,32 @@ class PCGAIN(JAXGAN, BasePCGAIN):
             optimizer_variables,
             metrics_variables
         ) = state
+
         # Get generator state
         # Since generator comes and gets built before discriminator
         generator_trainable_vars = trainable_variables[
                                    :len(self.generator.trainable_variables)]
         generator_non_trainable_vars = non_trainable_variables[
-                                   :len(self.generator.non_trainable_variables)]
+                                       :len(self.generator.non_trainable_variables)]
         generator_optimizer_vars = optimizer_variables[
                                    :len(self.generator_optimizer.variables)]
 
         # Get discriminator state
+        disc_slice_start_idx = len(self.generator.trainable_variables)
+        disc_slice_end_idx = disc_slice_start_idx + len(
+            self.discriminator.trainable_variables)
         discriminator_trainable_vars = trainable_variables[
-                               len(self.generator.trainable_variables):
-                               len(self.discriminator.trainable_variables)]
+                                    disc_slice_start_idx: disc_slice_end_idx]
         discriminator_non_trainable_vars = non_trainable_variables[
-                               len(self.generator.non_trainable_variables):
-                               len(self.discriminator.non_trainable_variables)]
+                                    disc_slice_start_idx: disc_slice_end_idx]
         discriminator_optimizer_vars = optimizer_variables[
-                               len(self.generator_optimizer.variables):
-                               len(self.discriminator_optimizer.variables)
-                                       ]
+                                       len(self.generator_optimizer.variables):]
 
         # Get classifier state
         classifier_trainable_vars = trainable_variables[
-                               -len(self.classifier.trainable_variables):]
+                                    -len(self.classifier.trainable_variables):]
         classifier_non_trainable_vars = non_trainable_variables[
-                               -len(self.classifier.non_trainable_variables):]
+                                        -len(self.classifier.non_trainable_variables):]
 
         # data is a tuple of x_generator and x_discriminator batches
         # drawn from the dataset. The reason behind generating two separate
@@ -156,7 +150,12 @@ class PCGAIN(JAXGAN, BasePCGAIN):
         hint_vectors = hint_vectors * mask
         # Combine random vectors with original data
         x_disc = x_disc * mask + (1 - mask) * z
-
+        x_generated, _ = self.generator.stateless_call(
+            generator_trainable_vars,
+            generator_non_trainable_vars,
+            ops.concatenate([x_disc, mask], axis=1),
+        )
+        x_hat_disc = (x_generated * (1 - mask)) + (x_disc * mask)
         disc_grad_fn = jax.value_and_grad(
             self.discriminator_compute_loss_and_updates,
             has_aux=True,
@@ -164,9 +163,7 @@ class PCGAIN(JAXGAN, BasePCGAIN):
         (d_loss, (discriminator_non_trainable_vars,)), grads = disc_grad_fn(
             discriminator_trainable_vars,
             discriminator_non_trainable_vars,
-            generator_trainable_vars,
-            generator_non_trainable_vars,
-            x_disc,
+            x_hat_disc,
             hint_vectors,
             mask,
             training=True,
@@ -247,7 +244,7 @@ class PCGAIN(JAXGAN, BasePCGAIN):
             generator_trainable_vars + discriminator_trainable_vars +
             classifier_trainable_vars,
             generator_non_trainable_vars + discriminator_non_trainable_vars +
-            classifier_trainable_vars,
+            classifier_non_trainable_vars,
             generator_optimizer_vars + discriminator_optimizer_vars,
             new_metric_variables
         )
