@@ -99,49 +99,19 @@ class GAIN(JAXGAN, BaseGAIN):
         # Since generator comes and gets built before discriminator
         generator_trainable_vars = trainable_variables[
                                    :len(self.generator.trainable_variables)]
-        # generator_trainable_vars = jax.lax.dynamic_slice_in_dim(
-        #     trainable_variables,
-        #     start_index=0,
-        #     slice_size=len(self.generator.trainable_variables)
-        # )
         generator_non_trainable_vars = non_trainable_variables[
                                        :len(self.generator.non_trainable_variables)]
-        # generator_non_trainable_vars = jax.lax.dynamic_slice_in_dim(
-        #     non_trainable_variables,
-        #     start_index=0,
-        #     slice_size=len(self.generator.non_trainable_variables)
-        # )
         generator_optimizer_vars = optimizer_variables[
                                    :len(self.generator_optimizer.variables)]
-        # generator_optimizer_vars = jax.lax.dynamic_slice_in_dim(
-        #     optimizer_variables,
-        #     start_index=0,
-        #     slice_size=len(self.generator_optimizer.variables)
-        # )
 
         # Get discriminator state
         discriminator_trainable_vars = trainable_variables[
             len(self.generator.trainable_variables):]
-        # discriminator_trainable_vars = jax.lax.dynamic_slice_in_dim(
-        #     trainable_variables,
-        #     start_index=len(self.generator.trainable_variables),
-        #     slice_size=len(self.discriminator.trainable_variables)
-        # )
         discriminator_non_trainable_vars = non_trainable_variables[
             len(self.generator.non_trainable_variables):]
-        # discriminator_non_trainable_vars = jax.lax.dynamic_slice_in_dim(
-        #     non_trainable_variables,
-        #     start_index=len(self.generator.non_trainable_variables),
-        #     slice_size=len(self.discriminator.non_trainable_variables)
-        # )
         discriminator_optimizer_vars = optimizer_variables[
             len(self.generator_optimizer.variables):
         ]
-        # discriminator_optimizer_vars = jax.lax.dynamic_slice_in_dim(
-        #     optimizer_variables,
-        #     start_index=len(self.generator_optimizer.variables),
-        #     slice_size=len(self.discriminator_optimizer.variables)
-        # )
 
         # data is a tuple of x_generator and x_discriminator batches
         # drawn from the dataset. The reason behind generating two separate
