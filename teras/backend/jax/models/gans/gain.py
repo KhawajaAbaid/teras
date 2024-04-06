@@ -63,20 +63,11 @@ class GAIN(JAXGAN, BaseGAIN):
             self,
             discriminator_trainable_vars,
             discriminator_non_trainable_vars,
-            generator_trainable_vars,
-            generator_non_trainable_vars,
-            x_disc,
+            x_hat_disc,
             hint_vectors,
             mask,
             training=False
     ):
-        x_generated, _ = self.generator.stateless_call(
-            generator_trainable_vars,
-            generator_non_trainable_vars,
-            ops.concatenate([x_disc, mask], axis=1),
-            training=training,
-        )
-        x_hat_disc = (x_generated * (1 - mask)) + (x_disc * mask)
         mask_pred, discriminator_non_trainable_vars = (
             self.discriminator.stateless_call(
                 discriminator_trainable_vars,
@@ -137,6 +128,12 @@ class GAIN(JAXGAN, BaseGAIN):
         # Combine random vectors with original data
         x_disc = x_disc * mask + (1 - mask) * z
 
+        x_generated, _ = self.generator.stateless_call(
+            generator_trainable_vars,
+            generator_non_trainable_vars,
+            ops.concatenate([x_disc, mask], axis=1),
+        )
+        x_hat_disc = (x_generated * (1 - mask)) + (x_disc * mask)
         disc_grad_fn = jax.value_and_grad(
             self.discriminator_compute_loss_and_updates,
             has_aux=True,
@@ -144,9 +141,7 @@ class GAIN(JAXGAN, BaseGAIN):
         (d_loss, (discriminator_non_trainable_vars,)), grads = disc_grad_fn(
             discriminator_trainable_vars,
             discriminator_non_trainable_vars,
-            generator_trainable_vars,
-            generator_non_trainable_vars,
-            x_disc,
+            x_hat_disc,
             hint_vectors,
             mask,
             training=True,
