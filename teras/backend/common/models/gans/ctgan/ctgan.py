@@ -1,5 +1,6 @@
 import keras
 from keras import random, ops
+from keras.backend import backend
 from teras.utils.utils import clean_reloaded_config_data
 
 
@@ -14,7 +15,10 @@ class BaseCTGAN(keras.Model):
                  latent_dim: int = 128,
                  seed: int = 1337,
                  **kwargs):
-        super().__init__(**kwargs)
+        if not backend() == "jax":
+            # Don't call super() with JAX backend as `JAXGAN` does that
+            # already!
+            super().__init__(**kwargs)
         self.generator = generator
         self.discriminator = discriminator
         self.metadata = metadata
