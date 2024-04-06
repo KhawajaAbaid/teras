@@ -34,9 +34,10 @@ class BaseGAIN(keras.Model):
 
     def compile(self,
                 generator_optimizer=keras.optimizers.Adam(),
-                discriminator_optimizer=keras.optimizers.Adam()
+                discriminator_optimizer=keras.optimizers.Adam(),
+                **kwargs
                 ):
-        super().compile()
+        super().compile(**kwargs)
         self.generator_optimizer = generator_optimizer
         self.discriminator_optimizer = discriminator_optimizer
 
