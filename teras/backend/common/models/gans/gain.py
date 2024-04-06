@@ -1,6 +1,7 @@
 import keras
 from keras import random, ops
 from keras.backend import floatx
+from keras.backend import backend
 
 
 class BaseGAIN(keras.Model):
@@ -13,7 +14,10 @@ class BaseGAIN(keras.Model):
                  hint_rate: float = 0.9,
                  alpha: float = 100.,
                  **kwargs):
-        super().__init__(**kwargs)
+        if not backend() == "jax":
+             # Don't call super() with JAX backend as `JAXGAN` does that
+             # already!
+             super().__init__(**kwargs)
         self.generator = generator
         self.discriminator = discriminator
         self.hint_rate = hint_rate
