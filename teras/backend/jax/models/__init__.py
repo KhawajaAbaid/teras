@@ -23,6 +23,8 @@ from teras.backend.jax.models.pretrainers.saint import SAINTPretrainer
 # Autoencoders
 from teras.backend.jax.models.autoencoders.tvae.tvae import TVAE
 
-# GANs - will throw error on import
+# GANs
+from teras.backend.jax.models.gans.gain import GAIN
+from teras.backend.jax.models.gans.pcgain import PCGAIN
 from teras.backend.jax.models.gans.ctgan.ctgan import CTGAN
 from teras.backend.jax.models.gans.ctgan.discriminator import CTGANDiscriminator
