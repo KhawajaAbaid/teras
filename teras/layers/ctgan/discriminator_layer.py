@@ -39,6 +39,7 @@ class CTGANDiscriminatorLayer(keras.layers.Layer):
     def build(self, input_shape):
         self.dense.build(input_shape)
         input_shape = self.dense.compute_output_shape(input_shape)
+        self.leaky_relu.build(input_shape)
         self.dropout.build(input_shape)
 
     def call(self, inputs):
