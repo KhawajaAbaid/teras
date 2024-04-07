@@ -42,4 +42,6 @@ class CTGANTest(TestCase):
         ctgan.compile(generator_optimizer=keras.optimizers.Adam(),
                       discriminator_optimizer=keras.optimizers.Adam())
         ctgan.build((16, self.data_dim))
+        if keras.backend.backend() == "jax":
+            ctgan.build_optimizers()
         logs = ctgan.fit(self.dataset, epochs=3)
