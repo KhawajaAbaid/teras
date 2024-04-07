@@ -183,6 +183,7 @@ class BaseGAIN(keras.Model):
             'discriminator': keras.layers.serialize(self.discriminator),
             'hint_rate': self.hint_rate,
             'alpha': self.alpha,
+            'seed': self.seed,
         })
         return config
 
