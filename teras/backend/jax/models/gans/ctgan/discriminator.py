@@ -38,8 +38,12 @@ class CTGANDiscriminator(BaseCTGANDiscriminator):
         batch_size = ops.shape(real_samples)[0]
         dim = ops.shape(real_samples)[1]
 
+        seed = non_trainable_variables[0]
+
         alpha = random.uniform(
-            shape=(batch_size // self.packing_degree, 1, 1))
+            shape=(batch_size // self.packing_degree, 1, 1),
+            seed=seed,
+        )
         alpha = ops.reshape(
             ops.tile(alpha, [1, self.packing_degree, dim]),
             (-1, dim))
@@ -59,4 +63,6 @@ class CTGANDiscriminator(BaseCTGANDiscriminator):
                 ops.mean(ops.square(gradients_norm - 1.0)) *
                 self.gradient_penalty_lambda
         )
-        return gradient_penalty
+        seed = jax.random.split(seed, 1)[0]
+        non_trainable_variables[0] = seed
+        return gradient_penalty, non_trainable_variables
