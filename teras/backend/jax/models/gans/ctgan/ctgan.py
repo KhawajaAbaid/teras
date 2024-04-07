@@ -112,7 +112,9 @@ class CTGAN(JAXGAN, BaseCTGAN):
                                        len(self.generator_optimizer.variables):
                                        ]
 
-        x, cond_vectors_real, cond_vectors, mask = data
+        actual_data, dummy_y = data
+        del dummy_y
+        x, cond_vectors_real, cond_vectors, mask = actual_data
         batch_size = ops.shape(x)[0]
 
         # =========================
