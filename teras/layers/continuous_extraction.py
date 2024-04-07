@@ -1,7 +1,6 @@
 import keras
 from keras import ops
 from teras.api_export import teras_export
-from teras.utils.dtypes import ListOrArray
 
 
 @teras_export("teras.layers.ContinuousExtraction")
@@ -13,11 +12,11 @@ class ContinuousExtraction(keras.layers.Layer):
     must diverge into two different branches for separate processing.
 
     Args:
-        continuous_idx: list or ndarray, list of indices of continuous
+        continuous_idx: list, a list of indices of continuous
             features in the given dataset.
     """
     def __init__(self,
-                 continuous_idx: ListOrArray,
+                 continuous_idx: list,
                  **kwargs):
         super().__init__(trainable=False, **kwargs)
         self.continuous_idx = continuous_idx

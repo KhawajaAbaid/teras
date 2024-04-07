@@ -1,9 +1,11 @@
 import keras
-from teras.models.gans.gain import GAIN
+from keras import backend
+from teras.models.gans.gain.gain import GAIN
 from teras.models.gans.gain.generator import GAINGenerator
 from teras.models.gans.gain.discriminator import GAINDiscriminator
 from keras.src.testing.test_case import TestCase
-from teras.utils.utils import inject_missing_values, create_gain_dataset
+from teras.utils.utils import inject_missing_values
+from teras.utils.data_utils import create_gain_dataset
 import numpy as np
 
 
@@ -32,6 +34,8 @@ class GAINTest(TestCase):
         gain.compile(generator_optimizer=keras.optimizers.Adam(),
                      discriminator_optimizer=keras.optimizers.Adam())
         gain.build((8, self.data_dim))
+        if backend.backend() == "jax":
+            gain.build_optimizers()
         logs = gain.fit(self.input_ds)
 
     def test_predict(self):
@@ -42,6 +46,8 @@ class GAINTest(TestCase):
         gain.compile(generator_optimizer=keras.optimizers.Adam(),
                      discriminator_optimizer=keras.optimizers.Adam())
         gain.build((8, self.data_dim))
+        if backend.backend() == "jax":
+            gain.build_optimizers()
         logs = gain.fit(self.input_ds)
         x_test = self.rng.uniform(0., high=10., size=(8, self.data_dim))
         x_test = inject_missing_values(x_test)

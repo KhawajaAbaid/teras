@@ -1,7 +1,6 @@
 import keras
 from keras import ops
 from teras.api_export import teras_export
-from teras.utils.dtypes import ListOrArray
 
 
 @teras_export("teras.layers.CategoricalExtraction")
@@ -13,11 +12,11 @@ class CategoricalExtraction(keras.layers.Layer):
     must diverge into two different branches for separate processing.
 
     Args:
-        categorical_idx: list or ndarray, list of indices of categorical
-            features in the given dataset.
+        categorical_idx: list, list of indices of categorical features in the
+            given dataset.
     """
     def __init__(self,
-                 categorical_idx: ListOrArray,
+                 categorical_idx: list,
                  **kwargs):
         super().__init__(trainable=False, **kwargs)
         self.categorical_idx = categorical_idx

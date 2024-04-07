@@ -60,6 +60,10 @@ class TVAEDecoder(keras.Model):
         x_generated = self.projection_layer(self.decompression_block(inputs))
         return x_generated, self.sigmas
 
+    def predict_step(self, z):
+        generated_samples, _ = self(z)
+        return generated_samples
+
     def compute_output_shape(self, input_shape):
         batch_size, input_dim = input_shape
         return ((batch_size, self.data_dim),

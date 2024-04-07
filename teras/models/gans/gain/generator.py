@@ -1,4 +1,6 @@
 import keras
+from keras import random, ops
+from keras.backend import floatx
 from teras.utils.types import IntegerSequence
 from teras.api_export import teras_export
 from teras.layers.layer_list import LayerList
@@ -85,6 +87,27 @@ class GAINGenerator(keras.Model):
         outputs = self.hidden_block(inputs)
         outputs = self.output_layer(outputs)
         return outputs
+
+    def predict_step(self, data):
+        """
+        Args:
+            Transformed data.
+        Returns:
+            Raw imputed data that should be reverse transformed to its
+            original form using data transformer instance that was used to
+            transform data for training.
+        """
+
+        data = ops.cast(data, floatx())
+        # Create mask
+        mask = 1. - ops.cast(ops.isnan(data), dtype=floatx())
+        data = ops.where(ops.isnan(data), x1=0., x2=data)
+        # Sample noise
+        z = random.uniform(ops.shape(data), minval=0., maxval=0.01)
+        x = mask * data + (1 - mask) * z
+        imputed_data = self(ops.concatenate([x, mask], axis=1))
+        imputed_data = mask * data + (1 - mask) * imputed_data
+        return imputed_data
 
     def compute_output_shape(self, input_shape):
         return input_shape[:-1] + (self.data_dim,)

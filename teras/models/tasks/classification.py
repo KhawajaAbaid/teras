@@ -1,8 +1,10 @@
 import keras
 from teras.models.tasks.task import Task
 from teras.utils.types import ActivationType
+from teras.api_export import teras_export
 
 
+@teras_export("teras.models.Classifier")
 class Classifier(Task):
     """
     Classifier class that provides a dense prediction head.

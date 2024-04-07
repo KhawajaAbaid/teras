@@ -20,7 +20,9 @@ class CTGAN(BaseCTGAN):
                          **kwargs)
 
     def train_step(self, data):
-        x, cond_vectors_real, cond_vectors, mask = data
+        actual_data, dummy_vals = data
+        del dummy_vals
+        x, cond_vectors_real, cond_vectors, mask = actual_data
         batch_size = ops.shape(x)[0]
 
         # =========================

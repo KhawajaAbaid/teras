@@ -8,16 +8,16 @@ class BaseTabNetPretrainer(keras.Model):
                  encoder: keras.Model,
                  decoder: keras.Model,
                  missing_feature_probability: float = 0.3,
-                 mask_seed: int = 1337,
+                 seed: int = 1337,
                  **kwargs):
         super().__init__(**kwargs)
         self.encoder = encoder
         self.decoder = decoder
         self.missing_feature_probability = missing_feature_probability
-        self.mask_seed = mask_seed
+        self.seed = seed
 
         self.loss_tracker = keras.metrics.Mean(name="loss")
-        self._mask_seed_generator = random.SeedGenerator(seed=self.mask_seed)
+        self._seed_generator = random.SeedGenerator(seed=self.seed)
         self._pretrained = False
 
     def build(self, input_shape):
@@ -58,6 +58,7 @@ class BaseTabNetPretrainer(keras.Model):
             "decoder": keras.layers.serialize(self.decoder),
             "missing_feature_probability":
                 self.missing_feature_probability,
+            "seed": self.seed,
         }
         return config
 

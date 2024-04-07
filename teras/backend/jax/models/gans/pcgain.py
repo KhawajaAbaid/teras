@@ -3,29 +3,30 @@ import keras
 from keras import random, ops
 from keras.backend import floatx
 from teras.backend.jax.models.gans.jaxgan import JAXGAN
-from teras.backend.common.models.gans.gain import BaseGAIN
+from teras.backend.common.models.gans.pcgain import BasePCGAIN
 
 
-class GAIN(JAXGAN, BaseGAIN):
+class PCGAIN(JAXGAN, BasePCGAIN):
     def __init__(self,
                  generator: keras.Model,
                  discriminator: keras.Model,
+                 classifier: keras.Model,
                  hint_rate: float = 0.9,
-                 alpha: float = 100.,
-                 seed: int = 1337,
+                 alpha: float = 200.,
+                 beta: float = 100.,
                  **kwargs
                  ):
         JAXGAN.__init__(self,
                         generator=generator,
                         discriminator=discriminator)
-        BaseGAIN.__init__(self,
-                          generator=generator,
-                          discriminator=discriminator,
-                          hint_rate=hint_rate,
-                          alpha=alpha,
-                          seed=seed,
-                          **kwargs)
-        self._prng_key = jax.random.PRNGKey(seed)
+        BasePCGAIN.__init__(self,
+                            generator=generator,
+                            discriminator=discriminator,
+                            classifier=classifier,
+                            hint_rate=hint_rate,
+                            alpha=alpha,
+                            beta=beta,
+                            **kwargs)
 
     def generator_compute_loss_and_updates(
             self,
@@ -33,6 +34,8 @@ class GAIN(JAXGAN, BaseGAIN):
             generator_non_trainable_vars,
             discriminator_trainable_vars,
             discriminator_non_trainable_vars,
+            classifier_trainable_vars,
+            classifier_non_trainable_vars,
             x_gen,
             hint_vectors,
             mask,
@@ -45,6 +48,11 @@ class GAIN(JAXGAN, BaseGAIN):
             training=training,
         )
         x_hat = (x_generated * (1 - mask)) + (x_gen * mask)
+        classifier_pred, _ = self.classifier.stateless_call(
+            classifier_trainable_vars,
+            classifier_non_trainable_vars,
+            x_hat
+        )
         mask_pred, _ = (
             self.discriminator.stateless_call(
                 discriminator_trainable_vars,
@@ -58,7 +66,9 @@ class GAIN(JAXGAN, BaseGAIN):
             x_generated=x_generated,
             mask=mask,
             mask_pred=mask_pred,
-            alpha=self.alpha
+            classifier_pred=classifier_pred,
+            alpha=self.alpha,
+            beta=self.beta,
         )
         return loss, (generator_non_trainable_vars,)
 
@@ -71,16 +81,63 @@ class GAIN(JAXGAN, BaseGAIN):
             mask,
             training=False
     ):
-        mask_pred, discriminator_non_trainable_vars = (
-            self.discriminator.stateless_call(
-                discriminator_trainable_vars,
-                discriminator_non_trainable_vars,
-                ops.concatenate([x_hat_disc, hint_vectors], axis=1),
-                training=training,
-            )
+        (
+            mask_pred,
+            discriminator_non_trainable_vars
+        ) = self.discriminator.stateless_call(
+            discriminator_trainable_vars,
+            discriminator_non_trainable_vars,
+            ops.concatenate([x_hat_disc, hint_vectors], axis=1),
+            training=training,
         )
         loss = self.compute_discriminator_loss(mask, mask_pred)
         return loss, (discriminator_non_trainable_vars,)
+
+    def _parse_variables(self, trainable_variables, non_trainable_variables,
+                         optimizer_variables=None):
+        generator_state = []
+        discriminator_state = []
+        classifier_state = []
+        # Get generator state
+        # Since generator comes and gets built before discriminator
+        generator_state.append(
+            trainable_variables[:len(self.generator.trainable_variables)])
+        generator_state.append(
+            non_trainable_variables[:len(
+                self.generator.non_trainable_variables)])
+        if optimizer_variables is not None:
+            generator_state.append(
+                optimizer_variables[:len(
+                    self.generator_optimizer.variables)])
+
+        # Get discriminator state
+        start_idx = len(self.generator.trainable_variables)
+        end_idx = start_idx + len(self.discriminator.trainable_variables)
+        discriminator_state.append(
+            trainable_variables[start_idx: end_idx])
+        start_idx = len(self.generator.non_trainable_variables)
+        end_idx = start_idx + len(self.discriminator.non_trainable_variables)
+        discriminator_state.append(
+            non_trainable_variables[start_idx: end_idx])
+        if optimizer_variables is not None:
+            discriminator_state.append(
+                optimizer_variables[len(self.generator_optimizer.variables):])
+
+        # Get classifier state
+        start_idx = len(self.generator.trainable_variables) + len(
+            self.discriminator.trainable_variables)
+        end_idx = start_idx + len(self.classifier.trainable_variables)
+        classifier_state.append(
+            trainable_variables[start_idx: end_idx])
+        start_idx = len(self.generator.non_trainable_variables) + len(
+            self.discriminator.non_trainable_variables
+        )
+        end_idx = start_idx + len(self.classifier.non_trainable_variables)
+        classifier_state.append(
+            non_trainable_variables[start_idx: end_idx])
+
+        return (tuple(generator_state), tuple(discriminator_state),
+                tuple(classifier_state))
 
     def train_step(self, state, data):
         (
@@ -90,13 +147,12 @@ class GAIN(JAXGAN, BaseGAIN):
             metrics_variables
         ) = state
 
-        # GAIN contains SeedGenerator in its __init__ so it's the very first
-        # non-trainable variable.
         seed = non_trainable_variables[0]
 
         (
             generator_state,
             discriminator_state,
+            classifier_state
         ) = self._parse_variables(trainable_variables,
                                   non_trainable_variables[1:],
                                   optimizer_variables)
@@ -110,6 +166,10 @@ class GAIN(JAXGAN, BaseGAIN):
             discriminator_non_trainable_vars,
             discriminator_optimizer_vars
         ) = discriminator_state
+        (
+            classifier_trainable_vars,
+            classifier_non_trainable_vars,
+        ) = classifier_state
 
         # data is a tuple of x_generator and x_discriminator batches
         # drawn from the dataset. The reason behind generating two separate
@@ -125,8 +185,8 @@ class GAIN(JAXGAN, BaseGAIN):
         x_disc = ops.where(ops.isnan(x_disc), x1=0., x2=x_disc)
         # Sample noise
         seed = jax.random.split(seed, 1)[0]
-        z = random.uniform(shape=ops.shape(x_disc), minval=0.,
-                           maxval=0.01, seed=seed)
+        z = random.uniform(shape=ops.shape(x_disc), minval=0., maxval=0.01,
+                           seed=seed)
         # Sample hint vectors
         seed = jax.random.split(seed, 1)[0]
         hint_vectors = random.binomial(shape=ops.shape(x_disc),
@@ -136,7 +196,6 @@ class GAIN(JAXGAN, BaseGAIN):
         hint_vectors = hint_vectors * mask
         # Combine random vectors with original data
         x_disc = x_disc * mask + (1 - mask) * z
-
         x_generated, _ = self.generator.stateless_call(
             generator_trainable_vars,
             generator_non_trainable_vars,
@@ -171,8 +230,8 @@ class GAIN(JAXGAN, BaseGAIN):
         mask = 1. - ops.cast(ops.isnan(x_gen), dtype=floatx())
         x_gen = ops.where(ops.isnan(x_gen), x1=0., x2=x_gen)
         seed = jax.random.split(seed, 1)[0]
-        z = random.uniform(shape=ops.shape(x_gen), minval=0.,
-                           maxval=0.01, seed=seed)
+        z = random.uniform(shape=ops.shape(x_gen), minval=0., maxval=0.01,
+                           seed=seed)
         seed = jax.random.split(seed, 1)[0]
         hint_vectors = random.binomial(shape=ops.shape(x_gen),
                                        counts=1,
@@ -190,6 +249,8 @@ class GAIN(JAXGAN, BaseGAIN):
             generator_non_trainable_vars,
             discriminator_trainable_vars,
             discriminator_non_trainable_vars,
+            classifier_trainable_vars,
+            classifier_non_trainable_vars,
             x_gen,
             hint_vectors,
             mask,
@@ -226,16 +287,18 @@ class GAIN(JAXGAN, BaseGAIN):
                 continue
             logs[metric.name] = metric.stateless_result(this_metric_variables)
             new_metric_variables += this_metric_variables
-        metrics_variables = new_metric_variables
-        
-        # Update seed value
-        seed = seed
+
+        # Update seed
+        seed = jax.random.split(seed, 1)[0]
+
         state = (
-            generator_trainable_vars + discriminator_trainable_vars,
-            [seed] + generator_non_trainable_vars + 
-            discriminator_non_trainable_vars,
+            generator_trainable_vars + discriminator_trainable_vars +
+            classifier_trainable_vars,
+            [seed] + generator_non_trainable_vars +
+            discriminator_non_trainable_vars +
+            classifier_non_trainable_vars,
             generator_optimizer_vars + discriminator_optimizer_vars,
-            metrics_variables
+            new_metric_variables
         )
         return logs, state
 
@@ -248,7 +311,8 @@ class GAIN(JAXGAN, BaseGAIN):
         seed = non_trainable_variables[0]
         (
             generator_state,
-            discriminator_state
+            discriminator_state,
+            classifier_state
         ) = self._parse_variables(trainable_variables,
                                   non_trainable_variables[1:])
 
@@ -260,6 +324,10 @@ class GAIN(JAXGAN, BaseGAIN):
             discriminator_trainable_vars,
             discriminator_non_trainable_vars,
         ) = discriminator_state
+        (
+            classifier_trainable_vars,
+            classifier_non_trainable_vars,
+        ) = classifier_state
 
         x_gen, x_disc = data
 
@@ -325,6 +393,8 @@ class GAIN(JAXGAN, BaseGAIN):
             generator_non_trainable_vars,
             discriminator_trainable_vars,
             discriminator_non_trainable_vars,
+            classifier_trainable_vars,
+            classifier_non_trainable_vars,
             x_gen,
             hint_vectors,
             mask,
@@ -357,9 +427,10 @@ class GAIN(JAXGAN, BaseGAIN):
         seed = jax.random.split(seed, 1)[0]
 
         state = (
-            generator_trainable_vars + discriminator_trainable_vars,
+            generator_trainable_vars + discriminator_trainable_vars +
+            classifier_trainable_vars,
             [seed] + generator_non_trainable_vars +
-            discriminator_non_trainable_vars,
+            discriminator_non_trainable_vars + classifier_non_trainable_vars,
             metrics_variables
         )
         return logs, state
@@ -379,7 +450,8 @@ class GAIN(JAXGAN, BaseGAIN):
         seed = non_trainable_variables[0]
         (
             generator_state,
-            discriminator_state
+            discriminator_state,
+            classifier_state
         ) = self._parse_variables(trainable_variables,
                                   non_trainable_variables)
         (
@@ -390,6 +462,11 @@ class GAIN(JAXGAN, BaseGAIN):
             discriminator_trainable_vars,
             discriminator_non_trainable_vars
         ) = discriminator_state
+        (
+            classifier_trainable_vars,
+            classifier_non_trainable_vars
+        ) = classifier_state
+
         if isinstance(data, tuple):
             data = data[0]
         data = ops.cast(data, floatx())
@@ -414,5 +491,6 @@ class GAIN(JAXGAN, BaseGAIN):
         seed = jax.random.split(seed, 1)[0]
         non_trainable_variables = (
                 [seed] + generator_non_trainable_vars +
-                discriminator_non_trainable_vars)
+                discriminator_non_trainable_vars + classifier_non_trainable_vars
+        )
         return imputed_data, non_trainable_variables

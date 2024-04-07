@@ -19,7 +19,13 @@ from teras.backend.jax.models.pretrainers.tab_transformer import (
     TabTransformerRTDPretrainer
 )
 from teras.backend.jax.models.pretrainers.saint import SAINTPretrainer
-from teras.backend.jax.models.ctgan.discriminator import CTGANDiscriminator
 
 # Autoencoders
 from teras.backend.jax.models.autoencoders.tvae.tvae import TVAE
+
+# GANs
+from teras.backend.jax.models.gans.gain import GAIN
+from teras.backend.jax.models.gans.pcgain import PCGAIN
+from teras.backend.jax.models.gans.ctgan.ctgan import CTGAN
+from teras.backend.jax.models.gans.ctgan.discriminator import CTGANDiscriminator
+from teras.backend.jax.models.gans.ctgan.generator import CTGANGenerator

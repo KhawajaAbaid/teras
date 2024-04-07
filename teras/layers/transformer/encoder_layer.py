@@ -88,6 +88,9 @@ class TransformerEncoderLayer(keras.layers.Layer):
 
     def build(self, input_shape):
         self.feedforward.build(input_shape)
+        if self.use_normalization:
+            self.layer_norm_1.build(input_shape)
+            self.layer_norm_2.build(input_shape)
 
     def call(self, inputs):
         residue = inputs

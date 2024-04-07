@@ -1,6 +1,7 @@
 import keras
 from keras import random, ops
 from teras.utils import clean_reloaded_config_data
+from teras.utils.decorators import assert_fitted
 
 
 class BaseTVAE(keras.Model):
@@ -35,6 +36,12 @@ class BaseTVAE(keras.Model):
         input_shape = input_shape[:-1] + (self.latent_dim,)
         if not self.decoder.built:
             self.decoder.build(input_shape)
+
+    def get_encoder(self):
+        return self.encoder
+
+    def get_decoder(self):
+        return self.decoder
 
     @property
     def metrics(self):
@@ -120,6 +127,21 @@ class BaseTVAE(keras.Model):
         z = (std * eps) + mean
         generated_samples, sigmas = self.decoder(z)
         return generated_samples, sigmas, mean, log_var
+
+    def test_step(self, data):
+        generated_samples, sigmas, mean, log_var = self(data)
+        loss = self.compute_loss(real_samples=data,
+                                 generated_samples=generated_samples,
+                                 sigmas=sigmas,
+                                 mean=mean,
+                                 log_var=log_var)
+        self.loss_tracker.update_state(loss)
+        logs = {m.name: m.result() for m in self.metrics}
+        return logs
+
+    def predict_step(self, z):
+        generated_samples, _ = self.decoder(z)
+        return generated_samples
 
     def compute_output_shape(self, input_shape):
         batch_size, _ = input_shape

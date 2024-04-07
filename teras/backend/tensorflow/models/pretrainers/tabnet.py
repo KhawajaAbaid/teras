@@ -24,7 +24,7 @@ class TabNetPretrainer(BaseTabNetPretrainer):
             shape=ops.shape(data),
             counts=1,
             probabilities=self.missing_feature_probability,
-            seed=self._mask_seed_generator
+            seed=self._seed_generator
         )
         with tf.GradientTape() as tape:
             reconstructed = self(data, mask, training=True)

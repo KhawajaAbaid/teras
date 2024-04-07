@@ -50,7 +50,8 @@ class CategoricalEmbedding(keras.layers.Layer):
         return categorical_embeddings
 
     def compute_output_shape(self, input_shape):
-        return input_shape + (self.embedding_dim,)
+        return input_shape[:-1] + (len(self._categorical_idx),
+                                   self.embedding_dim,)
 
     def get_config(self):
         config = super().get_config()

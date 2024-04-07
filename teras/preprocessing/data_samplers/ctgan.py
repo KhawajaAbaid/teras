@@ -1,5 +1,7 @@
-from teras.utils.types import FeaturesNamesType
 import numpy as np
+
+from teras.utils.types import FeaturesNamesType
+
 try:
     import tensorflow as tf
 except:
@@ -93,7 +95,7 @@ class CTGANDataSampler:
 
         dataset = tf.data.Dataset.from_generator(
             self.generator,
-            output_signature=(
+            output_signature=((
                 tf.TensorSpec(
                     shape=(None, self.data_dim),
                     name="real_samples"),
@@ -106,6 +108,9 @@ class CTGANDataSampler:
                 tf.TensorSpec(
                     shape=(None, self._num_categorical_features,),
                     dtype=tf.float32, name="mask")
+            ),
+                tf.TensorSpec(shape=(None, 1),
+                              dtype=tf.float32, name="dummy_vals"),
             ),
             args=(x_transformed,)
         )
@@ -234,4 +239,5 @@ class CTGANDataSampler:
             # and passed to the discriminator
             cond_vectors_real = cond_vectors[shuffled_idx]
             real_samples = x_transformed[sample_idx]
-            yield real_samples, cond_vectors_real, cond_vectors, mask
+            dummy_ys = np.ones((self.batch_size, 1))
+            yield (real_samples, cond_vectors_real, cond_vectors, mask), dummy_ys

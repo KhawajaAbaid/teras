@@ -40,13 +40,13 @@ class TabNetPretrainer(BaseTabNetPretrainer):
          optimizer_variables,
          metrics_variables
          ) = state
-
+        seed = non_trainable_variables[0]
         # Sample mask
         mask = random.binomial(
             shape=ops.shape(data),
             counts=1,
             probabilities=self.missing_feature_probability,
-            seed=1337
+            seed=seed,
         )
         # Grad fn
         grad_fn = jax.value_and_grad(self.compute_loss_and_updates,
@@ -70,7 +70,6 @@ class TabNetPretrainer(BaseTabNetPretrainer):
             grads,
             trainable_variables
         )
-
         # Update metrics
         logs = {}
         new_metric_variables = []
@@ -92,6 +91,8 @@ class TabNetPretrainer(BaseTabNetPretrainer):
             logs[metric.name] = metric.stateless_result(this_metric_variables)
             new_metric_variables += this_metric_variables
 
+        seed = jax.random.split(seed, 1)[0]
+        non_trainable_variables[0] = seed
         state = (
             trainable_variables,
             non_trainable_variables,

@@ -1,5 +1,6 @@
 import keras
 from keras import random, ops
+from keras.backend import backend
 from teras.utils.utils import clean_reloaded_config_data
 
 
@@ -14,7 +15,10 @@ class BaseCTGAN(keras.Model):
                  latent_dim: int = 128,
                  seed: int = 1337,
                  **kwargs):
-        super().__init__(**kwargs)
+        if not backend() == "jax":
+            # Don't call super() with JAX backend as `JAXGAN` does that
+            # already!
+            super().__init__(**kwargs)
         self.generator = generator
         self.discriminator = discriminator
         self.metadata = metadata
@@ -118,6 +122,53 @@ class BaseCTGAN(keras.Model):
             Discriminator's loss.
         """
         return -(ops.mean(y_pred_real) - ops.mean(y_pred_generated))
+
+    def test_step(self, data):
+        x, cond_vectors_real, cond_vectors, mask = data
+        batch_size = ops.shape(x)[0]
+
+        # =========================
+        # Discriminator test step
+        # =========================
+        z = random.normal(shape=[batch_size, self.latent_dim],
+                          seed=self._seed_gen)
+        input_gen = ops.concatenate([z, cond_vectors], axis=1)
+        x_generated = self.generator(input_gen)
+        x_generated = ops.concatenate(
+            [x_generated, cond_vectors], axis=1)
+        x = ops.concatenate([x, cond_vectors_real],
+                            axis=1)
+
+        y_pred_generated = self.discriminator(x_generated)
+        y_pred_real = self.discriminator(x)
+        loss_disc = self.compute_disciriminator_loss(
+            y_pred_real,
+            y_pred_generated)
+
+        # =====================
+        # Generator test step
+        # =====================
+        z = random.normal(shape=[batch_size, self.latent_dim],
+                          seed=self._seed_gen)
+        input_gen = ops.concatenate([z, cond_vectors], axis=1)
+
+        x_generated = self.generator(input_gen)
+        x_generated = ops.concatenate(
+            [x_generated, cond_vectors], axis=1)
+        y_pred_generated = self.discriminator(x_generated)
+        loss_gen = self.compute_generator_loss(
+            x_generated, y_pred_generated,
+            cond_vectors=cond_vectors, mask=mask,
+            metadata=self.metadata)
+
+        self.generator_loss_tracker.update_state(loss_gen)
+        self.discriminator_loss_tracker.update_state(loss_disc)
+        results = {m.name: m.result() for m in self.metrics}
+        return results
+
+    def predict_step(self, generator_input):
+        generated_samples = self.generator(generator_input)
+        return generated_samples
 
     def get_config(self):
         config = super().get_config()
