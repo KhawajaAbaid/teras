@@ -94,20 +94,22 @@ class CTGAN(JAXGAN, BaseCTGAN):
             metrics_variables
         ) = state
 
+        seed = non_trainable_variables[0]
+
         # Get generator state
         # Since generator comes and gets built before discriminator
         generator_trainable_vars = trainable_variables[
                                    :len(self.generator.trainable_variables)]
-        generator_non_trainable_vars = non_trainable_variables[
-                                       :len(self.generator.non_trainable_variables)]
+        generator_non_trainable_vars = non_trainable_variables[1:][
+                                   :len(self.generator.non_trainable_variables)]
         generator_optimizer_vars = optimizer_variables[
                                    :len(self.generator_optimizer.variables)]
 
         # Get discriminator state
         discriminator_trainable_vars = trainable_variables[
                                        len(self.generator.trainable_variables):]
-        discriminator_non_trainable_vars = non_trainable_variables[
-                                           len(self.generator.non_trainable_variables):]
+        discriminator_non_trainable_vars = non_trainable_variables[1:][
+                                   len(self.generator.non_trainable_variables):]
         discriminator_optimizer_vars = optimizer_variables[
                                        len(self.generator_optimizer.variables):
                                        ]
@@ -120,8 +122,9 @@ class CTGAN(JAXGAN, BaseCTGAN):
         # =========================
         # Discriminator train step
         # =========================
+        seed = jax.random.split(seed, 1)[0]
         z = random.normal(shape=[batch_size, self.latent_dim],
-                          seed=self._seed_gen)
+                          seed=seed)
         input_gen = ops.concatenate([z, cond_vectors], axis=1)
         x_generated, _ = self.generator.stateless_call(
             generator_trainable_vars,
@@ -173,8 +176,9 @@ class CTGAN(JAXGAN, BaseCTGAN):
         # =====================
         # Generator train step
         # =====================
+        seed = jax.random.split(seed, 1)[0]
         z = random.normal(shape=[batch_size, self.latent_dim],
-                          seed=self._seed_gen)
+                          seed=seed)
         input_gen = ops.concatenate([z, cond_vectors], axis=1)
         gen_grad_fn = jax.value_and_grad(
             self.generator_compute_loss_and_updates,
@@ -222,9 +226,12 @@ class CTGAN(JAXGAN, BaseCTGAN):
             logs[metric.name] = metric.stateless_result(this_metric_variables)
             new_metric_variables += this_metric_variables
 
+        # Update seed
+        seed = jax.random.split(seed, 1)[0]
         state = (
             generator_trainable_vars + discriminator_trainable_vars,
-            generator_non_trainable_vars + discriminator_non_trainable_vars,
+            [seed] + generator_non_trainable_vars +
+            discriminator_non_trainable_vars,
             generator_optimizer_vars + discriminator_optimizer_vars,
             new_metric_variables
         )
