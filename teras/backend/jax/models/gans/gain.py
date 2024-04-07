@@ -12,6 +12,7 @@ class GAIN(JAXGAN, BaseGAIN):
                  discriminator: keras.Model,
                  hint_rate: float = 0.9,
                  alpha: float = 100.,
+                 seed: int = 1337,
                  **kwargs
                  ):
         JAXGAN.__init__(self,
@@ -22,7 +23,9 @@ class GAIN(JAXGAN, BaseGAIN):
                           discriminator=discriminator,
                           hint_rate=hint_rate,
                           alpha=alpha,
+                          seed=seed,
                           **kwargs)
+        self._prng_key = jax.random.PRNGKey(seed)
 
     def generator_compute_loss_and_updates(
             self,
@@ -86,23 +89,21 @@ class GAIN(JAXGAN, BaseGAIN):
             optimizer_variables,
             metrics_variables
         ) = state
-        # Get generator state
-        # Since generator comes and gets built before discriminator
-        generator_trainable_vars = trainable_variables[
-                                   :len(self.generator.trainable_variables)]
-        generator_non_trainable_vars = non_trainable_variables[
-                                       :len(self.generator.non_trainable_variables)]
-        generator_optimizer_vars = optimizer_variables[
-                                   :len(self.generator_optimizer.variables)]
-
-        # Get discriminator state
-        discriminator_trainable_vars = trainable_variables[
-            len(self.generator.trainable_variables):]
-        discriminator_non_trainable_vars = non_trainable_variables[
-            len(self.generator.non_trainable_variables):]
-        discriminator_optimizer_vars = optimizer_variables[
-            len(self.generator_optimizer.variables):
-        ]
+        (
+            generator_state,
+            discriminator_state,
+        ) = self._parse_variables(trainable_variables, non_trainable_variables,
+                                  optimizer_variables)
+        (
+            generator_trainable_vars,
+            generator_non_trainable_vars,
+            generator_optimizer_vars
+        ) = generator_state
+        (
+            discriminator_trainable_vars,
+            discriminator_non_trainable_vars,
+            discriminator_optimizer_vars
+        ) = discriminator_state
 
         # data is a tuple of x_generator and x_discriminator batches
         # drawn from the dataset. The reason behind generating two separate
@@ -117,13 +118,13 @@ class GAIN(JAXGAN, BaseGAIN):
         # replace nans with 0.
         x_disc = ops.where(ops.isnan(x_disc), x1=0., x2=x_disc)
         # Sample noise
-        z = random.uniform(shape=ops.shape(x_disc), minval=0., maxval=0.01,
-                           seed=1337)
+        z = random.uniform(shape=ops.shape(x_disc), minval=0.,
+                           maxval=0.01, seed=99999)
         # Sample hint vectors
         hint_vectors = random.binomial(shape=ops.shape(x_disc),
                                        counts=1,
                                        probabilities=self.hint_rate,
-                                       seed=1337)
+                                       seed=99999)
         hint_vectors = hint_vectors * mask
         # Combine random vectors with original data
         x_disc = x_disc * mask + (1 - mask) * z
@@ -161,12 +162,12 @@ class GAIN(JAXGAN, BaseGAIN):
         # =====================
         mask = 1. - ops.cast(ops.isnan(x_gen), dtype=floatx())
         x_gen = ops.where(ops.isnan(x_gen), x1=0., x2=x_gen)
-        z = random.uniform(shape=ops.shape(x_gen), minval=0., maxval=0.01,
-                           seed=1337)
+        z = random.uniform(shape=ops.shape(x_gen), minval=0.,
+                           maxval=0.01, seed=99999)
         hint_vectors = random.binomial(shape=ops.shape(x_gen),
                                        counts=1,
                                        probabilities=self.hint_rate,
-                                       seed=1337)
+                                       seed=99999)
         hint_vectors = hint_vectors * mask
         x_gen = x_gen * mask + (1 - mask) * z
 
@@ -215,11 +216,189 @@ class GAIN(JAXGAN, BaseGAIN):
                 continue
             logs[metric.name] = metric.stateless_result(this_metric_variables)
             new_metric_variables += this_metric_variables
+        metrics_variables = new_metric_variables
+        other_non_trainable_vars = non_trainable_variables[
+            len(generator_non_trainable_vars) + len(
+                discriminator_non_trainable_vars):
+        ]
+        state = (
+            generator_trainable_vars + discriminator_trainable_vars,
+            generator_non_trainable_vars + discriminator_non_trainable_vars +
+            other_non_trainable_vars,
+            generator_optimizer_vars + discriminator_optimizer_vars,
+            metrics_variables
+        )
+        return logs, state
+
+    def test_step(self, state, data):
+        (
+            trainable_variables,
+            non_trainable_variables,
+            metrics_variables,
+        ) = state
+        (
+            generator_state,
+            discriminator_state
+        ) = self._parse_variables(trainable_variables, non_trainable_variables)
+
+        (
+            generator_trainable_vars,
+            generator_non_trainable_vars,
+        ) = generator_state
+        (
+            discriminator_trainable_vars,
+            discriminator_non_trainable_vars,
+        ) = discriminator_state
+
+        x_gen, x_disc = data
+
+        # =========================
+        # Test the discriminator
+        # =========================
+        # Create mask
+        mask = 1. - ops.cast(ops.isnan(x_disc), dtype=floatx())
+        # replace nans with 0.
+        x_disc = ops.where(ops.isnan(x_disc), x1=0., x2=x_disc)
+        # Sample noise
+        z = random.uniform(shape=ops.shape(x_disc), minval=0.,
+                           maxval=0.01, seed=99999)
+        # Sample hint vectors
+        hint_vectors = random.binomial(shape=ops.shape(x_disc),
+                                       counts=1,
+                                       probabilities=self.hint_rate,
+                                       seed=99999)
+        hint_vectors *= mask
+        # Combine random vectors with original data
+        x_disc = x_disc * mask + (1 - mask) * z
+        x_generated, _ = self.generator.stateless_call(
+            generator_trainable_vars,
+            generator_non_trainable_vars,
+            ops.concatenate([x_disc, mask], axis=1))
+        # Combine generated samples with original data
+        x_hat_disc = (x_generated * (1 - mask)) + (x_disc * mask)
+
+        (
+            d_loss,
+            (discriminator_non_trainable_vars,)
+        ) = self.discriminator_compute_loss_and_updates(
+            discriminator_trainable_vars,
+            discriminator_non_trainable_vars,
+            x_hat_disc,
+            hint_vectors,
+            mask
+        )
+
+        # =====================
+        # Test the generator
+        # =====================
+        mask = 1. - ops.cast(ops.isnan(x_gen), dtype=floatx())
+        x_gen = ops.where(ops.isnan(x_gen), x1=0., x2=x_gen)
+        z = random.uniform(shape=ops.shape(x_gen), minval=0.,
+                           maxval=0.01, seed=99999)
+        hint_vectors = random.binomial(shape=ops.shape(x_gen),
+                                       counts=1,
+                                       probabilities=self.hint_rate,
+                                       seed=99999)
+        hint_vectors *= mask
+        x_gen = x_gen * mask + (1 - mask) * z
+
+        (
+            g_loss,
+            (generator_non_trainable_vars,)
+        ) = self.generator_compute_loss_and_updates(
+            generator_trainable_vars,
+            generator_non_trainable_vars,
+            discriminator_trainable_vars,
+            discriminator_non_trainable_vars,
+            x_gen,
+            hint_vectors,
+            mask,
+        )
+
+        # Update metrics
+        logs = {}
+        new_metric_variables = []
+        for metric in self.metrics:
+            this_metric_variables = metrics_variables[
+                                    len(new_metric_variables): len(new_metric_variables) + len(metric.variables)
+                                    ]
+            if metric.name == "generator_loss":
+                this_metric_variables = metric.stateless_update_state(
+                    this_metric_variables,
+                    g_loss
+                )
+            elif metric.name == "discriminator_loss":
+                this_metric_variables = metric.stateless_update_state(
+                    this_metric_variables,
+                    d_loss
+                )
+            else:
+                continue
+            logs[metric.name] = metric.stateless_result(this_metric_variables)
+            new_metric_variables += this_metric_variables
+        metrics_variables = new_metric_variables
 
         state = (
             generator_trainable_vars + discriminator_trainable_vars,
             generator_non_trainable_vars + discriminator_non_trainable_vars,
-            generator_optimizer_vars + discriminator_optimizer_vars,
-            new_metric_variables
+            metrics_variables
         )
         return logs, state
+
+    def predict_step(self, state, data):
+        """
+        Args:
+            Transformed data.
+        Returns:
+            Imputed data that should be reverse transformed
+            to its original form.
+        """
+        (
+            trainable_variables,
+            non_trainable_variables
+        ) = state
+        print("recieved non train vars: ", len(trainable_variables))
+        (
+            generator_state,
+            discriminator_state
+        ) = self._parse_variables(trainable_variables,
+                                  non_trainable_variables)
+        (
+            generator_trainable_vars,
+            generator_non_trainable_vars
+        ) = generator_state
+        (
+            discriminator_trainable_vars,
+            discriminator_non_trainable_vars
+        ) = discriminator_state
+        print("after parse:\n"
+              f"\tgen non train vars: {len(generator_non_trainable_vars)}"
+              f"\tdisc non train vars: {len(discriminator_non_trainable_vars)}"
+              )
+        if isinstance(data, tuple):
+            data = data[0]
+        data = ops.cast(data, floatx())
+        # Create mask
+        mask = 1. - ops.cast(ops.isnan(data), dtype=floatx())
+        data = ops.where(ops.isnan(data), x1=0., x2=data)
+        # Sample noise
+        z = random.uniform(ops.shape(data), minval=0.,
+                           maxval=0.01, seed=99999)
+        x = mask * data + (1 - mask) * z
+        print("calling...")
+        (
+            imputed_data,
+            generator_non_trainable_vars
+        ) = self.generator.stateless_call(
+            generator_trainable_vars,
+            generator_non_trainable_vars,
+            ops.concatenate([x, mask], axis=1))
+        imputed_data = mask * data + (1 - mask) * imputed_data
+        print("done...")
+        non_trainable_variables = (
+                generator_non_trainable_vars +
+                discriminator_non_trainable_vars +
+                non_trainable_variables[len(generator_non_trainable_vars) +
+                                        len(discriminator_non_trainable_vars):])
+        print("returning non train vars: ", len(non_trainable_variables))
+        return imputed_data, non_trainable_variables
