@@ -106,26 +106,34 @@ class PCGAIN(JAXGAN, BasePCGAIN):
         generator_trainable_vars = trainable_variables[
                                    :len(self.generator.trainable_variables)]
         generator_non_trainable_vars = non_trainable_variables[
-                                       :len(self.generator.non_trainable_variables)]
+                                   :len(self.generator.non_trainable_variables)]
         generator_optimizer_vars = optimizer_variables[
                                    :len(self.generator_optimizer.variables)]
 
         # Get discriminator state
-        disc_slice_start_idx = len(self.generator.trainable_variables)
-        disc_slice_end_idx = disc_slice_start_idx + len(
-            self.discriminator.trainable_variables)
+        start_idx = len(self.generator.trainable_variables)
+        end_idx = start_idx + len(self.discriminator.trainable_variables)
         discriminator_trainable_vars = trainable_variables[
-                                    disc_slice_start_idx: disc_slice_end_idx]
+                                    start_idx: end_idx]
+        start_idx = len(self.generator.non_trainable_variables)
+        end_idx = start_idx + len(self.discriminator.non_trainable_variables)
         discriminator_non_trainable_vars = non_trainable_variables[
-                                    disc_slice_start_idx: disc_slice_end_idx]
+                                    start_idx: end_idx]
         discriminator_optimizer_vars = optimizer_variables[
                                        len(self.generator_optimizer.variables):]
 
         # Get classifier state
+        start_idx = len(self.generator.trainable_variables) + len(
+            self.discriminator.trainable_variables)
+        end_idx = start_idx + len(self.classifier.trainable_variables)
         classifier_trainable_vars = trainable_variables[
-                                    -len(self.classifier.trainable_variables):]
+                                    start_idx: end_idx]
+        start_idx = len(self.generator.non_trainable_variables) + len(
+            self.discriminator.non_trainable_variables
+        )
+        end_idx = start_idx + len(self.classifier.non_trainable_variables)
         classifier_non_trainable_vars = non_trainable_variables[
-                                        -len(self.classifier.non_trainable_variables):]
+                                    start_idx: end_idx]
 
         # data is a tuple of x_generator and x_discriminator batches
         # drawn from the dataset. The reason behind generating two separate
@@ -249,3 +257,4 @@ class PCGAIN(JAXGAN, BasePCGAIN):
             new_metric_variables
         )
         return logs, state
+
