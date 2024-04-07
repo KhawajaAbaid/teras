@@ -3,6 +3,10 @@ import keras
 from keras.models import Model
 from keras.src.saving import serialization_lib
 
+# TODO:
+#   1. Implement a compose state function
+#   2. Also maybe replace _parse_variables with decompose state
+
 
 class JAXGAN(Model):
     """
@@ -92,23 +96,28 @@ class JAXGAN(Model):
         # Get generator state
         generator_state = []
         # Since generator comes and gets built before discriminator
-        generator_state.append(trainable_variables[
-                               :len(self.generator.trainable_variables)])
-        generator_state.append(non_trainable_variables[
-                               :len(self.generator.non_trainable_variables)])
+        num_gen_train_vars = len(self.generator.trainable_variables)
+        generator_state.append(
+            trainable_variables[:num_gen_train_vars])
+        num_gen_non_train_vars = len(self.generator.non_trainable_variables)
+        generator_state.append(
+            non_trainable_variables[:num_gen_non_train_vars])
         if optimizer_variables is not None:
-            generator_state.append(optimizer_variables[
-                                   :len(self.generator_optimizer.variables)])
+            generator_state.append(
+                optimizer_variables[:len(self.generator_optimizer.variables)])
 
         # Get discriminator state
         discriminator_state = []
-        discriminator_state.append(trainable_variables[
-                                   len(self.generator.trainable_variables):])
-        discriminator_state.append(non_trainable_variables[
-                                   len(self.generator.non_trainable_variables):])
+        slice_size = num_gen_train_vars + len(self.discriminator.trainable_variables)
+        discriminator_state.append(
+            trainable_variables[num_gen_train_vars: slice_size])
+        slice_size = num_gen_non_train_vars + len(
+            self.discriminator.non_trainable_variables)
+        discriminator_state.append(
+            non_trainable_variables[num_gen_non_train_vars: slice_size])
         if optimizer_variables is not None:
-            discriminator_state.append(optimizer_variables[
-                                       len(self.generator_optimizer.variables):])
+            discriminator_state.append(
+                optimizer_variables[len(self.generator_optimizer.variables):])
         return tuple(generator_state), tuple(discriminator_state)
 
     def compute_loss(self, **kwargs):
@@ -150,12 +159,12 @@ class JAXGAN(Model):
                    **config)
 
     def _get_jax_state(
-        self,
-        trainable_variables=False,
-        non_trainable_variables=False,
-        optimizer_variables=False,
-        metrics_variables=False,
-        purge_model_variables=False,
+            self,
+            trainable_variables=False,
+            non_trainable_variables=False,
+            optimizer_variables=False,
+            metrics_variables=False,
+            purge_model_variables=False,
     ):
         state = []
         if trainable_variables:
@@ -190,7 +199,7 @@ class JAXGAN(Model):
                 ref_v.assign(v)
         if non_trainable_variables:
             for ref_v, v in zip(
-                self.non_trainable_variables, non_trainable_variables
+                    self.non_trainable_variables, non_trainable_variables
             ):
                 ref_v.assign(v)
         if optimizer_variables:
@@ -216,11 +225,11 @@ class JAXGAN(Model):
         ]
 
     def _enforce_jax_state_sharding(
-        self,
-        trainable_variables=None,
-        non_trainable_variables=None,
-        optimizer_variables=None,
-        metrics_variables=None,
+            self,
+            trainable_variables=None,
+            non_trainable_variables=None,
+            optimizer_variables=None,
+            metrics_variables=None,
     ):
         """Enforce the sharding spec constraint for all the training state.
 
@@ -264,11 +273,11 @@ class JAXGAN(Model):
         )
 
     def _purge_model_variables(
-        self,
-        trainable_variables=False,
-        non_trainable_variables=False,
-        optimizer_variables=False,
-        metrics_variables=False,
+            self,
+            trainable_variables=False,
+            non_trainable_variables=False,
+            optimizer_variables=False,
+            metrics_variables=False,
     ):
         """Remove all the model variable for memory saving.
 
