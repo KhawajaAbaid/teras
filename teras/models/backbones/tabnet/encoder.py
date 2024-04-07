@@ -8,7 +8,7 @@ from teras.layers.layer_list import LayerList
 
 
 @teras_export("teras.models.TabNetEncoderBackbone")
-class TabNetEncoderBackbone(Backbone):
+class TabNetEncoderBackbone(keras.Model):
     """
     TabNetEncoder proposed by Arik et al. in the
     "TabNet: Attentive Interpretable Tabular Learning" paper.
