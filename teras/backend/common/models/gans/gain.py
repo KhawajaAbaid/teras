@@ -13,6 +13,7 @@ class BaseGAIN(keras.Model):
                  discriminator: keras.Model,
                  hint_rate: float = 0.9,
                  alpha: float = 100.,
+                 seed: int = 1337,
                  **kwargs):
         if not backend() == "jax":
              # Don't call super() with JAX backend as `JAXGAN` does that
@@ -22,12 +23,15 @@ class BaseGAIN(keras.Model):
         self.discriminator = discriminator
         self.hint_rate = hint_rate
         self.alpha = alpha
+        self.seed = seed
 
         # Loss trackers
         self.generator_loss_tracker = keras.metrics.Mean(
             name="generator_loss")
         self.discriminator_loss_tracker = keras.metrics.Mean(
             name="discriminator_loss")
+
+        self._seed_gen = random.SeedGenerator(self.seed)
 
     def build(self, input_shape):
         # Inputs received by each generator and discriminator have twice the
@@ -92,11 +96,13 @@ class BaseGAIN(keras.Model):
         # replace nans with 0.
         x_disc = ops.where(ops.isnan(x_disc), x1=0., x2=x_disc)
         # Sample noise
-        z = random.uniform(shape=ops.shape(x_disc), minval=0., maxval=0.01)
+        z = random.uniform(shape=ops.shape(x_disc), minval=0.,
+                           maxval=0.01, seed=self._seed_gen)
         # Sample hint vectors
         hint_vectors = random.binomial(shape=ops.shape(x_disc),
                                        counts=1,
-                                       probabilities=self.hint_rate)
+                                       probabilities=self.hint_rate,
+                                       seed=self._seed_gen)
         hint_vectors *= mask
         # Combine random vectors with original data
         x_disc = x_disc * mask + (1 - mask) * z
@@ -112,10 +118,12 @@ class BaseGAIN(keras.Model):
         # =====================
         mask = 1. - ops.cast(ops.isnan(x_gen), dtype=floatx())
         x_gen = ops.where(ops.isnan(x_gen), x1=0., x2=x_gen)
-        z = random.uniform(shape=ops.shape(x_gen), minval=0., maxval=0.01)
+        z = random.uniform(shape=ops.shape(x_gen), minval=0.,
+                           maxval=0.01, seed=self._seed_gen)
         hint_vectors = random.binomial(shape=ops.shape(x_gen),
                                        counts=1,
-                                       probabilities=self.hint_rate)
+                                       probabilities=self.hint_rate,
+                                       seed=self._seed_gen)
         hint_vectors *= mask
         x_gen = x_gen * mask + (1 - mask) * z
 
@@ -161,7 +169,8 @@ class BaseGAIN(keras.Model):
         mask = 1. - ops.cast(ops.isnan(data), dtype=floatx())
         data = ops.where(ops.isnan(data), x1=0., x2=data)
         # Sample noise
-        z = random.uniform(ops.shape(data), minval=0., maxval=0.01)
+        z = random.uniform(ops.shape(data), minval=0.,
+                           maxval=0.01, seed=self._seed_gen)
         x = mask * data + (1 - mask) * z
         imputed_data = self.generator(ops.concatenate([x, mask], axis=1))
         imputed_data = mask * data + (1 - mask) * imputed_data
