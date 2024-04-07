@@ -33,6 +33,10 @@ class GumbelSoftmax(keras.layers.Layer):
         self.hard = hard
         self.seed = seed
 
+    def build(self, input_shape):
+        # nothing to build
+        self.built = True
+
     def call(self, logits):
         return gumbel_softmax(logits,
                               temperature=self.temperature,
