@@ -37,6 +37,7 @@ class PCGAIN(backend.models.PCGAIN):
         beta: float, Hyper parameter for generator loss computation that
             controls the contribution of the classifier's loss to the
             overall generator loss. Defaults to 100.
+        seed: int, seed to make results of random ops deterministic.
     """
     def __init__(self,
                  generator: keras.Model,
@@ -45,6 +46,7 @@ class PCGAIN(backend.models.PCGAIN):
                  hint_rate: float = 0.9,
                  alpha: float = 200.,
                  beta: float = 100.,
+                 seed: int = 1337,
                  **kwargs):
         super().__init__(generator=generator,
                          discriminator=discriminator,
@@ -52,4 +54,5 @@ class PCGAIN(backend.models.PCGAIN):
                          hint_rate=hint_rate,
                          alpha=alpha,
                          beta=beta,
+                         seed=seed,
                          **kwargs)
