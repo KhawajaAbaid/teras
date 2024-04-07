@@ -76,6 +76,7 @@ class CTGANGenerator(keras.Model):
         self.hidden_block.build(input_shape)
         input_shape = self.hidden_block.compute_output_shape(input_shape)
         self.output_layer.build(input_shape)
+        self.gumbel_softmax.build(input_shape)
 
     def apply_activations_by_feature_type(self, interim_outputs):
         """
