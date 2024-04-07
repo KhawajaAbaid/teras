@@ -101,6 +101,8 @@ class PCGAIN(JAXGAN, BasePCGAIN):
             metrics_variables
         ) = state
 
+        seed = non_trainable_variables[0]
+
         # Get generator state
         # Since generator comes and gets built before discriminator
         generator_trainable_vars = trainable_variables[
@@ -148,13 +150,15 @@ class PCGAIN(JAXGAN, BasePCGAIN):
         # replace nans with 0.
         x_disc = ops.where(ops.isnan(x_disc), x1=0., x2=x_disc)
         # Sample noise
+        seed = jax.random.split(seed, 1)[0]
         z = random.uniform(shape=ops.shape(x_disc), minval=0., maxval=0.01,
-                           seed=1337)
+                           seed=seed)
         # Sample hint vectors
+        seed = jax.random.split(seed, 1)[0]
         hint_vectors = random.binomial(shape=ops.shape(x_disc),
                                        counts=1,
                                        probabilities=self.hint_rate,
-                                       seed=1337)
+                                       seed=seed)
         hint_vectors = hint_vectors * mask
         # Combine random vectors with original data
         x_disc = x_disc * mask + (1 - mask) * z
@@ -191,12 +195,14 @@ class PCGAIN(JAXGAN, BasePCGAIN):
         # =====================
         mask = 1. - ops.cast(ops.isnan(x_gen), dtype=floatx())
         x_gen = ops.where(ops.isnan(x_gen), x1=0., x2=x_gen)
+        seed = jax.random.split(seed, 1)[0]
         z = random.uniform(shape=ops.shape(x_gen), minval=0., maxval=0.01,
-                           seed=1337)
+                           seed=seed)
+        seed = jax.random.split(seed, 1)[0]
         hint_vectors = random.binomial(shape=ops.shape(x_gen),
                                        counts=1,
                                        probabilities=self.hint_rate,
-                                       seed=1337)
+                                       seed=seed)
         hint_vectors = hint_vectors * mask
         x_gen = x_gen * mask + (1 - mask) * z
 
@@ -248,10 +254,14 @@ class PCGAIN(JAXGAN, BasePCGAIN):
             logs[metric.name] = metric.stateless_result(this_metric_variables)
             new_metric_variables += this_metric_variables
 
+        # Update seed
+        seed = jax.random.split(seed, 1)[0]
+
         state = (
             generator_trainable_vars + discriminator_trainable_vars +
             classifier_trainable_vars,
-            generator_non_trainable_vars + discriminator_non_trainable_vars +
+            [seed] + generator_non_trainable_vars +
+            discriminator_non_trainable_vars +
             classifier_non_trainable_vars,
             generator_optimizer_vars + discriminator_optimizer_vars,
             new_metric_variables
