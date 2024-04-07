@@ -22,13 +22,12 @@ class CTGANDiscriminator(BaseCTGANDiscriminator):
                                non_trainable_variables,
                                interpolated_samples
                                ):
-        y_interpolated = self.stateless_call(
+        y_interpolated, non_trainable_variables = self.stateless_call(
             trainable_variables,
             non_trainable_variables,
             interpolated_samples,
-            training=True
         )
-        return y_interpolated
+        return ops.mean(y_interpolated), (non_trainable_variables,)
 
     def gradient_penalty(self,
                          trainable_variables,
@@ -50,12 +49,15 @@ class CTGANDiscriminator(BaseCTGANDiscriminator):
         interpolated_samples = ((alpha * real_samples)
                                 + ((1 - alpha) * generated_samples))
 
-        grad_fn = jax.value_and_grad(self.compute_y_interpolated)
-        y_interpolated, gradients = grad_fn(trainable_variables,
-                                            non_trainable_variables,
-                                            interpolated_samples)
+        grad_fn = jax.value_and_grad(self.compute_y_interpolated,
+                                     has_aux=True)
+        (_, (non_trainable_variables,)), gradients = grad_fn(
+            trainable_variables,
+            non_trainable_variables,
+            interpolated_samples)
+        gradients = gradients[0]
         gradients = ops.reshape(gradients,
-                                shape=(-1, self.packing_degree * dim))
+                                newshape=(-1, self.packing_degree * dim))
         # Calculating gradient penalty
         gradients_norm = ops.norm(gradients)
 
@@ -65,4 +67,5 @@ class CTGANDiscriminator(BaseCTGANDiscriminator):
         )
         seed = jax.random.split(seed, 1)[0]
         non_trainable_variables[0] = seed
+        print("heading out o7")
         return gradient_penalty, non_trainable_variables
