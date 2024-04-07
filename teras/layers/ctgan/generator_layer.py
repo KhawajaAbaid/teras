@@ -1,4 +1,5 @@
 import keras
+from keras import ops
 from teras.api_export import teras_export
 
 
@@ -25,18 +26,18 @@ class CTGANGeneratorLayer(keras.layers.Layer):
         self.dense = keras.layers.Dense(self.dim)
         self.batch_norm = keras.layers.BatchNormalization()
         self.relu = keras.layers.ReLU()
-        self.concat = keras.layers.Concatenate(axis=1)
 
     def build(self, input_shape):
         self.dense.build(input_shape)
         input_shape = self.dense.compute_output_shape(input_shape)
         self.batch_norm.build(input_shape)
+        self.relu.build(input_shape)
 
     def call(self, inputs):
         x = self.dense(inputs)
         x = self.batch_norm(x)
         x = self.relu(x)
-        out = self.concat([x, inputs])
+        out = ops.concatenate([x, inputs], axis=1)
         return out
 
     def compute_output_shape(self, input_shape):
