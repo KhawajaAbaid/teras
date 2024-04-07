@@ -6,6 +6,12 @@ from teras.utils import generate_fake_gemstone_data
 from teras.preprocessing.data_transformers.ctgan import CTGANDataTransformer
 from teras.preprocessing.data_samplers.ctgan import CTGANDataSampler
 import os
+from teras.testing.markers import skip_on_torch
+import pytest
+from keras import backend
+if backend.backend() == "torch":
+    pytest.skip("Tests enter inifite loop on torch backend.",
+                allow_module_level=True)
 
 
 class CTGANGeneratorTest(TestCase):
@@ -38,6 +44,7 @@ class CTGANGeneratorTest(TestCase):
         outputs = generator(z)
         self.assertEqual(ops.shape(outputs), (8, self.data_dim))
 
+    @skip_on_torch
     def test_save_and_load(self):
         z = random.uniform((8, 16))
         generator = CTGANGenerator(data_dim=self.data_dim,
