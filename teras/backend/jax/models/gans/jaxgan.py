@@ -87,6 +87,66 @@ class JAXGAN(Model):
         ]
         return metrics
 
+    # TODO: Good idea (?) but needs more work to fix!
+    def _parse_state(self, state):
+        """
+        Decomposes overall gan model variables into generator and
+        discriminator's variables.
+
+        Returns:
+            generator_state, discriminator_state, other_state, metrics_vars
+        """
+        generator_state = []
+        discriminator_state = []
+        other_state = []    # sometimes the parent class may have its own vars
+        state = list(state)
+        while (len(state) < 4):
+            # we append empty dummy placeholder lists
+            state.append([])
+        (
+            trainable_variables,
+            non_trainable_variables,
+            optimizer_variables,
+            metrics_variables
+        )  = state
+        # Get generator state
+        # Since generator comes and gets built before discriminator
+        num_gen_train_vars = len(self.generator.trainable_variables)
+        generator_state.append(
+            trainable_variables[:num_gen_train_vars])
+        num_gen_non_train_vars = len(self.generator.non_trainable_variables)
+        generator_state.append(
+            non_trainable_variables[:num_gen_non_train_vars])
+        if optimizer_variables is not None:
+            generator_state.append(
+                optimizer_variables[:len(self.generator_optimizer.variables)])
+
+        # Get discriminator state
+        num_disc_train_vars = len(self.discriminator.trainable_variables)
+        slice_size = num_gen_train_vars + num_disc_train_vars
+        discriminator_state.append(
+            trainable_variables[num_gen_train_vars: slice_size])
+        num_disc_non_train_vars = len(
+            self.discriminator.non_trainable_variables)
+        slice_size = num_gen_non_train_vars + num_disc_non_train_vars
+        discriminator_state.append(
+            non_trainable_variables[num_gen_non_train_vars: slice_size])
+        if optimizer_variables is not None:
+            discriminator_state.append(
+                optimizer_variables[len(self.generator_optimizer.variables):])
+
+        # Get anything left over
+        other_state.append(
+            trainable_variables[num_gen_train_vars + num_disc_train_vars:]
+        )
+        other_state.append(
+            trainable_variables[num_gen_non_train_vars +
+                                num_disc_non_train_vars:]
+        )
+
+        return (tuple(generator_state), tuple(discriminator_state),
+                tuple(other_state), metrics_variables)
+
     def _parse_variables(self, trainable_variables, non_trainable_variables,
                          optimizer_variables=None):
         """
