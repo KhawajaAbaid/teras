@@ -1,6 +1,8 @@
 from teras import backend
+from teras.api_export import teras_export
 
 
+@teras_export("teras.utils.create_gain_dataset")
 def create_gain_dataset(x, seed: int = 1337):
     """
     Creates a torch dataloader compatible with the `GAIN` architecture.

@@ -1,7 +1,9 @@
 from keras import ops
 from keras.backend import floatx
+from teras.api_export import teras_export
 
 
+@teras_export("teras.losses.tabnet_reconstruction_loss")
 def tabnet_reconstruction_loss(real=None,
                                reconstructed=None,
                                mask=None):

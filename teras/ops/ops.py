@@ -1,7 +1,9 @@
 import keras
 from teras import backend
+from teras.api_export import teras_export
 
 
+@teras_export("teras.ops.norm")
 def norm(x: keras.KerasTensor,
          ord: str = None,
          axis: int = None,
