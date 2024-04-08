@@ -1,17 +1,16 @@
 [build-system]
-requires = ["setuptools>=61.0", "tensorflow", "tensorflow-probability",
-            "tensorflow-addons", "pandas", "numpy", "tqdm"]
+requires = ["setuptools>=61.0", "keras>=3.1.1", "pandas", "numpy"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "Teras"
-version = "0.2.0"
+version = "0.3.0"
 authors = [
   { name="Khawaja Abaid", email="khawaja.abaid@gmail.com" },
 ]
 description = "A Unified Deep Learning Library for Tabular Data"
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.9"
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
@@ -20,3 +19,4 @@ classifiers = [
 [project.urls]
 "Homepage" = "https://github.com/KhawajaAbaid/teras"
 "Bug Tracker" = "https://github.com/KhawajaAbaid/teras/issues"
+"Docs" = "https://teras.readthedocs.io/"
