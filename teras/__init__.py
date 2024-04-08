@@ -22,5 +22,6 @@ from teras import preprocessing
 from teras import tasks
 from teras import trainers
 from teras import utils
+from teras import activations
 from teras.version_utils import version
 from teras.version_utils import __version__
