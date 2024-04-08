@@ -10,14 +10,15 @@
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
-# limitations under the License.
+# limitatiFions under the License.
 
 from keras.backend import backend
 
-if not backend() == "jax":
-    raise ImportError(
-        "`teras.trainers` module is only available for `jax` backend. "
-        "Please set your `KERAS_BACKEND` environment variable to `jax` before "
-        "importing `teras.trainers`.")
-
-from teras.backend.jax.trainers import *
+if backend() == "jax":
+    from teras.backend.jax.trainers import *
+else:
+    # raise ImportError(
+    #     "`teras.trainers` module is only available for `jax` backend. "
+    #     "Please set your `KERAS_BACKEND` environment variable to `jax` before "
+    #     "importing `teras.trainers`.")
+    pass

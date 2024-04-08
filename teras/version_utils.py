@@ -1,4 +1,4 @@
-# Copyright 2023 Khawaja Abaid Ullah
+# Copyright 2024 The KerasCV Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,6 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from teras.api_export import teras_export
+
+# Unique source of truth for the version number.
+__version__ = "0.3.0"
 
 
-# This module contains default parameter values config classes for all Model and Layer classes.
+@teras_export("teras.version")
+def version():
+    return __version__
