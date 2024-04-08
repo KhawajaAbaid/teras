@@ -13,4 +13,4 @@
 # limitations under the License.
 
 
-from teras.ops.ops import norm
+from teras._src.ops.ops import norm
