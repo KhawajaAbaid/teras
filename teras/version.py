@@ -12,12 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from teras.api_export import teras_export
 
 # Unique source of truth for the version number.
 __version__ = "0.3.0"
 
 
-@teras_export("teras.version")
 def version():
     return __version__
