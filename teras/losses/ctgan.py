@@ -1,7 +1,9 @@
 import keras
 from keras import ops
+from teras.api_export import teras_export
 
 
+@teras_export("teras.losses.ctgan_generator_loss")
 def ctgan_generator_loss(x_generated,
                          y_pred_generated,
                          cond_vectors,
@@ -52,6 +54,7 @@ def ctgan_generator_loss(x_generated,
     return loss
 
 
+@teras_export("teras.losses.ctgan_discriminator_loss")
 def ctgan_discriminator_loss(y_pred_real, y_pred_generated):
     """
     Loss for the Discriminator model in the CTGAN architecture.

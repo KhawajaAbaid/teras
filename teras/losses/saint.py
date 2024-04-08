@@ -1,8 +1,10 @@
 import keras
 from keras import ops
 import numpy as np
+from teras.api_export import teras_export
 
 
+@teras_export("teras.losses.saint_constrastive_loss")
 def saint_constrastive_loss(
         real,
         augmented,
@@ -35,6 +37,7 @@ def saint_constrastive_loss(
     return loss
 
 
+@teras_export("teras.losses.saint_denoising_loss")
 def saint_denoising_loss(real,
                          reconstructed,
                          cardinalities: list):
