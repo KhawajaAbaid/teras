@@ -3,8 +3,10 @@ import pandas as pd
 import numpy as np
 from warnings import warn
 from teras.utils.types import DataFrameOrNdArray
+from teras.api_export import teras_export
 
 
+@teras_export("teras.utils.compute_cardinalities")
 def compute_cardinalities(x, categorical_idx):
     """
     Compute cardinalities for features in the given dataset/dataframe.
@@ -33,6 +35,7 @@ def compute_cardinalities(x, categorical_idx):
     return cardinalities
 
 
+@teras_export("teras.utils.get_metadata_for_embedding")
 def get_metadata_for_embedding(dataframe: pd.DataFrame,
                                categorical_features=None,
                                numerical_features=None):
@@ -95,6 +98,7 @@ def get_metadata_for_embedding(dataframe: pd.DataFrame,
     return features_meta_data
 
 
+@teras_export("teras.utils.convert_tf_dict_to_array_tensor")
 def convert_tf_dict_to_array_tensor(dict_tensor):
     """
     Converts a batch of data taken from tensorflow dictionary format
@@ -119,6 +123,7 @@ def convert_tf_dict_to_array_tensor(dict_tensor):
     return array_tensor
 
 
+@teras_export("teras.utils.inject_missing_values")
 def inject_missing_values(x: DataFrameOrNdArray,
                           miss_rate=0.1
                           ):
@@ -154,6 +159,7 @@ def inject_missing_values(x: DataFrameOrNdArray,
     return x_with_missing_data
 
 
+@teras_export("teras.utils.inject_missing_values")
 def generate_fake_gemstone_data(num_samples: int = 16):
     """
     Generate fake gemstone like data of specified num_samples.
@@ -176,6 +182,7 @@ def generate_fake_gemstone_data(num_samples: int = 16):
     return fake_gem_df
 
 
+@teras_export("teras.utils.clean_reloaded_config_data")
 def clean_reloaded_config_data(x):
     """
     Cleans reloaded dictionary/list config data in the `from_config` method.
