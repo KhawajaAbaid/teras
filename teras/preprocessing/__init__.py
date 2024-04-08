@@ -1,4 +1,4 @@
-# Copyright 2023 Khawaja Abaid Ullah
+# Copyright 2024 Khawaja Abaid Ullah
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,9 +13,16 @@
 # limitations under the License.
 
 
-# Data Transformers
-from teras.preprocessing.data_transformers.gain import GAINDataTransformer
-from teras.preprocessing.data_transformers.ctgan import CTGANDataTransformer
-
 # Data Samplers
-from teras.preprocessing.data_samplers.ctgan import CTGANDataSampler
+from teras._src.preprocessing.data_samplers.ctgan import (
+    CTGANDataSampler as CTGANDataSampler)
+from teras._src.preprocessing.data_samplers.tvae import (
+    TVAEDataSampler as TVAEDataSampler)
+
+# Data Transformers
+from teras._src.preprocessing.data_transformers.gain import (
+    GAINDataTransformer as GAINDataTransformer)
+from teras._src.preprocessing.data_transformers.ctgan import (
+    CTGANDataTransformer as CTGANDataTransformer)
+from teras._src.preprocessing.data_transformers.tvae import (
+    TVAEDataTransformer as TVAEDataTransformer)
