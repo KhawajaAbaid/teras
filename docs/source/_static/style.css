@@ -1,0 +1,58 @@
+@import url("theme.css");
+
+:root {
+  --block-bg-opacity: 0.;
+}
+
+.wy-side-nav-search {
+  background-color: #fff;
+}
+
+.getting-started {
+  background-color: #F2C078;
+}
+
+.user-guides {
+  background-color: #A1CEA9;
+}
+
+
+.developer-docs {
+  background-color: #F76C5E;
+}
+
+
+div.red-background pre {
+  background-color: rgba(247, 108, 94, var(--block-bg-opacity));
+}
+
+div.green-background pre {
+  background-color: rgba(172, 191, 164, var(--block-bg-opacity));
+}
+
+code {
+  color: #A1CEA9 !important;
+}
+
+/* .sig-name {
+  color: #324376 !important;
+} */
+/* 
+a>code {
+  color: #F2C078 !important;
+} */ */
+/* .reference {
+  color: #F2C078 !important;
+} */
+
+/* .pre {
+  color: #7EBC89 !important;
+}
+
+.highlight .c{
+  color: #7EBC89 !important;
+}
+
+.highlight.c1{
+  color: #7EBC89 !important;
+}
