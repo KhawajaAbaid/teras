@@ -1,3 +1,5 @@
+.. py:currentmodule:: teras
+
 API Reference
 ==============
 
