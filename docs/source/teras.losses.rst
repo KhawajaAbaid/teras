@@ -3,7 +3,7 @@ teras.losses module
 
 .. py:currentmodule:: teras.losses
 
-.. automodule:: tears.losses
+.. automodule:: teras.losses
 
 .. autosummary::
    :toctree: _autosummary
