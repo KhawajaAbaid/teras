@@ -12,5 +12,8 @@ Subpackages
    teras.models
    teras.tasks
    teras.preprocessing
+   teras.data_utils
+   teras.utils
+   teras.activations
    teras.losses
    teras.ops
