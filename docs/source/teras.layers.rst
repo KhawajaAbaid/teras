@@ -1,7 +1,7 @@
 ``teras.layers`` module
 ========================
 
-.. currentmodule:: teras.layers
+.. py:currentmodule:: teras.layers
 
 .. automodule:: teras.layers
 
