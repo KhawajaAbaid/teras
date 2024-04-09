@@ -1,5 +1,5 @@
-teras.losses module
-====================
+``teras.losses`` module
+=======================
 
 .. py:currentmodule:: teras.losses
 

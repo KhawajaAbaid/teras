@@ -1,5 +1,5 @@
-teras.ops module
-=================
+``teras.ops`` module
+====================
 
 .. py:currentmodule:: teras.ops
 

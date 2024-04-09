@@ -1,5 +1,5 @@
-teras.preprocessing module
-===========================
+``teras.preprocessing`` module
+==============================
 
 .. py:currentmodule:: teras.preprocessing
 

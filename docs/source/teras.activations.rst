@@ -1,5 +1,5 @@
-teras.activations module
-========================
+``teras.activations`` module
+============================
 
 .. py:currentmodule:: teras.activations
 

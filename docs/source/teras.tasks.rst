@@ -1,5 +1,5 @@
-teras.tasks module
-===================
+``teras.tasks`` module
+======================
 
 .. py:currentmodule:: teras.tasks
 

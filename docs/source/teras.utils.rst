@@ -1,5 +1,5 @@
-teras.utils module
-===================
+``teras.utils`` module
+======================
 
 .. py:currentmodule:: teras.utils
 
