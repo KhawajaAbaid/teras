@@ -11,6 +11,7 @@ def compute_cardinalities(x, categorical_idx):
     """
     Compute cardinalities for features in the given dataset/dataframe.
     For numerical features, 0 is used as a placeholder.
+
     Args:
         x: Input dataset or dataframe.
         categorical_idx: list, a list of indices of categorical features
