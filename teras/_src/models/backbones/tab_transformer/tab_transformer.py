@@ -41,8 +41,7 @@ class TabTransformerBackbone(Backbone):
             identifiers, which according to the paper, help the model
             distinguish categories of one feature from the other.
             By default, its value is set to `embedding_dim / 8` as this
-            setup is the most superior in the results presented by the
-            authors.
+            setup is the most superior in the results presented by the authors.
         join_method: str, one of ['concat', 'add'] method to join the
             shared embeddings with feature embeddings.
             Defaults to 'concat', which is the recommended method,

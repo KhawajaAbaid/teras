@@ -1,0 +1,12 @@
+keras>=3.1.1
+numpy
+pandas
+scikit-learn
+shpinx
+matplotlib
+sphinx_autodoc_typehints
+myst_nb
+sphinx_remove_toctrees
+sphinx_copybutton
+sphinx_design
+sphinx_book_theme

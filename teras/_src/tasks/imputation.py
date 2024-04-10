@@ -19,13 +19,12 @@ class Imputer:
     """
     def __init__(self,
                  model: keras.Model,
-                 data_transformer):
+                 data_transformer=None):
         self.model = model
         self.data_transformer = data_transformer
 
     def impute(self, x, reverse_transform=True, batch_size=None,
-               verbose="auto", steps=None, callbacks=None, max_queue_size=10,
-               workers=1, use_multiprocessing=False):
+               verbose="auto", steps=None, callbacks=None):
         """
         Imputes the missing data.
         It exposes all the arguments taken by the `predict` method.
@@ -38,14 +37,6 @@ class Imputer:
         Returns:
             Imputed data in the original format.
         """
-        x_imputed = self.model.predict(x,
-                                       batch_size=batch_size,
-                                       verbose=verbose,
-                                       steps=steps,
-                                       callbacks=callbacks,
-                                       max_queue_size=max_queue_size,
-                                       workers=workers,
-                                       use_multiprocessing=use_multiprocessing)
         if reverse_transform:
             if self.data_transformer is None:
                 raise ValueError(
@@ -58,5 +49,11 @@ class Imputer:
                     "parameter to False, and manually reverse transform the "
                     "generated raw data to original format using the "
                     "`reverse_transform` method of `DataTransformer` instance.")
+        x_imputed = self.model.predict(x,
+                                       batch_size=batch_size,
+                                       verbose=verbose,
+                                       steps=steps,
+                                       callbacks=callbacks)
+        if reverse_transform:
             x_imputed = self.data_transformer.reverse_transform(x_imputed)
         return x_imputed

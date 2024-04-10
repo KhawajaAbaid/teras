@@ -28,8 +28,7 @@ class Generator:
         self.data_sampler = data_sampler
 
     def generate(self, num_samples, latent_dim, batch_size=None,
-                 verbose="auto", steps=None, callbacks=None, max_queue_size=10,
-                 workers=1, use_multiprocessing=False, seed=None):
+                 verbose="auto", steps=None, callbacks=None, seed=None):
         """
         Generates new data samples.
         It exposes all the arguments taken by the `predict` method.
@@ -57,10 +56,7 @@ class Generator:
                                          batch_size=batch_size,
                                          verbose=verbose,
                                          steps=steps,
-                                         callbacks=callbacks,
-                                         max_queue_size=max_queue_size,
-                                         workers=workers,
-                                         use_multiprocessing=use_multiprocessing
+                                         callbacks=callbacks
                                          )
         x_generated = self.data_transformer.reverse_transform(x_generated)
         return x_generated

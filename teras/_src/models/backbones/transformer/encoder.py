@@ -8,8 +8,8 @@ from teras._src.api_export import teras_export
 @teras_export("teras.models.TransformerEncoderBackbone")
 class TransformerEncoderBackbone(Backbone):
     """
-    Transformer Encoder model as proposed in the "Attention is all you
-    need" paper.
+    Transformer Encoder model as proposed in the
+    "Attention is all you need" paper.
 
     Reference(s):
         https://arxiv.org/abs/1706.03762
