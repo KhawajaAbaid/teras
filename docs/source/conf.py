@@ -81,7 +81,7 @@ exclude_patterns = [
 ]
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = None
+pygments_style = 'pitaya-smoothie'
 
 
 autosummary_generate = True
@@ -109,22 +109,22 @@ html_theme_options = {
     'repository_url': 'https://github.com/KhawajaAbaid/teras',
     'use_repository_button': True,     # add a "link to repository" button
     'navigation_with_keys': False,
+    # 'pygment_light_style': 'green',
+    # 'pygment_dark_style': 'yello',
 }
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-html_logo = '_static/teras_logo_light_250px.png'
+html_logo = '_static/teras_logo_250px.png'
 
-html_favicon = '_static/teras_favicon.png'
+html_favicon = '_static/favicon.png'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
-html_css_files = [
-    'style.css',
-]
+html_css_files = ['style.css']
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
@@ -153,10 +153,7 @@ nb_execution_excludepatterns = [
 
 
 def skip_member(app, what, name, obj, skip, options):
-    exclusions = ['call', 'compile', 'build', 'train_step', 'predict_step',
-                  'get_config', 'compute_loss_and_updates',
-                  'compute_generator_loss_and_updates',
-                  'compute_discriminator_loss_and_updates']
+    exclusions = []
     # Add the names of the methods you want to exclude from the documentation
 
     if name in exclusions:
