@@ -29,7 +29,7 @@ class Classifier(Task):
         x = keras.layers.Flatten()(x)
         outputs = keras.layers.Dense(num_classes,
                                      activation=activation,
-                                     name="predictions")
+                                     name="predictions")(x)
         super().__init__(inputs, outputs, **kwargs)
 
         self.backbone = backbone
