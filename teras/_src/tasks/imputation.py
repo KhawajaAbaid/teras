@@ -19,7 +19,7 @@ class Imputer:
     """
     def __init__(self,
                  model: keras.Model,
-                 data_transformer):
+                 data_transformer=None):
         self.model = model
         self.data_transformer = data_transformer
 
