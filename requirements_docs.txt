@@ -10,3 +10,6 @@ sphinx_remove_toctrees
 sphinx_copybutton
 sphinx_design
 sphinx_book_theme
+tensorflow
+pytorch
+jax
