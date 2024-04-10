@@ -1,29 +1,22 @@
 # Teras — A Unified Deep Learning Library for Tabular Data
 
-![Teras logo banner](./data/imgs/Teras_logo_github_banner.jpg)
-
-## STATUS UPDATE as of January 19, 2024:
-
-The current repository is in a highly unstable state as I'm starting to rewrite this whole library from scratch. All the previous code uptil Teras v0.2.0 has been moved to the new `teras.legacy` module.
+![Teras logo banner](./data/imgs/teras_banner.jpg)
 
 
-#### Status update as of January 12, 2024:
-I'm actively working on the Teras v0.3 update but I've discovered some critical flaws in the design as well as code, and many inefficiencies and hacks that shouldn't be part of a good stable project, especially not that offers the state of the art research models. Because I'm a self taught ML and Software Engineer, there's so many things for me to learn and the more I learn the more flaws I keep finding in my code. Also, this library was my first attempt at translating research to usable code, and not just usable code but also one that is modular and intuitive, which is an inspiration from the Keras design. I made lots of mistakes in my first attempt, I redesigned the whole library in Teras v0.2 release and thought that'll now be a solid foundation, and i'd like to think it kind of was, but now with the release of Keras 3, there's lot to change, way more than I anticipated, mainly because of how some of the models require bunch of low level code.
-I'll try my best to release this update within this month!
-Peace!
 
----
+teras (short for Tabular Keras) is a unified deep learning library for Tabular 
+Data that aims to be your one stop for everything related to deep learing with 
+tabular data.
 
-Teras (short for Tabular Keras) is a unified deep learning library for Tabular Data that aims to be your one stop for everything related to deep learing with tabular data.
+**IMPORTANT** teras v0.3 is now fully based on Keras 3, making everything available backend agnostic. It supports TensorFlow, JAX and PyTorch backends.
 
-It provides state of the art layers, models and arhitectures for all purposes, be it classification, regression or even data generation and imputation using state of the art deep learning architectures. 
+teras provides state of the art layers, models and architectures for all purposes, be it classification, regression or even data generation and imputation using state of the art deep learning architectures.
 
-It also includes Preprocessing, Encoding and (Categorical and Numerical) Embedding layers. 
+It also includes functions and classes for preprocessing data for complex architectures, making it extremely simple to transform your data in the expected format, saving you loads of hassle and time!
 
 While these state of the art architectures can be quite sophisticated, Teras, thanks to the incredible design of Keras, abstracts away all the complications and sophistication and makes it easy as ever to access those models and put them to use.
 
 Not only that, everything available is highly customizable and modular, allowing for all variety of use cases.
-
 ## Installation:
 You can install Teras using pip as follows,
 ```
@@ -37,43 +30,6 @@ Read our [Getting Started Guide](https://teras.readthedocs.io/en/latest/getting_
 ## Documentation:
 You can access the documentation on ReadTheDocs.io: https://teras.readthedocs.io/en/latest/index.html
 
-## Usage
-Teras provides two API for usage to satiate different levels of flexibility and accessibility needs:
-1. **Parametric API**: This is the default API, where user specifies values for parameters that are used in construction of any sub-layers or models within the architecture.
-```
-from teras.models import TabNetClassifier
-
-model = TabNetClassifier(num_classes=2, features_metadata=features_metadata)
-```
-2. **LayerFlow API**: It maximizes flexibility and minimizes interface. Here, the user can pass any sub-layers or models instances as arguments to the given architecture (model/layer). It can be accessed through `teras.layerflow`
-Note that, there're no `<architecture>Classifier` or `<architecture>Regressor` model classes, but just one model class, which accepts a `head` layer that decides the model's final purpose.
-```
-from teras.layerflow.models import TabNet
-from teras.layers import TabNetEncoder, CategoricalFeatureEmbedding, ClassificationHead
-
-embedding = CategoricalFeatureEmbedding(features_metadata, embedding_dim=1)     # TabNet requires embedding_dim to be 1
-encoder = TabNetEncoder(input_dim=input_dim)
-head = ClassificationHead(num_classes=2)
-model = TabNet(input_dim=input_dim,
-               features_metadata=features_metadata,
-               categorical_feature_embedding=embedding,
-               encoder=encoder,
-               head=head)
-```
-You can read more about the difference between the two in the Teras APIs section in the [Getting Started Guide](https://github.com/KhawajaAbaid/teras/blob/main/tutorials/getting_started.ipynb).
-
-## Main Teras Modules
-Teras offers following main modules:
-
-1. `teras.layerflow`: It is the LayerFlow API, offering maximum flexibility with minimal interface. It's an alternative to the default Parametric API. You can read more about the difference between the two in the **Teras APIs** section in the [Getting Started Guide](https://teras.readthedocs.io/en/latest/getting_started.html).
-2. `teras.layers`: It contains all the layers for all of the architectures offered by Teras.
-3. `teras.models`: It contains all of the models of all the architectures types, be it Classificaiton, Regresssion etc offered by Teras.
-4. `teras.generative`: It contains state of the art models for Data Generation. (Currently it offers `CTGAN` and `TVAE`).
-5. `teras.impute`: It contains state of the art models for Data Imputation. (Currently it offers `GAIN` and `PCGAIN`)
-6. `teras.preprocessing`: It offers preprocessing classes for data transformation and data sampling that are required by highly sophisticated models specifically the data generation and imputation models.
-7. `teras.ensemble`: It is a work in progress and aims to offers ensembling techniques making it easier than ever to ensemble your deep learning models, such as using Bagging or Stacking. (Currently it offers very basic version of these.)
-8. `teras.utils`: It contains useful utility functions making life easier for Teras users
-9. `teras.losses`: It contains custom losses for various architectures.
 
 ## Motivation
 The main purposes of Teras are to:
