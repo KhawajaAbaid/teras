@@ -1,7 +1,10 @@
 .. _user-guide:
 
+User Guide
+================
+
 work in progress. our team is working hard
 
 
-.. image:: /static_/teras_logo_250px.png
+.. image:: _static/cat_smash.gif
    :alt: a cat smashing on a laptop keyboard
