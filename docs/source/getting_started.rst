@@ -34,9 +34,10 @@ Example:
 In Colab, you can do,
 
 .. code-block:: python
-    import os
-    os.environ["KERAS_BACKEND"] = "jax"
-    import keras
+
+   import os
+   os.environ["KERAS_BACKEND"] = "jax"
+   import keras
 
 For more Keras related configuration, please refer to
 `Getting started with Keras <keras_getting_started>`_.
