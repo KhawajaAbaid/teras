@@ -2,14 +2,18 @@ keras>=3.1.1
 numpy
 pandas
 scikit-learn
-sphinx
 matplotlib
+absl-py
+ipython>=8.8.0  # 8.7.0 has ipython3 lexer error
+sphinx>=6.0.0
+sphinx-autodoc-typehints
+sphinx-book-theme>=1.0.1  # Older versions fail to pin pydata-sphinx-theme
+sphinx-copybutton>=0.5.0
+sphinx-remove-toctrees
+sphinx-design
+myst-nb>=1.0.0
 sphinx_autodoc_typehints
 myst_nb
-sphinx_remove_toctrees
-sphinx_copybutton
-sphinx_design
-sphinx_book_theme
 tensorflow
-pytorch
+torch
 jax
