@@ -7,7 +7,8 @@ from teras._src.api_export import teras_export
 
 
 @teras_export("teras.utils.compute_cardinalities")
-def compute_cardinalities(x, categorical_idx):
+def compute_cardinalities(x, categorical_idx: list,
+                          ordinal_encoded: bool = True):
     """
     Compute cardinalities for features in the given dataset/dataframe.
     For numerical features, 0 is used as a placeholder.
@@ -16,6 +17,8 @@ def compute_cardinalities(x, categorical_idx):
         x: Input dataset or dataframe.
         categorical_idx: list, a list of indices of categorical features
             in the given dataset.
+        ordinal_encoded: `bool`, Whether the categorical values have been
+            ordinal encoded. Defaults to True.
 
     Returns:
         A 1d numpy array of cardinalities of all features.
@@ -28,8 +31,11 @@ def compute_cardinalities(x, categorical_idx):
     for idx in range(ops.shape(x)[1]):
         if idx in categorical_idx:
             feature = ops.convert_to_numpy(x[:, idx])
-            cardinalities = np.append(cardinalities,
-                                      (len(np.unique(feature))))
+            if ordinal_encoded:
+                num_categories = np.max(feature) + 1
+            else:
+                num_categories = len(np.unique(feature))
+            cardinalities = np.append(cardinalities, num_categories)
         else:
             # it's a numerical feature, in which case we append 0
             cardinalities = np.append(cardinalities, 0)
