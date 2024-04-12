@@ -17,7 +17,9 @@ class Classifier(Task):
         activation: str or callable, activation function to use for
             outputs. Defaults to "softmax"
         hidden_dim: int, hidden dimensionality of the dense head.
+            Defaults to 1024.
         hidden_activation: str or callable, activation for the hidden layer.
+            Defaults to "relu".
     """
     def __init__(self,
                  backbone: keras.Model,
