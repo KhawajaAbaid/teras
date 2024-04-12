@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.abspath('../..'))
 project = 'teras'
 copyright = '2023, Khawaja Abaid Ullah'
 author = 'Khawaja Abaid Ullah'
-release = '0.3.0'
+release = '0.3.1'
 
 
 # -- General configuration ---------------------------------------------------
