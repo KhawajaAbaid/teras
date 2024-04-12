@@ -78,3 +78,15 @@ class SAINTEmbedding(keras.layers.Layer):
             embeddings = ops.concatenate([embeddings, feature_embeddings],
                                          axis=1)
         return embeddings
+
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            "embedding_dim": self.embedding_dim,
+            "cardinalities": self.cardinalities
+        })
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        return cls(**config)
