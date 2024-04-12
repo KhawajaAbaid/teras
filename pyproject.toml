@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "Teras"
-version = "0.3.0"
+version = "0.3.1"
 authors = [
   { name="Khawaja Abaid", email="khawaja.abaid@gmail.com" },
 ]
