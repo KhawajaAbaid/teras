@@ -15,18 +15,24 @@ class Classifier(Task):
             inputs followed by the dense head that produces predictions.
         num_classes: int, number of classes to predict.
         activation: str or callable, activation function to use for
-        outputs. Defaults to "softmax"
+            outputs. Defaults to "softmax"
+        hidden_dim: int, hidden dimensionality of the dense head.
+        hidden_activation: str or callable, activation for the hidden layer.
     """
     def __init__(self,
                  backbone: keras.Model,
                  num_classes: int,
                  activation: ActivationType = "softmax",
+                 hidden_dim: int = 1024,
+                 hidden_activation: ActivationType = "relu",
                  **kwargs):
         inputs = backbone.input
         x = backbone(inputs)
         # In case the backbone outputs are of shape (None, a, b),
         # for instance in the case of transformer based models
         x = keras.layers.Flatten()(x)
+        x = keras.layers.Dense(hidden_dim, activation=hidden_activation,
+                               name="hidden_layer_classification_head")(x)
         outputs = keras.layers.Dense(num_classes,
                                      activation=activation,
                                      name="predictions")(x)
@@ -35,6 +41,8 @@ class Classifier(Task):
         self.backbone = backbone
         self.num_classes = num_classes
         self.activation = activation
+        self.hidden_dim = hidden_dim
+        self.hidden_activation = hidden_activation
 
     def get_config(self):
         config = super().get_config()
@@ -42,6 +50,8 @@ class Classifier(Task):
             {
                 "backbone": keras.layers.serialize(self.backbone),
                 "num_classes": self.num_classes,
-                "activation": self.activation
+                "activation": self.activation,
+                "hidden_dim": self.hidden_dim,
+                "hidden_activation": self.hidden_activation
             }
         )
