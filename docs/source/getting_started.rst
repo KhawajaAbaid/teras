@@ -14,8 +14,8 @@ and hence provide seamless integration.
    backend agnostic. It supports TensorFlow, JAX and PyTorch backends.**
 
 .. warning::
-    To use teras v0.3 you must have keras 3 installed! It won't work with
-    teras 2.x
+    To use teras v0.3 you must have Keras 3 installed! It won't work with
+    Keras 2.x
 
 Installing teras
 -----------------
