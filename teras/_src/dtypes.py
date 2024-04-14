@@ -1,13 +1,15 @@
 import numpy as np
 
 
-_DEFAULT_NUMPY_FLOATX = np.float32
+np_floatx = np.float32
+mask_dtype = np.uint8
 
 
-def get_default_numpy_floatx():
-    return _DEFAULT_NUMPY_FLOATX
+def set_np_floatx(dtype):
+    global np_floatx
+    np_floatx = dtype
 
 
-def set_default_numpy_floatx(dtype):
-    global _DEFAULT_NUMPY_FLOATX
-    _DEFAULT_NUMPY_FLOATX = dtype
+def set_mask_dtype(dtype):
+    global mask_dtype
+    mask_dtype = dtype
