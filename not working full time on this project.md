@@ -37,11 +37,3 @@ The main purposes of teras are to:
 2. Further bridge the gap between research and application.
 3. Be a one-stop for everything concerning deep learning for tabular data.
 4. Accelerate research in tabular domain of deep learning by making it easier for researchers to access, use and experiment with exisiting architectures — saving them lots of valuable time.
-
-
-## Support
-If you find teras useful, consider supporting the project. I've been working on this for the past several months, and as you may guess such software consume a lot of your time. I also have many future plans for it but my current laptop is quite old which makes it impossible for me to test highly demanding workflows let alone rapidly test and iterate. So your support will be very vital in the betterment of this project, and many others that I plan to build!
-Thank you!
-
-[![BuyMeACoffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://www.buymeacoffee.com/KhawajaAbaid)
-[![Patreon](https://img.shields.io/badge/Patreon-F96854?style=for-the-badge&logo=patreon&logoColor=white)](https://www.patreon.com/KhawajaAbaid)
